@@ -422,6 +422,7 @@ svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.75;str
       <optgroup label="The balance in the bars, and a quick sign-out (sketch)"><option value="bb-home">Home · the balance in the top bar</option><option value="bb-shown">· tapped: the balance shows for 5 seconds</option><option value="bb-home-low">· low, in amber</option><option value="bb-shown-low">· low, tapped</option><option value="bb-home-zero">· used up, in red</option><option value="bb-account">· a computer: the initial opens your menu, Sign out in it</option><option value="bb-menu">· a phone: Menu's first card, the shop and you, with Sign out</option><option value="bb-staff">· staff who may not see the balance: no balance shown</option></optgroup>
       <optgroup label="Order items, clear (sketch)"><option value="oi-items">Order · items: design + SKU, quantity in its unit, each option by name</option><option value="oi-items-kg">· weighed and packed items (kg, litre, a pack's total)</option><option value="oi-photo">· a design's photo, large</option></optgroup>
       <optgroup label="Pathao pickup store, added from Lytro (sketch)"><option value="sh-ps-store">Pickup store · the list, and Add a store</option><option value="sh-ps-new">· a new store: name, contact, place, address</option><option value="sh-ps-new-bad">· what Pathao needs, checked before sending</option><option value="ps-added">· added and chosen</option><option value="sh-ps-waiting">· added, Pathao has not switched it on yet</option><option value="sh-ps-none">· the Pathao account has no store yet</option></optgroup>
+      <optgroup label="Developers · the API docs (sketch)"><option value="dev-keys">API keys · Developer docs, under the lead</option><option value="dev-keys-none">· no key of your own yet</option><option value="dev-docs">Developer API · getting started (a phone folds the list)</option><option value="dev-docs-nokey">· no key yet: step 1 makes one</option><option value="dev-toc">· on a phone: On this page, open</option><option value="dev-auth">· authentication and headers</option><option value="dev-limits">· limits: this plan, this cycle</option><option value="dev-used-up">· this cycle’s requests used up</option><option value="dev-errors">· errors: the envelope and every code</option><option value="dev-products">· a route: GET /v1/catalogue/products, curl</option><option value="dev-products-js">· the same, JavaScript</option><option value="dev-copied">· a sample copied</option><option value="dev-order">· POST /v1/orders: body, Idempotency-Key</option><option value="dev-track">· GET /v1/track/{trackingId}</option><option value="dev-shopper">· shopper accounts: the token</option></optgroup>
       <optgroup label="Later phases (design only)"><option value="storefront">Storefront settings · slides as a carousel (Slice 12)</option><option value="storefront-tiles">· one banner and two tiles (Slice 12)</option><option value="storefront-empty">· no slides yet (Slice 12)</option><option value="sh-slide">· slide editor with the focal point (Slice 12)</option><option value="sh-slide-new">· new slide (Slice 12)</option><option value="sh-slide-preview">· both crops (Slice 12)</option><option value="sh-slide-delete">· remove slide (Slice 12)</option><option value="storefront-saved">· slide saved (Slice 12)</option></optgroup>
     </select>
   </label>
@@ -9650,6 +9651,929 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 .frame.phone .row:has(.bb-out) .bb-out{flex-basis:100%;justify-content:center}
 </style>`);
 /* ---------- end of the balance in the bars (sketch) ---------- */
+/* ---------- Developers: the API docs beside API keys (sketch, the owner 2026-11-21: "we need developers api route for
+   tenants in their dashboard like the steadfast, redx provide a developers api for us with sample request, response
+   and so on, so that any one can understand it easily"). API keys gets a Developer docs card under its lead; the docs
+   are one page, Settings → API keys → Developer API: getting started (a key, its websites, a first call),
+   authentication and headers, limits (this shop's plan and this cycle's use), errors, then every public route by
+   group: what it is for, its parameters, a curl and a JavaScript sample, the answer and its errors. A computer keeps
+   the list at the side; a phone folds it into "On this page" and each route into one line that opens. Words follow
+   the language switch; code, field names and JSON stay English, and a sample's `message` is in the language its
+   Accept-Language asks for. The same content, from the same definition, is lytro.app/developers
+   (lytro-site-pages.html, #developers). TENANT-DASHBOARD-DESIGN §7.48. ---------- */
+/* The developer API docs' content, ONE definition both sketches show: the dashboard's Developers screen
+   (lytro-dashboard.html) and lytro.app/developers (lytro-site-pages.html). Every field name, enum value, limit and
+   message below is read from the server's own code on 2026-11-21 (the public-api controllers' Zod response DTOs,
+   packages/validators, api-error.ts, i18n/messages.ts, order-limits.ts, shopper-gate.ts, migration 0064); the values
+   are a sample shop's. The built pages take this from one module whose samples a test parses with the real DTOs. */
+const DEVAPI = (() => {
+  const BASE = 'https://api.lytro.app/v1';
+  const SITE = 'https://meghfashion.com';
+  const KEY = 'lytro_pk_YOUR_KEY';
+  const T = '7c2e9a41-5b3d-4f8e-a1c6-0d9b2e4f7a35';
+  const P1 = '0b8f3c52-1e6a-4d7b-9c2f-8a5e3d1b6c40';
+  const P2 = '4e1a7d93-6c2b-4f5e-b8a0-3d9c1e7f2a68';
+  const V1 = 'a3d5e7f9-2b4c-4d6e-8f1a-3c5e7a9b1d24';
+  const V2 = 'b4e6f8a1-3c5d-4e7f-9a2b-4d6f8b1c3e35';
+  const V3 = 'c5f7a9b2-4d6e-4f8a-ab3c-5e7a9c2d4f46';
+  const OV1 = 'e7b9c2d4-6f8a-4b1c-8d5e-7a9c2e4f6b68';
+  const OV2 = 'f8c1d3e5-7a9b-4c2d-9e6f-8b1d3f5a7c79';
+  const COLOR = '19d2e4f6-8b1c-4d3e-af7a-9c2e4a6b8d80';
+  const C_WOMEN = '4ca5b7c9-be4f-4a6b-93ad-cf5b7d9eb013';
+  const C_SAREE = '2ae3f5a7-9c2d-4e4f-b18b-ad3f5b7c9e91';
+  const C_3PC = '3bf4a6b8-ad3e-4f5a-829c-be4a6c8daf02';
+  const Z_HOME = '9bfa0c1e-0d9e-4fb0-a8fc-1eaf02d45068';
+  const Z_OUT = 'ac0b1d2f-1eaf-4ac1-b90d-2fb013e56179';
+  const SH = 'bd1c2e3a-2fb0-4bd2-8a1e-3ac124f6728a';
+  const AD1 = 'ce2d3f4b-3ac1-4ce3-9b2f-4bd235a7839b';
+  const AD2 = 'df3e4a5c-4bd2-4df4-ac3a-5ce346b894ac';
+  const TOKEN = 'mQ3vT9xK2pL7wR4nB8cZ1fH6jD5sG0aEyU2iO7kVtAq';
+  const IDEM = '9b1d3c7e-2f4a-4d8b-a6c1-5e0f7a2b8c90';
+  const media = (id, hash) => ({
+    id,
+    urls: {
+      main: 'https://media.lytro.app/tenants/' + T + '/' + id + '/' + hash + '.webp',
+      thumbnail: 'https://media.lytro.app/tenants/' + T + '/' + id + '/' + hash + '.thumb.webp',
+    },
+  });
+  const IMG1 = media('6ec7d9eb-da6b-4c8d-b5cf-eb7d9fa12d35', '3f9a1c7e2b5d8a04');
+  const IMG2 = media('8ae9fb0d-fc8d-4eaf-97eb-0d9fb1c34f57', 'b81e4d0a6c2f9375');
+  const LOGO = media('5db6c8da-cf5a-4b7c-a4be-da6c8eaf1c24', '0c7d2e9b4a1f6385');
+  const swatches = [
+    { id: OV1, value: 'মেরুন', swatchColor: '#7b1e2b', swatchImage: null },
+    { id: OV2, value: 'নীল', swatchColor: '#1f4e8c', swatchImage: null },
+  ];
+  const zoneHome = { id: Z_HOME, name: { en: 'Inside Dhaka city', bn: 'ঢাকা সিটির ভেতরে' }, charge: '70.00', noDelivery: false };
+  const shopper = { id: SH, name: 'নুসরাত জাহান', phone: '01711234567', createdAt: '2026-11-21T06:10:00.000Z' };
+  const signedIn = { token: TOKEN, expiresAt: '2026-12-21T06:10:00.000Z', shopper };
+  const mirpur = { id: 162, nameEn: 'Mirpur', nameBn: 'মিরপুর', cityCode: 'dhaka', zillaId: 14 };
+  const addrHome = { id: AD1, label: 'বাসা', location: mirpur, deliveryAddress: 'বাড়ি 12, রোড 7, সেকশন 10, মিরপুর', isDefault: true };
+  const addrOffice = {
+    id: AD2,
+    label: 'অফিস',
+    location: { id: 146, nameEn: 'Dhanmondi', nameBn: 'ধানমন্ডি', cityCode: 'dhaka', zillaId: 14 },
+    deliveryAddress: 'লেভেল 5, বাড়ি 27, রোড 9/A, ধানমন্ডি',
+    isDefault: false,
+  };
+  const color = (value) => [{ name: 'রং', value, dataType: 'enum_single', unitKind: null, variantDefining: true }];
+  const lineSaree = {
+    variantId: V1,
+    productName: 'জামদানি শাড়ি',
+    attributes: color('মেরুন'),
+    thumbnail: IMG1.urls.thumbnail,
+    quantity: '1.000',
+    stockUnit: 'piece',
+    unitPrice: '3200.00',
+    itemTotal: '3200.00',
+    modifiers: [],
+  };
+  const lineThreePiece = {
+    variantId: V3,
+    productName: 'সুতি থ্রি-পিস',
+    attributes: [{ name: 'সাইজ', value: 'M', dataType: 'enum_single', unitKind: null, variantDefining: true }],
+    thumbnail: IMG2.urls.thumbnail,
+    quantity: '1.000',
+    stockUnit: 'piece',
+    unitPrice: '1450.00',
+    itemTotal: '1450.00',
+    modifiers: [],
+    captured: [],
+    components: [],
+  };
+
+  /* Each parameter: [name, where, type, required, [bn, en]]. */
+  const P = (n, at, ty, req, bn, en) => ({ n, at, ty, req, d: [bn, en] });
+  const TOKEN_PARAM = P('X-Shopper-Token', 'header', 'string', true, 'লগইনে পাওয়া টোকেন।', 'The token sign-in gave you.');
+  const SIGNIN = [401, 'unauthenticated', 'SignInToContinue', 'চালিয়ে যেতে লগইন করুন।', 'Sign in to continue.'];
+  const ADDR_404 = [404, 'not_found', 'ShopperAddressNotFound', 'অ্যাড্রেস পাওয়া যায়নি।', 'Address not found.'];
+  const THANA_400 = [400, 'validation_error', 'LocationNotFound', 'থানাটি পাওয়া যায়নি।', 'This thana was not found.'];
+
+  const groups = [
+    { id: 'shop', t: ['শপ', 'Shop'] },
+    { id: 'catalogue', t: ['ক্যাটালগ', 'Catalogue'] },
+    { id: 'offers', t: ['অফার', 'Offers'] },
+    { id: 'delivery', t: ['ডেলিভারি', 'Delivery'] },
+    { id: 'orders', t: ['অর্ডার ও ট্র্যাকিং', 'Orders and tracking'] },
+    { id: 'shopper', t: ['কাস্টমার অ্যাকাউন্ট', 'Shopper accounts'] },
+    { id: 'feeds', t: ['ফিড', 'Feeds'] },
+    { id: 'payments', t: ['পেমেন্ট মেথড', 'Payment methods'] },
+    { id: 'version', t: ['ভার্সন', 'Version'] },
+  ];
+
+  /* Each route: m, p (as documented), ex (the sample's path), q (the sample's query), what, params, body, hd (extra
+     headers: [name, curl value, fetch expression]), pre (fetch lines before the call), st (the status), ok (the
+     message), data, errs ([status, errors.code, message key, bn, en]), note, sell (still answers past the cycle's
+     requests: an order can't be placed without it), nokey (no API key: the feed). */
+  const routes = [
+    {
+      id: 'shop', g: 'shop', m: 'GET', p: '/shop',
+      what: ['কী-টি যে শপের, সেই শপের নাম, লোগো, যোগাযোগ, ডেলিভারি এরিয়া ও চার্জ। আপনার সাইটের হেডার আর ফুটার এখান থেকে বানান।', "The shop this key belongs to: its name, logo, contact details, delivery zones and charges. Build your site's header and footer from it."],
+      params: [P('preview', 'query', 'string', false, 'শুধু ড্যাশবোর্ডের প্রিভিউ লিংক এটা পাঠায়। আপনার সাইটে বাদ দিন।', "Only the dashboard's preview link sends it. Leave it out on your site.")],
+      ok: ['শপের তথ্য পাওয়া গেছে।', 'Shop retrieved.'],
+      data: {
+        name: 'Megh Fashion',
+        slug: 'megh',
+        metaPixelId: null,
+        brand: null,
+        logo: LOGO,
+        icon: null,
+        design: { theme: 'soft', palette: 0, sections: [], images: {}, categories: [], products: [], offers: [], preview: false, designCards: false },
+        sale: { products: 3, bestDiscount: 20 },
+        contact: {
+          phone: '01711234567',
+          email: 'hello@meghfashion.com',
+          address: 'বাড়ি 12, রোড 7, সেকশন 10, মিরপুর, ঢাকা',
+          whatsapp: '01711234567',
+          messenger: 'meghfashion',
+          facebookPage: 'https://www.facebook.com/meghfashion',
+        },
+        deliveryZones: [
+          { ...zoneHome, kind: 'home' },
+          { id: Z_OUT, name: { en: 'Outside Dhaka', bn: 'ঢাকার বাইরে' }, charge: '130.00', noDelivery: false, kind: 'fallback' },
+        ],
+        extraDeliveryChargePerKg: '20.00',
+      },
+      note: ['brand আর design হলো Lytro স্টোরফ্রন্টের ডিজাইন; নিজের সাইটে এগুলো বাদ দিতে পারেন।', "brand and design are the Lytro storefront's own look; your own site can ignore them."],
+    },
+    {
+      id: 'products', g: 'catalogue', m: 'GET', p: '/catalogue/products', q: '?category=women&inStock=true&limit=2',
+      what: ['শপের অ্যাক্টিভ প্রোডাক্টের এক পেজ: ক্যাটাগরি, সার্চ আর সাজানো অনুযায়ী। পরের পেজের জন্য nextCursor পাঠান।', "A page of the shop's active products, by category, search and order. Send nextCursor for the next page."],
+      params: [
+        P('category', 'query', 'string', false, 'ক্যাটাগরির slug; এর সাব-ক্যাটাগরিও আসবে।', "A category's slug; its subcategories come too."),
+        P('search', 'query', 'string', false, 'প্রোডাক্টের নামে খোঁজার শব্দ।', "Words to look for in product names."),
+        P('sort', 'query', 'featured | newest | price_low | price_high | relevance | discount | best_selling', false, 'সাজানোর নিয়ম। না দিলে featured, সার্চ থাকলে relevance।', 'How to order them. featured if left out; relevance with a search.'),
+        P('inStock', 'query', 'true | false', false, 'true দিলে শুধু স্টকে থাকা প্রোডাক্ট।', 'true for products in stock only.'),
+        P('onSale', 'query', 'true | false', false, 'true দিলে শুধু ছাড়ে থাকা প্রোডাক্ট।', 'true for products on sale only.'),
+        P('productIds', 'query', 'string', false, 'কমা দিয়ে আলাদা করা প্রোডাক্ট ID, সর্বোচ্চ 12টি।', 'Product IDs separated by commas, up to 12.'),
+        P('designs', 'query', 'true | false', false, 'true দিলে একটি প্রোডাক্টের প্রতিটি ডিজাইন আলাদা কার্ড।', "true makes each design of a product its own card."),
+        P('offer', 'query', 'string', false, 'একটি অফারের slug: শুধু সেই অফারের প্রোডাক্ট।', "An offer's slug: only that offer's products."),
+        P('cursor', 'query', 'string', false, 'আগের পেজের nextCursor।', "The previous page's nextCursor."),
+        P('limit', 'query', 'number', false, 'এক পেজে কয়টি: 1 থেকে 60, না দিলে 24।', 'How many a page: 1 to 60, 24 if left out.'),
+        P('v', 'query', 'string', false, 'ক্যাটালগ ভার্সন (Version দেখুন)। দিলে বদল সাথে সাথে দেখা যায়।', 'The catalogue version (see Version), so a change shows at once.'),
+      ],
+      ok: ['প্রোডাক্ট পাওয়া গেছে।', 'Products retrieved.'],
+      data: {
+        products: [
+          {
+            id: P1, slug: 'jamdani-saree', name: 'জামদানি শাড়ি', minPrice: '3200.00', maxPrice: '3200.00', stockState: 'in',
+            image: IMG1, createdAt: '2026-11-02T08:15:00.000Z', swatches, minRegularPrice: '4000.00', bestDiscount: 20,
+            left: null, ordered: 41, bestSeller: true, designId: null,
+          },
+          {
+            id: P2, slug: 'cotton-three-piece', name: 'সুতি থ্রি-পিস', minPrice: '1450.00', maxPrice: '1550.00', stockState: 'low',
+            image: IMG2, createdAt: '2026-10-28T11:40:00.000Z', swatches: [], minRegularPrice: null, bestDiscount: 0,
+            left: 3, ordered: 12, bestSeller: false, designId: null,
+          },
+        ],
+        nextCursor: 'eyJrIjoiMjAyNi0xMC0yOFQxMTo0MDowMFoiLCJpIjoiNGUxYTdkOTMifQ',
+      },
+      note: ['দাম টাকায়, টেক্সট হিসেবে ("3200.00")। ETag আসে: If-None-Match পাঠালে না বদলালে 304।', 'Prices are taka, as text ("3200.00"). An ETag comes back: send If-None-Match and an unchanged answer is 304.'],
+    },
+    {
+      id: 'product', g: 'catalogue', m: 'GET', p: '/catalogue/products/{slug}', ex: '/catalogue/products/jamdani-saree',
+      what: ['একটি প্রোডাক্টের পুরো পেজ: ছবি, অপশন, প্রতিটি ভ্যারিয়েন্টের দাম ও স্টক। অর্ডারে variantId এখান থেকে নিন।', "One product's whole page: photos, options, each variant's price and stock. Take the order's variantId from here."],
+      params: [
+        P('slug', 'path', 'string', true, 'প্রোডাক্টের লিংকের নাম। পুরোনো লিংকেও বর্তমান প্রোডাক্ট আসে।', "The product's link name. An old link answers with the product as it is now."),
+        P('v', 'query', 'string', false, 'ক্যাটালগ ভার্সন।', 'The catalogue version.'),
+      ],
+      ok: ['প্রোডাক্ট পাওয়া গেছে।', 'Product retrieved.'],
+      data: {
+        id: P1, slug: 'jamdani-saree', name: 'জামদানি শাড়ি', description: 'হাতে বোনা ঢাকাই জামদানি, 6 গজ, ব্লাউজ পিস সহ।',
+        minPrice: '3200.00', maxPrice: '3200.00', minRegularPrice: '4000.00', bestDiscount: 20, stockState: 'in',
+        stockUnit: 'piece', sharedStock: false, condition: 'new', primaryCategoryId: C_SAREE, categoryIds: [C_SAREE],
+        images: [{ ...IMG1, width: 1200, height: 1500, designId: null }],
+        video: null,
+        options: [{ attributeId: COLOR, name: 'রং', dataType: 'enum_single', unitKind: null, values: swatches, designs: false }],
+        attributes: [{ name: 'কাপড়', dataType: 'enum_single', unitKind: null, values: ['হাফ সিল্ক'], text: null, number: null, yes: null }],
+        variants: [
+          { id: V1, optionIds: [OV1], price: '3200.00', regularPrice: '4000.00', stockState: 'in', available: true },
+          { id: V2, optionIds: [OV2], price: '3200.00', regularPrice: '4000.00', stockState: 'low', available: true },
+        ],
+        sizeChart: null, paymentPolicy: 'none', advanceAmount: null, deliveryZoneIds: [], modifierGroups: [], asked: [], combo: null,
+      },
+      errs: [[404, 'not_found', 'ProductNotFound', 'প্রোডাক্টটি পাওয়া যায়নি।', 'This product was not found.']],
+      note: ['উত্তরের slug আপনার পাঠানোটা না হলে লিংক বদলেছে: নতুন লিংকে রিডাইরেক্ট করুন।', 'If the answer\u2019s slug is not the one you sent, the link has changed: redirect to the new one.'],
+    },
+    {
+      id: 'categories', g: 'catalogue', m: 'GET', p: '/catalogue/categories',
+      what: ['শপের দেখানো ক্যাটাগরিগুলো, গাছের মতো: প্রতিটির ভেতরে তার সাব-ক্যাটাগরি। মেনু বানাতে কাজে লাগে।', "The shop's visible categories as a tree, each with its subcategories inside. Good for a menu."],
+      params: [P('v', 'query', 'string', false, 'ক্যাটালগ ভার্সন।', 'The catalogue version.')],
+      ok: ['ক্যাটাগরি পাওয়া গেছে।', 'Categories retrieved.'],
+      data: {
+        categories: [
+          {
+            id: C_WOMEN, slug: 'women', name: 'মেয়েদের পোশাক', image: null, cover: null, productCount: 38,
+            children: [
+              { id: C_SAREE, slug: 'saree', name: 'শাড়ি', image: null, cover: null, productCount: 14, children: [] },
+              { id: C_3PC, slug: 'three-piece', name: 'থ্রি-পিস', image: null, cover: null, productCount: 24, children: [] },
+            ],
+          },
+        ],
+      },
+    },
+    {
+      id: 'offer', g: 'offers', m: 'GET', p: '/catalogue/offers/{slug}', ex: '/catalogue/offers/winter-sale',
+      what: ['একটি অফার (চলছে বা শেষ): নাম, কত ছাড়, কয়টি প্রোডাক্ট। এর প্রোডাক্টগুলো আনুন /catalogue/products?offer=winter-sale দিয়ে।', 'An offer, running or ended: its name, how much off, how many products. Fetch its products with /catalogue/products?offer=winter-sale.'],
+      params: [
+        P('slug', 'path', 'string', true, 'অফারের লিংকের নাম।', "The offer's link name."),
+        P('v', 'query', 'string', false, 'ক্যাটালগ ভার্সন।', 'The catalogue version.'),
+      ],
+      ok: ['অফার লোড হয়েছে।', 'Offer loaded.'],
+      data: { name: 'শীতের অফার', slug: 'winter-sale', state: 'running', cut: { kind: 'percent', amount: 20 }, products: 12 },
+      errs: [[404, 'not_found', 'OfferNotFound', 'অফারটি পাওয়া যায়নি।', 'That offer was not found.']],
+      note: ['cut.kind হলো percent (শতাংশ) বা taka (টাকা)।', 'cut.kind is percent or taka.'],
+    },
+    {
+      id: 'locations', g: 'delivery', m: 'GET', p: '/locations', sell: true,
+      what: ['দেশের সব জেলা, সিটি আর থানা। কাস্টমার থানা সিলেক্ট করবে; অর্ডারের locationId হলো থানার id।', "Every zilla, city and thana. The shopper selects a thana; the order's locationId is the thana's id."],
+      params: [],
+      ok: ['জেলা ও থানার লিস্ট পাওয়া গেছে।', 'Districts and thanas retrieved.'],
+      data: {
+        cities: [
+          { code: 'dhaka', nameEn: 'Dhaka city', nameBn: 'ঢাকা সিটি' },
+          { code: 'chattogram', nameEn: 'Chattogram city', nameBn: 'চট্টগ্রাম সিটি' },
+        ],
+        zillas: [
+          {
+            id: 14, nameEn: 'Dhaka', nameBn: 'ঢাকা',
+            thanas: [
+              { id: 146, nameEn: 'Dhanmondi', nameBn: 'ধানমন্ডি', cityCode: 'dhaka' },
+              { id: 162, nameEn: 'Mirpur', nameBn: 'মিরপুর', cityCode: 'dhaka' },
+              { id: 174, nameEn: 'Savar', nameBn: 'সাভার', cityCode: null },
+            ],
+          },
+        ],
+      },
+      note: ['নমুনাটা ছোট করা; আসল উত্তরে সব জেলা ও থানা থাকে। লিস্টটা খুব কম বদলায়, তাই সেভ করে রাখতে পারেন।', 'Shortened: the real answer has every zilla and thana. It rarely changes, so you can keep a copy.'],
+    },
+    {
+      id: 'estimate', g: 'delivery', m: 'POST', p: '/delivery-estimate', sell: true, st: 200,
+      what: ['কার্টের প্রোডাক্টগুলোর এখনকার দাম আর একটি থানায় ডেলিভারি চার্জ, অর্ডার যেভাবে হিসাব হয় ঠিক সেভাবে। থানা না দিলে চার্জের রেঞ্জ আসে।', 'The cart\u2019s items as they stand now, and the delivery charge to a thana, worked out exactly as the order will be. Without a thana, the range of charges.'],
+      params: [
+        P('locationId', 'body', 'number', false, 'থানার id (/locations থেকে)। না দিলে range আসে।', 'The thana\u2019s id (from /locations). Left out, you get range.'),
+        P('items', 'body', 'array', true, '1 থেকে 100টি: variantId, quantity, আর অ্যাড-অন থাকলে modifiers।', '1 to 100 of them: variantId, quantity, and modifiers when the product has add-ons.'),
+      ],
+      body: { locationId: 162, items: [{ variantId: V1, quantity: 1 }] },
+      ok: ['ডেলিভারি চার্জ হিসাব হয়েছে।', 'Delivery charge worked out.'],
+      data: {
+        lines: [{ variantId: V1, onSale: true, price: '3200.00', stockState: 'in', available: true, itemTotal: '3200.00', advance: null, paymentPolicy: 'none', choicesFit: true }],
+        subtotal: '3200.00',
+        zone: zoneHome,
+        deliveryCharge: '70.00',
+        range: null,
+        deliverable: true,
+        notDeliveredHere: [],
+        taxes: [],
+        advance: null,
+      },
+      errs: [THANA_400],
+    },
+    {
+      id: 'order', g: 'orders', m: 'POST', p: '/orders', sell: true, st: 201,
+      what: ['কাস্টমারের অর্ডার, ক্যাশ অন ডেলিভারি। অর্ডারটি সাথে সাথে আপনার ড্যাশবোর্ডের অর্ডারে আসে, Pending অবস্থায়, কনফার্ম করার কলের অপেক্ষায়।', "A shopper's order, cash on delivery. It lands in your dashboard's Orders at once, pending, waiting for your confirming call."],
+      params: [
+        P('Idempotency-Key', 'header', 'string', true, 'প্রতি অর্ডারে একটি নতুন এলোমেলো মান। আবার পাঠালে একই কী দিন: দ্বিতীয় অর্ডার হবে না।', 'A new random value per order. Send the same one on a retry: no second order is made.'),
+        P('customerName', 'body', 'string', true, 'কাস্টমারের নাম, সর্বোচ্চ 100 অক্ষর।', "The shopper's name, up to 100 characters."),
+        P('phone', 'body', 'string', true, 'বাংলাদেশি মোবাইল নম্বর, যেমন 01711234567।', 'A Bangladeshi mobile number, such as 01711234567.'),
+        P('locationId', 'body', 'number', true, 'থানার id (/locations থেকে)।', 'The thana\u2019s id (from /locations).'),
+        P('deliveryAddress', 'body', 'string', true, 'বাড়ি, রোড, এলাকা; সর্বোচ্চ 500 অক্ষর।', 'House, road, area; up to 500 characters.'),
+        P('shopperNote', 'body', 'string', false, 'কাস্টমারের নোট, সর্বোচ্চ 500 অক্ষর।', "The shopper's note, up to 500 characters."),
+        P('items', 'body', 'array', true, '1 থেকে 100টি: variantId, quantity; দরকার হলে captured, choices, modifiers।', '1 to 100 of them: variantId, quantity; captured, choices and modifiers when the product asks.'),
+        P('payment', 'body', 'object', false, 'শুধু অ্যাডভান্স লাগে এমন অর্ডারে: method (ঐচ্ছিক), returnUrl, cancelUrl। ঠিকানাগুলো কী-টির ওয়েবসাইটের হতে হবে।', "Only for an order that needs an advance: method (optional), returnUrl, cancelUrl. The addresses must be on the key's websites."),
+      ],
+      hd: [['Idempotency-Key', IDEM, 'idempotencyKey']],
+      pre: ['// One key per order; keep it, so a retry sends the same one.', 'const idempotencyKey = crypto.randomUUID();'],
+      body: { customerName: 'নুসরাত জাহান', phone: '01711234567', locationId: 162, deliveryAddress: 'বাড়ি 12, রোড 7, সেকশন 10, মিরপুর', shopperNote: 'বিকেল 4টার পর দিলে ভালো হয়', items: [{ variantId: V1, quantity: 1 }] },
+      ok: ['অর্ডার তৈরি হয়েছে।', 'Order created.'],
+      data: {
+        orderNumber: '261121-0057', trackingId: 'K7F2M9QX', status: 'pending', createdAt: '2026-11-21T05:42:10.000Z',
+        items: [lineSaree],
+        subtotal: '3200.00', deliveryCharge: '70.00', discount: '0.00', grandTotal: '3270.00', codAmount: '3270.00', taxes: [],
+        purchaseEventId: 'purchase.K7F2M9QX',
+        payment: null,
+      },
+      errs: [
+        [400, 'validation_error', 'ProductNotFound', 'প্রোডাক্টটি পাওয়া যায়নি।', 'This product was not found.'],
+        [400, 'idempotency_key_required', 'IdempotencyKeyRequired', 'এই রিকোয়েস্টের সাথে একটি Idempotency-Key হেডার পাঠান, যাতে আবার পাঠালেও দুবার তৈরি না হয়।', 'Send an Idempotency-Key header with this request, so sending it again never makes it twice.'],
+        [409, 'conflict', 'ShopDoesNotDeliverHere', 'এই শপ এই এরিয়াতে ডেলিভারি দেয় না।', 'This shop does not deliver to this area.'],
+        [409, 'conflict', 'NoPaymentMethod', 'এই শপ এখন অনলাইনে অ্যাডভান্স নিতে পারছে না। শপের সাথে যোগাযোগ করুন।', "This shop can't take an advance online right now. Please contact the shop."],
+        [422, 'idempotency_conflict', 'IdempotencyKeyConflict', 'এই রিকোয়েস্ট কী ইতিমধ্যে ভিন্ন ডেটার সাথে ব্যবহৃত হয়েছে।', 'This request key was already used with different data.'],
+        [429, 'rate_limited', 'TooManyOrders', 'অল্প সময়ে অনেক অর্ডার এসেছে। এক মিনিট পর আবার ট্রাই করুন।', 'Too many orders in a short time. Wait a minute and try again.'],
+      ],
+      note: ['দাম, ছাড়, ডেলিভারি চার্জ বা স্ট্যাটাস পাঠাবেন না: Lytro নিজে হিসাব করে। একই Idempotency-Key আবার পাঠালে প্রথম উত্তরটাই আসে, সাথে Idempotent-Replay: true। অ্যাডভান্স লাগলে অর্ডার Unverified থাকে, আর payment.paymentUrl-এ কাস্টমারকে পাঠান।', 'Never send a price, discount, delivery charge or status: Lytro works them out. The same Idempotency-Key sent again returns the first answer, with Idempotent-Replay: true. When an advance is needed the order starts unverified: send the shopper to payment.paymentUrl.'],
+    },
+    {
+      id: 'track', g: 'orders', m: 'GET', p: '/track/{trackingId}', ex: '/track/H4QW8N2C',
+      what: ['ট্র্যাকিং আইডি দিয়ে অর্ডারের অবস্থা: স্ট্যাটাস, টাইমলাইন, প্রোডাক্ট, টোটাল আর শিপ হলে কুরিয়ার। কাস্টমারের ঠিকানা বা ফোন কখনো আসে না।', "An order by its tracking ID: status, timeline, items, totals and, once shipped, its courier. Never the shopper's address or phone."],
+      params: [P('trackingId', 'path', 'string', true, '8 অক্ষরের ট্র্যাকিং আইডি; ছোট-বড় হাতের অক্ষর সমান।', 'The 8-character tracking ID; upper or lower case alike.')],
+      ok: ['অর্ডার পাওয়া গেছে।', 'Order found.'],
+      data: {
+        orderNumber: '261119-0042', trackingId: 'H4QW8N2C', status: 'shipped',
+        timeline: [
+          { step: 'placed', at: '2026-11-19T05:42:10.000Z' },
+          { step: 'confirmed', at: '2026-11-19T07:05:00.000Z' },
+          { step: 'shipped', at: '2026-11-20T04:30:00.000Z' },
+        ],
+        items: [lineThreePiece],
+        subtotal: '1450.00', deliveryCharge: '70.00', discount: '0.00', grandTotal: '1520.00', codAmount: '1520.00', taxes: [],
+        due: '1520.00',
+        courier: { name: 'Steadfast', trackingCode: '15BAEB8A', trackingLink: 'https://steadfast.com.bd/t/15BAEB8A' },
+        courierMessage: null,
+        courierReturning: false,
+        payment: null,
+      },
+      errs: [
+        [404, 'not_found', 'OrderNotFound', 'অর্ডারটি পাওয়া যায়নি।', 'That order was not found.'],
+        [429, 'rate_limited', 'TooManyRequests', 'অনেক বেশি রিকোয়েস্ট এসেছে। একটু অপেক্ষা করে আবার ট্রাই করুন।', 'Too many requests. Please wait a moment and try again.'],
+      ],
+    },
+    {
+      id: 'sh-code', g: 'shopper', m: 'POST', p: '/shopper/code', st: 200,
+      what: ['সাইন আপের কোড কাস্টমারের ফোনে SMS-এ পাঠায়। SMS-এর খরচ আপনার শপের ব্যালেন্স থেকে কাটা হয়; ব্যালেন্সে না কুলালে পাঠানো হয় না।', "Sends the sign-up code to the shopper's phone by SMS. The SMS is paid from your shop's balance, and isn't sent when the balance can't cover it."],
+      params: [P('phone', 'body', 'string', true, 'কাস্টমারের মোবাইল নম্বর।', "The shopper's mobile number.")],
+      body: { phone: '01711234567' },
+      ok: ['কোড পাঠানো হয়েছে।', 'Code sent.'],
+      data: { expiresInSeconds: 300, resendAfterSeconds: 60 },
+      errs: [
+        [409, 'conflict', 'ShopperAlreadyRegistered', 'এই ফোন নম্বরে এখানে আগেই অ্যাকাউন্ট আছে। পাসওয়ার্ড দিয়ে লগইন করুন।', 'This phone already has an account here. Sign in with your password.'],
+        [429, 'rate_limited', 'TooManyCodesRequested', 'এই নম্বর বা ইমেইলের জন্য অনেকবার কোড চাওয়া হয়েছে। পরে আবার ট্রাই করুন।', 'Too many codes were requested for this destination. Try again later.'],
+        [429, 'quota_exceeded', 'ShopCannotSendCode', 'এই শপ এখন সাইন আপ কোড পাঠাতে পারছে না। পরে আবার ট্রাই করুন।', "This shop can't send a sign-up code right now. Please try again later."],
+        [503, 'service_unavailable', 'CodeSendFailed', 'আপনার কোড পাঠানো যায়নি। এক মিনিট পর আবার ট্রাই করুন।', 'We could not send your code. Try again in a minute.'],
+      ],
+    },
+    {
+      id: 'sh-signup', g: 'shopper', m: 'POST', p: '/shopper/signup', st: 201,
+      what: ['কোড, নাম আর পাসওয়ার্ড দিয়ে অ্যাকাউন্ট তৈরি; সাথে সাথে লগইন। উত্তরের token পরের রিকোয়েস্টে X-Shopper-Token হিসেবে পাঠান।', 'Makes the account with the code, a name and a password, signed in at once. Send the answer\u2019s token as X-Shopper-Token after this.'],
+      params: [
+        P('phone', 'body', 'string', true, 'যে নম্বরে কোড গেছে।', 'The number the code went to.'),
+        P('code', 'body', 'string', true, '6 সংখ্যার কোড।', 'The 6-digit code.'),
+        P('name', 'body', 'string', true, 'কাস্টমারের নাম, সর্বোচ্চ 100 অক্ষর।', "The shopper's name, up to 100 characters."),
+        P('password', 'body', 'string', true, '8 থেকে 20 অক্ষর।', '8 to 20 characters.'),
+      ],
+      body: { phone: '01711234567', code: '482913', name: 'নুসরাত জাহান', password: 'Megh#2026' },
+      ok: ['আপনার অ্যাকাউন্ট তৈরি হয়েছে।', 'Your account is ready.'],
+      data: signedIn,
+      errs: [
+        [409, 'conflict', 'ShopperAlreadyRegistered', 'এই ফোন নম্বরে এখানে আগেই অ্যাকাউন্ট আছে। পাসওয়ার্ড দিয়ে লগইন করুন।', 'This phone already has an account here. Sign in with your password.'],
+        [400, 'validation_error', 'CodeIncorrect', 'কোডটি সঠিক নয়।', 'The code is not correct.'],
+        [429, 'rate_limited', 'TooManyWrongCodes', 'অনেকবার ভুল কোড দেওয়া হয়েছে। আবার চেষ্টা করার আগে অপেক্ষা করুন।', 'Too many wrong codes. Wait before trying again.'],
+      ],
+      note: ['token 30 দিন চলে (expiresAt)।', 'The token lasts 30 days (expiresAt).'],
+    },
+    {
+      id: 'sh-signin', g: 'shopper', m: 'POST', p: '/shopper/signin', st: 200,
+      what: ['ফোন আর পাসওয়ার্ড দিয়ে লগইন, কোড ছাড়া।', 'Signs in with the phone and password, no code.'],
+      params: [
+        P('phone', 'body', 'string', true, 'অ্যাকাউন্টের ফোন নম্বর।', "The account's phone number."),
+        P('password', 'body', 'string', true, 'পাসওয়ার্ড।', 'The password.'),
+      ],
+      body: { phone: '01711234567', password: 'Megh#2026' },
+      ok: ['লগইন হয়েছে।', 'Signed in.'],
+      data: signedIn,
+      errs: [
+        [401, 'unauthenticated', 'PhoneOrPasswordWrong', 'এই ফোন নম্বর ও পাসওয়ার্ড মিলছে না।', 'That phone number and password do not match.'],
+        [429, 'rate_limited', 'TooManyFailedSignins', 'অনেকবার লগইন করতে ব্যর্থ হয়েছে। আবার চেষ্টা করার আগে অপেক্ষা করুন।', 'Too many failed sign-ins. Wait before trying again.'],
+      ],
+    },
+    {
+      id: 'sh-signout', g: 'shopper', m: 'POST', p: '/shopper/signout', st: 200, auth: true,
+      what: ['এই লগইনটা শেষ করে; token আর কাজ করবে না।', 'Ends this sign-in; the token stops working.'],
+      params: [TOKEN_PARAM],
+      ok: ['লগআউট হয়েছে।', 'Signed out.'],
+      data: { ok: true },
+      errs: [SIGNIN],
+    },
+    {
+      id: 'sh-me', g: 'shopper', m: 'GET', p: '/shopper/me', auth: true,
+      what: ['লগইন করা কাস্টমারের অ্যাকাউন্ট।', 'The signed-in shopper\u2019s account.'],
+      params: [TOKEN_PARAM],
+      ok: ['অ্যাকাউন্টের তথ্য পাওয়া গেছে।', 'Account retrieved.'],
+      data: shopper,
+      errs: [SIGNIN],
+    },
+    {
+      id: 'sh-me-edit', g: 'shopper', m: 'PATCH', p: '/shopper/me', auth: true,
+      what: ['কাস্টমারের নাম বদলায়। ফোন নম্বরই অ্যাকাউন্ট, তাই সেটা বদলায় না।', "Changes the shopper's name. The phone is the account, so it never changes."],
+      params: [TOKEN_PARAM, P('name', 'body', 'string', true, 'নতুন নাম, সর্বোচ্চ 100 অক্ষর।', 'The new name, up to 100 characters.')],
+      body: { name: 'নুসরাত জাহান রিমা' },
+      ok: ['অ্যাকাউন্ট আপডেট হয়েছে।', 'Account updated.'],
+      data: { ...shopper, name: 'নুসরাত জাহান রিমা' },
+      errs: [SIGNIN],
+    },
+    {
+      id: 'sh-password', g: 'shopper', m: 'POST', p: '/shopper/password', st: 200, auth: true,
+      what: ['বর্তমান পাসওয়ার্ড দিয়ে নতুন পাসওয়ার্ড; কাস্টমারের অন্য সব লগইন শেষ হয়ে যায়।', "A new password, given the current one; the shopper's other sign-ins end."],
+      params: [
+        TOKEN_PARAM,
+        P('currentPassword', 'body', 'string', true, 'এখনকার পাসওয়ার্ড।', 'The password now.'),
+        P('newPassword', 'body', 'string', true, 'নতুন পাসওয়ার্ড, 8 থেকে 20 অক্ষর।', 'The new password, 8 to 20 characters.'),
+      ],
+      body: { currentPassword: 'Megh#2026', newPassword: 'Nusrat@Mirpur10' },
+      ok: ['আপনার পাসওয়ার্ড পরিবর্তন হয়েছে।', 'Your password has been changed.'],
+      data: { ok: true },
+      errs: [SIGNIN],
+    },
+    {
+      id: 'sh-addresses', g: 'shopper', m: 'GET', p: '/shopper/addresses', auth: true,
+      what: ['কাস্টমারের সেভ করা অ্যাড্রেস, ডিফল্টটা প্রথমে। চেকআউটে আগে থেকে ভরে দিতে কাজে লাগে।', "The shopper's saved addresses, the default first. Fill checkout in with them."],
+      params: [TOKEN_PARAM],
+      ok: ['অ্যাড্রেসগুলো পাওয়া গেছে।', 'Addresses retrieved.'],
+      data: { addresses: [addrHome, addrOffice] },
+      errs: [SIGNIN],
+    },
+    {
+      id: 'sh-address-new', g: 'shopper', m: 'POST', p: '/shopper/addresses', st: 201, auth: true,
+      what: ['নতুন অ্যাড্রেস সেভ করে, সর্বোচ্চ 10টি; প্রথমটাই ডিফল্ট। উত্তরে সব অ্যাড্রেস আসে।', 'Saves an address, up to 10; the first is the default. The answer lists them all.'],
+      params: [
+        TOKEN_PARAM,
+        P('label', 'body', 'string', true, 'যেমন বাসা বা অফিস; সর্বোচ্চ 30 অক্ষর।', 'Such as Home or Office; up to 30 characters.'),
+        P('locationId', 'body', 'number', true, 'থানার id।', 'The thana\u2019s id.'),
+        P('deliveryAddress', 'body', 'string', true, 'বাড়ি, রোড, এলাকা; সর্বোচ্চ 500 অক্ষর।', 'House, road, area; up to 500 characters.'),
+        P('isDefault', 'body', 'boolean', false, 'true দিলে এটাই ডিফল্ট।', 'true makes it the default.'),
+      ],
+      body: { label: 'অফিস', locationId: 146, deliveryAddress: 'লেভেল 5, বাড়ি 27, রোড 9/A, ধানমন্ডি', isDefault: false },
+      ok: ['অ্যাড্রেস সেভ হয়েছে।', 'Address saved.'],
+      data: { addresses: [addrHome, addrOffice] },
+      errs: [SIGNIN, THANA_400],
+    },
+    {
+      id: 'sh-address-edit', g: 'shopper', m: 'PATCH', p: '/shopper/addresses/{id}', ex: '/shopper/addresses/' + AD2, auth: true,
+      what: ['একটি অ্যাড্রেস বদলায়, অথবা isDefault: true দিয়ে ডিফল্ট করে।', 'Changes an address, or makes it the default with isDefault: true.'],
+      params: [
+        TOKEN_PARAM,
+        P('id', 'path', 'string', true, 'অ্যাড্রেসের id।', "The address's id."),
+        P('label · locationId · deliveryAddress · isDefault', 'body', '', false, 'যেটা বদলাবেন শুধু সেটা; অন্তত একটি।', 'Only what changes; at least one.'),
+      ],
+      body: { isDefault: true },
+      ok: ['অ্যাড্রেস সেভ হয়েছে।', 'Address saved.'],
+      data: { addresses: [{ ...addrOffice, isDefault: true }, { ...addrHome, isDefault: false }] },
+      errs: [SIGNIN, ADDR_404],
+    },
+    {
+      id: 'sh-address-delete', g: 'shopper', m: 'DELETE', p: '/shopper/addresses/{id}', ex: '/shopper/addresses/' + AD2, auth: true,
+      what: ['একটি অ্যাড্রেস ডিলিট করে। ডিফল্টটা ডিলিট হলে বাকিগুলোর সবচেয়ে পুরোনোটা ডিফল্ট হয়।', 'Deletes an address. If it was the default, the oldest one left becomes the default.'],
+      params: [TOKEN_PARAM, P('id', 'path', 'string', true, 'অ্যাড্রেসের id।', "The address's id.")],
+      ok: ['অ্যাড্রেস ডিলিট হয়েছে।', 'Address deleted.'],
+      data: { addresses: [addrHome] },
+      errs: [SIGNIN, ADDR_404],
+    },
+    {
+      id: 'sh-orders', g: 'shopper', m: 'GET', p: '/shopper/orders', q: '?page=1&limit=20', auth: true,
+      what: ['কাস্টমারের ফোন নম্বরের সব অর্ডার, নতুনটা আগে: নম্বর, স্ট্যাটাস আর টোটাল। নাম বা ঠিকানা আসে না।', "Every order with the shopper's phone, newest first: number, status and total. Never a name or address."],
+      params: [
+        TOKEN_PARAM,
+        P('page', 'query', 'number', false, 'পেজ নম্বর, 1 থেকে।', 'The page, from 1.'),
+        P('limit', 'query', 'number', false, 'এক পেজে কয়টি: 1 থেকে 100, না দিলে 20।', 'How many a page: 1 to 100, 20 if left out.'),
+      ],
+      ok: ['অর্ডারগুলো পাওয়া গেছে।', 'Orders retrieved.'],
+      data: {
+        orders: [
+          { orderNumber: '261121-0057', trackingId: 'K7F2M9QX', status: 'pending', grandTotal: '3270.00', createdAt: '2026-11-21T05:42:10.000Z' },
+          { orderNumber: '261119-0042', trackingId: 'H4QW8N2C', status: 'shipped', grandTotal: '1520.00', createdAt: '2026-11-19T05:42:10.000Z' },
+        ],
+        page: 1, limit: 20, total: 2, pages: 1,
+      },
+      errs: [SIGNIN],
+    },
+    {
+      id: 'feed', g: 'feeds', m: 'GET', p: '/feeds/meta/{token}.csv', ex: '/feeds/meta/YOUR_FEED_TOKEN.csv', nokey: true, csv: true,
+      what: ['Facebook আর Instagram শপের জন্য Meta ক্যাটালগ ফিড: বিক্রিতে থাকা প্রতিটি ভ্যারিয়েন্টের এক লাইন, CSV-তে। Meta Commerce Manager নিজে নিজে এটা নিয়মিত পড়ে।', "The Meta catalog feed for your Facebook and Instagram shop: one row per variant on sale, as CSV. Meta Commerce Manager reads it on its own schedule."],
+      params: [P('token', 'path', 'string', true, 'ফিডের গোপন ঠিকানার অংশ। পুরো ঠিকানা কপি করুন সেটিংস → Facebook ও Meta থেকে।', "The secret part of the feed's address. Copy the whole address from Settings → Facebook and Meta.")],
+      csvHead: 'id,item_group_id,title,description,availability,condition,price,link,image_link,additional_image_link,brand,color,size',
+      errs: [
+        [404, 'not_found', 'PageNotFound', 'পেজটি খুঁজে পাওয়া যায়নি।', 'Page not found.'],
+        [429, 'quota_exceeded', 'RequestsUsedUp', 'এই শপ এই বিলিং পিরিয়ডের সব API রিকোয়েস্ট ব্যবহার করে ফেলেছে। পরের পিরিয়ডে আবার শুরু হবে।', 'This shop has used all its API requests for this billing period. They start again with the next one.'],
+      ],
+      note: ['এই রুটে API কী লাগে না: ঠিকানার token-ই চাবি, তাই ঠিকানাটা কাউকে দেবেন না। প্রতিটি ফিড পড়া একটি রিকোয়েস্ট হিসেবে গোনা হয়।', 'No API key here: the token in the address is the key, so keep the address private. Each fetch counts as one request.'],
+    },
+    {
+      id: 'methods', g: 'payments', m: 'GET', p: '/payment-methods',
+      what: ['কাস্টমার যে মেথডে অ্যাডভান্স দিতে পারে: চালু থাকা প্রতিটি মেথড আর তার অ্যাক্টিভ অ্যাকাউন্ট। ক্যাশ হয় না, তাই কোনো মেথড বন্ধ করলে সাথে সাথে চেকআউট থেকে সরে যায়।', "The methods a shopper can pay an advance by: each one that is on, with its active account. Never cached, so a method you switch off leaves checkout at once."],
+      params: [],
+      ok: ['পেমেন্ট মেথডের তথ্য পাওয়া গেছে।', 'Payment methods retrieved.'],
+      data: {
+        methods: [
+          { method: 'bkash', kind: 'wallet', way: 'listener', accountName: 'Megh Fashion', number: '01711234567', accountType: 'personal', note: null, bank: null },
+          { method: 'nagad', kind: 'wallet', way: 'manual', accountName: 'Megh Fashion', number: '01819876543', accountType: 'personal', note: null, bank: null },
+        ],
+      },
+      note: ['মালিকের ফোন ভেরিফাই না হওয়া পর্যন্ত লিস্ট খালি থাকে।', "The list stays empty until the owner's phone is verified."],
+    },
+    {
+      id: 'version', g: 'version', m: 'GET', p: '/catalogue/version',
+      what: ['ক্যাটালগের এখনকার ভার্সন। প্রথমে এটা পড়ুন, তারপর ক্যাটালগের ঠিকানায় ?v= হিসেবে বসান: কিছু বদলালে ভার্সন বদলায়, তাই ব্রাউজার নতুন উত্তর আনে।', "The catalogue's version now. Read it first, then put it in the catalogue addresses as ?v=: any change changes the version, so the browser fetches fresh answers."],
+      params: [],
+      ok: ['ক্যাটালগ ভার্সন পাওয়া গেছে।', 'Catalogue version retrieved.'],
+      data: { version: '184.7' },
+    },
+  ];
+
+  /* Every route with a key meets these, in this order (public-key.guard.ts); then the route's own. */
+  const common = [
+    [401, 'unauthenticated', 'ApiKeyMissing', 'আপনার API কী "Authorization: Bearer <key>" হিসেবে পাঠান।', 'Send your API key as "Authorization: Bearer <key>".'],
+    [401, 'unauthenticated', 'ApiKeyInvalid', 'এই API কী সঠিক নয়। কী-টি দেখে নিন, অথবা ড্যাশবোর্ড থেকে নতুন একটি তৈরি করুন।', 'This API key is not valid. Check it, or make a new one in the dashboard.'],
+    [401, 'unauthenticated', 'ApiKeyWasRevoked', 'এই API কী ক্যানসেল করা হয়েছে। অন্য কী ব্যবহার করুন, অথবা ড্যাশবোর্ড থেকে নতুন একটি তৈরি করুন।', 'This API key was revoked. Use another key, or make a new one in the dashboard.'],
+    [401, 'unauthenticated', 'ApiKeyExpired', 'এই API কী-র মেয়াদ শেষ হয়ে গেছে। ড্যাশবোর্ড থেকে নতুন একটি তৈরি করুন।', 'This API key has expired. Make a new one in the dashboard.'],
+    [403, 'forbidden', 'WebsiteNotRegistered', 'এই ওয়েবসাইট এই API কী-র ওয়েবসাইট তালিকায় নেই। ড্যাশবোর্ডে কী-টিতে এটি যোগ করুন।', "This website is not one of this API key's website addresses. Add it to the key in the dashboard."],
+    [403, 'tenant_offline', 'ShopUnavailable', 'এই শপটি এখন উপলব্ধ নয়।', 'This shop is not available right now.'],
+    [429, 'rate_limited', 'TooManyRequests', 'অনেক বেশি রিকোয়েস্ট এসেছে। একটু অপেক্ষা করে আবার ট্রাই করুন।', 'Too many requests. Please wait a moment and try again.'],
+    [429, 'quota_exceeded', 'RequestsUsedUp', 'এই শপ এই বিলিং পিরিয়ডের সব API রিকোয়েস্ট ব্যবহার করে ফেলেছে। পরের পিরিয়ডে আবার শুরু হবে।', 'This shop has used all its API requests for this billing period. They start again with the next one.'],
+    [503, 'service_unavailable', 'ServerBusy', 'সার্ভার এই মুহূর্তে খুব ব্যস্ত। একটু পরে আবার চেষ্টা করুন।', 'The server is very busy right now. Please try again in a moment.'],
+    [500, 'internal_error', 'SomethingWentWrong', 'কিছু একটা সমস্যা হয়েছে। অনুগ্রহ করে আবার ট্রাই করুন।', 'Something went wrong. Please try again.'],
+  ];
+
+  /* errors.code, each once (api-error.ts's HTTP_STATUS, the ones a public route answers). */
+  const codes = [
+    [400, 'validation_error', ['কোনো ফিল্ড ঠিক নেই; details.fields-এ কোনটা আর কেন।', 'A field is wrong; details.fields says which and why.']],
+    [400, 'idempotency_key_required', ['POST /v1/orders-এ Idempotency-Key নেই।', 'POST /v1/orders without an Idempotency-Key.']],
+    [401, 'unauthenticated', ['কী নেই, ভুল, ক্যানসেলড বা মেয়াদ শেষ; কাস্টমার রুটে লগইন নেই।', 'The key is missing, wrong, revoked or expired; on shopper routes, no sign-in.']],
+    [403, 'forbidden', ['রিকোয়েস্টটা কী-টির কোনো ওয়েবসাইট থেকে আসেনি।', "The request didn't come from one of the key's websites."]],
+    [403, 'tenant_offline', ['শপ বন্ধ বা সাসপেন্ডেড।', 'The shop is closed or suspended.']],
+    [404, 'not_found', ['প্রোডাক্ট, অফার, অর্ডার বা অ্যাড্রেস নেই।', 'No such product, offer, order or address.']],
+    [409, 'conflict', ['এখন করা যায় না, যেমন এই থানায় ডেলিভারি নেই।', "Can't be done now, such as no delivery to this thana."]],
+    [422, 'idempotency_conflict', ['একই Idempotency-Key, কিন্তু ভিন্ন ডেটা।', 'The same Idempotency-Key with different data.']],
+    [429, 'rate_limited', ['এক মিনিটে অনেক বেশি; Retry-After সেকেন্ড পরে আবার।', 'Too many in a minute; try again after Retry-After seconds.']],
+    [429, 'quota_exceeded', ['এই বিলিং সাইকেলের রিকোয়েস্ট শেষ।', "This billing cycle's requests are used up."]],
+    [500, 'internal_error', ['আমাদের দিকে সমস্যা; X-Request-Id সহ সাপোর্টে জানান।', 'A fault on our side; tell support the X-Request-Id.']],
+    [503, 'service_unavailable', ['সার্ভার ব্যস্ত; Retry-After সেকেন্ড পরে আবার।', 'The server is busy; try again after Retry-After seconds.']],
+  ];
+
+  /* migration 0064's requests_monthly, per plan; add-on packs add more. */
+  const plans = [
+    [['ট্রায়াল', 'Trial'], 20000],
+    [['পে-অ্যাজ-ইউ-গো', 'Pay-as-you-go'], 100000],
+    [['Starter', 'Starter'], 200000],
+    [['Growth', 'Growth'], 600000],
+    [['Pro', 'Pro'], 2000000],
+  ];
+
+  const urlOf = (r) => BASE + (r.ex || r.p) + (r.q || '');
+  const envelope = (r, lang) => ({ success: true, statusCode: r.st || 200, message: r.ok[lang === 'bn' ? 0 : 1], data: r.data });
+  const indent = (text, by) => text.split('\n').join('\n' + by);
+  function curl(r, lang) {
+    const lines = ['curl ' + (r.m === 'GET' ? '' : '-X ' + r.m + ' ') + '"' + urlOf(r) + '"'];
+    if (!r.nokey) {
+      lines.push('  -H "Authorization: Bearer ' + KEY + '"');
+      lines.push('  -H "Origin: ' + SITE + '"');
+      lines.push('  -H "Accept-Language: ' + lang + '"');
+    }
+    if (r.auth) lines.push('  -H "X-Shopper-Token: ' + TOKEN + '"');
+    (r.hd || []).forEach((h) => lines.push('  -H "' + h[0] + ': ' + h[1] + '"'));
+    if (r.body) {
+      lines.push('  -H "Content-Type: application/json"');
+      lines.push("  -d '" + indent(JSON.stringify(r.body, null, 2), '  ') + "'");
+    }
+    return lines.join(' \\\n');
+  }
+  function fetchJs(r, lang) {
+    if (r.nokey) return "// Meta's own fetcher reads this address; a test from your computer:\nconst res = await fetch('" + urlOf(r) + "');\nconst csv = await res.text();";
+    const h = ["    Authorization: 'Bearer " + KEY + "',", "    'Accept-Language': '" + lang + "',"];
+    if (r.auth) h.push("    'X-Shopper-Token': shopperToken,");
+    (r.hd || []).forEach((x) => h.push("    '" + x[0] + "': " + x[2] + ','));
+    if (r.body) h.push("    'Content-Type': 'application/json',");
+    const out = [];
+    if (r.pre) out.push(...r.pre);
+    if (r.auth) out.push('// shopperToken: the token sign-in gave you.');
+    out.push('// The browser sends Origin itself: call from a page on one of the key\u2019s websites.');
+    out.push("const res = await fetch('" + urlOf(r) + "', {");
+    if (r.m !== 'GET') out.push("  method: '" + r.m + "',");
+    out.push('  headers: {', ...h, '  },');
+    if (r.body) out.push('  body: JSON.stringify(' + indent(JSON.stringify(r.body, null, 2), '  ') + '),');
+    out.push('});', 'const { success, data, message } = await res.json();');
+    return out.join('\n');
+  }
+  function response(r, lang) {
+    return r.csv ? r.csvHead + '\n…' : JSON.stringify(envelope(r, lang), null, 2);
+  }
+  function esc(text) {
+    return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+  /* A light colouring: keys, strings, numbers, true/false/null; comments in code. */
+  function hl(text, kind) {
+    const e = esc(text);
+    if (kind === 'json') {
+      return e.replace(/("(?:\\.|[^"\\])*")(\s*:)?|\b(true|false|null)\b|(-?\b\d+(?:\.\d+)?\b)/g, (m, s, colon, kw, num) =>
+        s ? (colon ? '<span class="k">' + s + '</span>' + colon : '<span class="s">' + s + '</span>') : kw ? '<span class="b">' + kw + '</span>' : '<span class="n">' + num + '</span>');
+    }
+    return e.replace(/(\/\/[^\n]*)|('(?:\\.|[^'\\\n])*')|("(?:\\.|[^"\\\n])*")/g, (m, c, s1, s2) =>
+      c ? '<span class="c">' + c + '</span>' : '<span class="s">' + (s1 || s2) + '</span>');
+  }
+  const firstCall = { m: 'GET', p: '/catalogue/version', ok: ['ক্যাটালগ ভার্সন পাওয়া গেছে।', 'Catalogue version retrieved.'], data: { version: '184.7' } };
+  const failed = (lang) => ({ success: false, statusCode: 401, message: common[1][lang === 'bn' ? 3 : 4], errors: { code: 'unauthenticated', details: {} } });
+  const invalid = (lang) => {
+    const msg = lang === 'bn' ? 'একটি বাংলাদেশি মোবাইল নম্বর দিন, যেমন 017XXXXXXXX।' : 'Enter a Bangladeshi mobile number, such as 017XXXXXXXX.';
+    return { success: false, statusCode: 400, message: msg, errors: { code: 'validation_error', details: { fields: [{ field: 'phone', problem: 'invalid_format', message: msg }] } } };
+  };
+  return { BASE, SITE, KEY, groups, routes, common, codes, plans, curl, fetchJs, response, hl, esc, envelope, firstCall, failed, invalid };
+})();
+Object.assign(S, { dvTitle: ['ডেভেলপার API', 'Developer API'] });
+Object.assign(I, { code: '<path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/>' });
+const DV = { tab: 'curl' };
+const dvT = (pair) => L(pair[0], pair[1]);
+const dvLg = () => (LANG === 'bn' ? 'bn' : 'en');
+const dvM = (m) => `<span class="dv-m ${m.toLowerCase()}">${m}</span>`;
+const dvSc = (s) => (s < 300 ? 'ok' : s < 500 ? 'e4' : 'e5');
+const DV_SECS = [['start', ['শুরু করুন', 'Getting started']], ['auth', ['অথেন্টিকেশন ও হেডার', 'Authentication and headers']], ['limits', ['লিমিট', 'Limits']], ['errors', ['এরর', 'Errors']]];
+const DV_INTRO = {
+  catalogue: ['প্রোডাক্ট আর ক্যাটাগরি। ব্রাউজার এই উত্তরগুলো কিছুক্ষণ রেখে দেয়; বদল সাথে সাথে দেখাতে Version-এর v যোগ করুন।', 'Products and categories. A browser keeps these answers a short while; add the v from Version to show a change at once.'],
+  delivery: ['চেকআউটের আগে: কাস্টমার থানা সিলেক্ট করে, আপনি চার্জসহ মোট দেখান।', 'Before checkout: the shopper selects a thana, and you show the total with its charge.'],
+  orders: ['অর্ডার নেওয়ার ধাপ: /locations থেকে থানা → /delivery-estimate দিয়ে মোট → /orders। তারপর ট্র্যাকিং আইডি দিয়ে /track।', 'Taking an order: a thana from /locations → the total from /delivery-estimate → /orders. Then /track by the tracking ID.'],
+  shopper: ['অ্যাকাউন্ট খুললে কাস্টমারের অ্যাড্রেস সেভ থাকে আর আগের অর্ডার দেখা যায়। লগইনের পরের রুটে X-Shopper-Token হেডার লাগে। অ্যাকাউন্ট ছাড়াও অর্ডার দেওয়া যায়।', 'With an account a shopper keeps saved addresses and sees past orders. Routes after sign-in need the X-Shopper-Token header. Ordering needs no account.'],
+};
+const dvCopyBtn = (done) => `<button type="button" class="dv-copy ${done ? 'done' : ''}" onclick="dvCopy(this)">${ic(done ? 'check' : 'copy', 15)}<span>${done ? t('copied') : t('copy')}</span></button>`;
+const dvCodes = (r, o = {}) => {
+  const tab = o.tab || DV.tab;
+  return `<div class="dv-code"><div class="dv-ch"><div class="dv-tabs" role="tablist">${[['curl', 'curl'], ['js', 'JavaScript']].map(([k, l]) => `<button type="button" role="tab" data-tab="${k}" class="${tab === k ? 'on' : ''}" onclick="dvTab('${k}')">${l}</button>`).join('')}</div>${dvCopyBtn(o.copied)}</div>
+  <pre data-tab="curl" class="${tab === 'curl' ? 'on' : ''}">${DEVAPI.hl(DEVAPI.curl(r, dvLg()), 'sh')}</pre><pre data-tab="js" class="${tab === 'js' ? 'on' : ''}">${DEVAPI.hl(DEVAPI.fetchJs(r, dvLg()), 'js')}</pre></div>`;
+};
+const dvBox = (status, label, text, kind) => `<div class="dv-code res"><div class="dv-ch"><span class="dv-rl"><span class="dv-s ${dvSc(status)}">${status}</span>${label}</span>${dvCopyBtn(false)}</div><pre class="on">${kind === 'csv' ? DEVAPI.esc(text) : DEVAPI.hl(text, 'json')}</pre></div>`;
+const dvRes = (r) => dvBox(r.st || 200, L('রেসপন্স', 'Response') + (r.csv ? ' · text/csv' : ''), DEVAPI.response(r, dvLg()), r.csv ? 'csv' : 'json');
+const dvParams = (r) => (r.params.length ? `<div class="dv-sub">${L('প্যারামিটার', 'Parameters')}</div><div class="dv-ps">${r.params.map((p) => `<div class="dv-p"><div class="dv-pn"><code>${p.n}</code><span class="dv-in">${p.at}</span>${p.ty ? `<span class="dv-ty">${DEVAPI.esc(p.ty)}</span>` : ''}<span class="dv-req ${p.req ? 'on' : ''}">${p.req ? L('লাগবেই', 'Required') : L('ঐচ্ছিক', 'Optional')}</span></div><div class="dv-pd">${dvT(p.d)}</div></div>`).join('')}</div>` : `<p class="dv-none">${L('কোনো প্যারামিটার নেই।', 'No parameters.')}</p>`);
+const dvErrRow = (e) => `<div class="dv-err"><span class="dv-s ${dvSc(e[0])}">${e[0]}</span><code>${e[1]}</code><span class="dv-em">${L(e[3], e[4])}</span></div>`;
+const dvErrs = (r) => `<div class="dv-sub">${L('এরর', 'Errors')}</div>${(r.errs || []).map(dvErrRow).join('')}<p class="dv-also">${r.nokey ? L('এই রুটে API কী-র এরর নেই; ভিজিটরের মিনিটের লিমিট আছে।', 'No API key errors here; the visitor limit a minute still holds.') : `${L('সাথে সব রুটের কী, ওয়েবসাইট আর লিমিটের এরর:', 'Plus the key, website and limit errors every route has:')} <button type="button" class="dv-lnk" onclick="dvJump('errors')">${L('এরর', 'Errors')}</button>`}</p>`;
+const dvRoute = (r, o) => {
+  const open = ST.device === 'desktop' || dvBaseAt(o.at) === r.id;
+  return `<details class="dv-route" id="dv-${r.id}" ${open ? 'open' : ''}><summary><span class="dv-line">${dvM(r.m)}<code class="dv-path">/v1${r.p}</code>${r.sell ? `<span class="dv-sell">${L('লিমিট শেষেও চলে', 'Works past the limit')}</span>` : ''}${ic('down', 18)}</span><span class="dv-what">${dvT(r.what)}</span></summary>
+  <div class="dv-rb">${dvParams(r)}<div class="dv-sub" id="dv-${r.id}-req">${L('রিকোয়েস্ট', 'Request')}</div>${dvCodes(r, { tab: o.tab, copied: o.copied === r.id })}${dvRes(r)}${r.note ? `<p class="dv-note">${ic('info', 16)}<span>${dvT(r.note)}</span></p>` : ''}${dvErrs(r)}</div></details>`;
+};
+const dvGroup = (g, o) => `<section class="dv-sec" id="dv-g-${g.id}"><h2>${dvT(g.t)}</h2>${DV_INTRO[g.id] ? `<p class="dv-p1">${dvT(DV_INTRO[g.id])}</p>` : ''}${DEVAPI.routes.filter((r) => r.g === g.id).map((r) => dvRoute(r, o)).join('')}</section>`;
+const dvBaseAt = (at) => (at || '').replace(/-req$/, '');
+const dvNav = (raw) => { const at = dvBaseAt(raw); return `<nav class="dv-nav" aria-label="${L('ডকসের অংশ', 'Docs parts')}">${DV_SECS.map(([id, tx]) => `<button type="button" class="${at === id ? 'on' : ''}" onclick="dvJump('${id}')">${dvT(tx)}</button>`).join('')}
+  ${DEVAPI.groups.map((g) => `<div class="dv-ng">${dvT(g.t)}</div>${DEVAPI.routes.filter((r) => r.g === g.id).map((r) => `<button type="button" class="dv-nr ${at === r.id || at === 'g-' + g.id ? 'on' : ''}" onclick="dvJump('${r.id}')">${dvM(r.m)}<span>${r.p}</span></button>`).join('')}`).join('')}</nav>`; };
+/* Getting started: the shop's own keys (none yet, or how many are live), the website rule, a first call. */
+const dvStart = (o) => {
+  const newKey = isRO() ? '' : btn('p sm', `${ic('plus')} ${t('akNew')}`, "onclick=\"go('sh-key-new')\"");
+  const keys = o.nokey
+    ? `${banner('warn', L('আপনার নিজের ওয়েবসাইটের জন্য এখনও কোনো কী নেই। প্রথমে একটি তৈরি করুন।', 'There is no key for your own website yet. Make one first.'))}<div>${newKey}</div>`
+    : `<div class="dv-have">${ic('check', 18)}<span>${L('আপনার 2টি কী চালু আছে।', 'You have 2 live keys.')}</span>${btn('o xs', L('API কী দেখুন', 'See API keys'), "onclick=\"go('api-keys')\"")}</div>`;
+  const eg = [
+    ['ok', 'https://meghfashion.com', null],
+    ['ok', 'https://www.meghfashion.com', ['www আলাদা ঠিকানা, তাই এটাও দিন', 'www is another address, so add it too']],
+    ['ok', 'http://localhost:3000', ['নিজের কম্পিউটারে টেস্টের জন্য', 'for testing on your own computer']],
+    ['bad', 'https://meghfashion.com/shop', ['পরে পাথ দেওয়া যাবে না', 'no path after it']],
+    ['bad', 'http://meghfashion.com', ['https লাগবে', 'https only']],
+  ].map(([k, a, why]) => `<div class="${k}"><b>${k === 'ok' ? '✓' : '✗'}</b><code>${a}</code>${why ? `<span>${dvT(why)}</span>` : ''}</div>`).join('');
+  return `<section class="dv-sec" id="dv-start"><h2>${L('শুরু করুন', 'Getting started')}</h2>
+  <p class="dv-p1">${L('Lytro API দিয়ে আপনার নিজের ওয়েবসাইট বা অ্যাপে এই শপের প্রোডাক্ট দেখাতে, ডেলিভারি চার্জ হিসাব করতে আর অর্ডার নিতে পারবেন। প্রতিটি অর্ডার সরাসরি এই ড্যাশবোর্ডের অর্ডারে আসে।', "With the Lytro API your own website or app can show this shop's products, work out delivery charges and take orders. Every order lands straight in this dashboard's Orders.")}</p>
+  <ol class="dv-steps">
+    <li><b>${L('একটি API কী তৈরি করুন', 'Make an API key')}</b><p>${L('সেটিংস → API কী → নতুন কী। কী-টি শুধু একবার দেখানো হয়, তাই তখনই কপি করে রাখুন। একসাথে সর্বোচ্চ 20টি কী চালু রাখা যায়।', 'Settings → API keys → New key. The key is shown once, so copy it then. Up to 20 can be live at a time.')}</p>${keys}</li>
+    <li><b>${L('ওয়েবসাইটের ঠিকানা দিন', 'Add your website addresses')}</b><p>${L('যে সাইট থেকে কী চলবে, কী-তে তার ঠিকানা দিন: https://, ডোমেইন আর দরকার হলে পোর্ট, পরে কোনো পাথ নয়। নিজের কম্পিউটারে টেস্টের জন্য http://localhost আর http://127.0.0.1 চলে। একটি কী-তে সর্বোচ্চ 10টি।', 'Give the key the address of each site it runs on: https://, the domain and a port if needed, with no path after it. For testing on your own computer, http://localhost and http://127.0.0.1 work. Up to 10 a key.')}</p><div class="dv-eg">${eg}</div></li>
+    <li><b>${L('প্রথম রিকোয়েস্ট পাঠান', 'Send a first request')}</b><p>${L('কী আর ঠিকানা ঠিক থাকলে এই রিকোয়েস্টে ক্যাটালগের ভার্সন আসবে।', 'With the key and the address right, this answers with the catalogue version.')}</p>${dvCodes(DEVAPI.firstCall, { tab: o.tab })}${dvRes(DEVAPI.firstCall)}</li>
+  </ol>
+  <div class="dv-callout">${ic('shield', 20)}<div><b>${L('এটা পাবলিক কী', 'This is a public key')}</b><p>${L('lytro_pk_ কী আপনার ওয়েবসাইটের কোডেই থাকে, তাই ব্রাউজারে যে কেউ এটা দেখতে পারে। অন্য কোনো ওয়েবসাইট ব্রাউজার থেকে এটা চালাতে পারে না, কারণ ব্রাউজার আসল Origin পাঠায়। আর এই কী দিয়ে শুধু এই পেজের কাজগুলোই হয়, যা আপনার সাইটের একজন কাস্টমারও করতে পারে: ক্যাটালগ দেখা, ডেলিভারি চার্জ, অর্ডার আর ট্র্যাকিং। আপনার অর্ডার লিস্ট, কাস্টমার বা টাকার হিসাব এই কী দিয়ে কখনো দেখা যায় না। ফাঁস হয়েছে মনে হলে নতুন কী বসিয়ে পুরোনোটা ক্যানসেল করুন।', "A lytro_pk_ key sits in your website's code, so anyone can see it in a browser. No other website can use it from a browser, because browsers send their real Origin. And it can only do what this page lists, which a shopper on your site can do anyway: read the catalogue, work out delivery, place and track an order. It never reads your orders list, customers or money. If you think it leaked, put a new key in and revoke the old one.")}</p></div></div></section>`;
+};
+const dvHeadRow = (name, eg, d) => `<div class="dv-h"><div><code>${name}</code>${eg ? `<span class="dv-ty">${DEVAPI.esc(eg)}</span>` : ''}</div><p>${dvT(d)}</p></div>`;
+const dvAuth = () => `<section class="dv-sec" id="dv-auth"><h2>${L('অথেন্টিকেশন ও হেডার', 'Authentication and headers')}</h2>
+  <p class="dv-p1">${L('প্রতিটি রিকোয়েস্টে কী পাঠান Authorization হেডারে। কোন শপ, সেটা কী থেকেই বোঝা যায়; আলাদা করে শপের নাম পাঠাতে হয় না।', 'Send the key in the Authorization header of every request. The key says which shop; you never send the shop yourself.')}</p>
+  <h3>${L('রিকোয়েস্টের হেডার', 'Request headers')}</h3><div class="dv-hs">
+  ${dvHeadRow('Authorization', 'Bearer lytro_pk_…', ['প্রতিটি রুটে লাগবেই, শুধু Meta ফিড ছাড়া।', 'Required on every route but the Meta feed.'])}
+  ${dvHeadRow('Origin', DEVAPI.SITE, ["কী-তে দেওয়া একটি ওয়েবসাইট। ব্রাউজার নিজেই পাঠায়; curl বা সার্ভার থেকে নিজে যোগ করুন। না থাকলে বা অন্য সাইট হলে 403।", "One of the key's websites. A browser sends it itself; from curl or a server, add it yourself. Missing, or another site: 403."])}
+  ${dvHeadRow('Accept-Language', 'bn | en', ['message কোন ভাষায় আসবে। না দিলে বাংলা।', 'The language message comes in; Bangla if left out.'])}
+  ${dvHeadRow('Content-Type', 'application/json', ['POST আর PATCH-এর body-র সাথে।', 'With a POST or PATCH body.'])}
+  ${dvHeadRow('Idempotency-Key', 'crypto.randomUUID()', ['শুধু POST /v1/orders-এ, লাগবেই। প্রতি অর্ডারে নতুন; আবার পাঠালে একই।', 'POST /v1/orders only, required. New per order; the same on a retry.'])}
+  ${dvHeadRow('X-Shopper-Token', '', ['লগইনের পরের কাস্টমার রুটে: লগইনে পাওয়া token।', 'Shopper routes after sign-in: the token sign-in gave.'])}</div>
+  <h3>${L('রেসপন্সের হেডার', 'Response headers')}</h3><div class="dv-hs">
+  ${dvHeadRow('X-RateLimit-Limit · -Remaining · -Reset', '', ['এই ভিজিটরের মিনিটের লিমিট, কতটা বাকি, আর কত সেকেন্ড পরে আবার ভরবে।', "This visitor's limit a minute, how much is left, and the seconds until it refills."])}
+  ${dvHeadRow('Retry-After', '', ['429 বা 503-এ: কত সেকেন্ড পরে আবার পাঠাবেন।', 'On a 429 or 503: the seconds to wait before trying again.'])}
+  ${dvHeadRow('X-Request-Id', '', ['প্রতিটি রিকোয়েস্টের আইডি; সমস্যা হলে সাপোর্টে এটা দিন।', "Each request's ID; give it to support when something goes wrong."])}
+  ${dvHeadRow('Idempotent-Replay', 'true', ['একই Idempotency-Key-এর প্রথম উত্তরটাই আবার এসেছে; নতুন অর্ডার হয়নি।', 'The first answer to the same Idempotency-Key came back; no new order was made.'])}
+  ${dvHeadRow('ETag · Cache-Control', '', ['ক্যাটালগের রুটে। If-None-Match পাঠালে, না বদলালে 304 আসে, body ছাড়া।', 'On catalogue routes. Send If-None-Match and an unchanged answer is 304, with no body.'])}</div>
+  <h3>${L('উত্তরের খাম', 'The envelope')}</h3><p class="dv-p1">${L('প্রতিটি JSON উত্তর একই খামে আসে: success, statusCode, message আর data; রিফিউজ হলে data-র বদলে errors। কী-তে দেওয়া ওয়েবসাইট রিফিউজের উত্তরও পড়তে পারে, তাই কেন হলো দেখা যায়।', 'Every JSON answer comes in the same envelope: success, statusCode, message and data, or errors on a refusal. A website on the key can read even a refusal, so you can see why.')}</p>
+  ${dvBox(200, L('রেসপন্স', 'Response'), JSON.stringify(DEVAPI.envelope(DEVAPI.firstCall, dvLg()), null, 2), 'json')}</section>`;
+const dvLimits = (o) => {
+  const used = o.usedUp ? 200000 : 48210;
+  const minute = [
+    ['120', ['রিকোয়েস্ট প্রতি মিনিটে, প্রতিটি ভিজিটর (ইন্টারনেট ঠিকানা)', 'requests a minute, each visitor (internet address)']],
+    ['10', ['অর্ডার প্রতি মিনিটে, প্রতিটি ভিজিটর', 'orders a minute, each visitor']],
+    ['180', ['অর্ডার প্রতি মিনিটে, পুরো শপে সব কাস্টমার মিলে', 'orders a minute, the whole shop, every shopper together']],
+    ['60', ['ট্র্যাকিং প্রতি মিনিটে, প্রতিটি ভিজিটর', 'tracking reads a minute, each visitor']],
+    ['5 · 10', ['সাইন আপ কোড · লগইন চেষ্টা প্রতি মিনিটে, প্রতিটি ভিজিটর', 'sign-up codes · sign-in tries a minute, each visitor']],
+  ].map(([n, d]) => `<div class="dv-lc"><b class="num">${n}</b><span>${dvT(d)}</span></div>`).join('');
+  const plans = DEVAPI.plans.map(([name, n]) => `<div class="dv-pl ${name[1] === 'Starter' ? 'on' : ''}"><span>${dvT(name)}${name[1] === 'Starter' ? ` <span class="st info">${L('আপনার প্ল্যান', 'Your plan')}</span>` : ''}</span><b class="num">${n.toLocaleString('en-US')}</b></div>`).join('');
+  return `<section class="dv-sec" id="dv-limits"><h2>${L('লিমিট', 'Limits')}</h2>
+  <p class="dv-p1">${L('দুই রকম লিমিট: প্রতি মিনিটে, যাতে একজন ভিজিটর পুরো শপ আটকে দিতে না পারে; আর প্রতি বিলিং সাইকেলে, প্ল্যান অনুযায়ী। মিনিটের লিমিট পার হলে 429 আর Retry-After আসে।', 'Two kinds: a minute, so one visitor can never hold up the whole shop; and a billing cycle, by plan. Past a minute limit you get 429 with Retry-After.')}</p>
+  <div class="dv-lim">${minute}</div>
+  <h3>${L('প্রতি বিলিং সাইকেলে রিকোয়েস্ট', 'Requests a billing cycle')}</h3>
+  <div class="card dv-use"><div class="kv" style="padding:0"><span class="k">Starter · ${L('এই সাইকেলে', 'this cycle')}</span><span class="v num">${used.toLocaleString('en-US')} / 200,000</span></div><div class="bar"><i class="${o.usedUp ? 'bad' : ''}" style="width:${o.usedUp ? 100 : 24}%"></i></div>
+  <div class="actions">${btn('o xs', L('ইউজেজ দেখুন', 'See usage'), "onclick=\"go('usage')\"")}${isRO() ? '' : btn('o xs', L('রিকোয়েস্ট প্যাক কিনুন', 'Buy a request pack'), "onclick=\"go('addons')\"")}</div></div>
+  <div class="dv-plans">${plans}</div>
+  <ul class="dv-ul">
+    <li>${L('50%, 80% আর 95%-এ আপনাকে জানানো হয়।', 'You are told at 50%, 80% and 95%.')}</li>
+    <li>${L('লিমিট শেষ হলে বাকি রুটগুলো 429 RequestsUsedUp দেয়, কিন্তু অর্ডারের তিনটি রুট (/locations, /delivery-estimate, /orders) চলতেই থাকে: লিমিটের জন্য কোনো বিক্রি আটকায় না।', 'Past it, the other routes answer 429 RequestsUsedUp, but the three an order needs (/locations, /delivery-estimate, /orders) keep working: a limit never turns a sale away.')}</li>
+    <li>${L('Add-ons থেকে API রিকোয়েস্ট প্যাক কিনে লিমিট বাড়ানো যায়।', 'An API request pack from Add-ons raises it.')}</li>
+    <li>${L('আপনার Lytro স্টোরফ্রন্টের (megh.lytro.app) রিকোয়েস্ট গোনা হয় না; ব্রাউজারে রেখে দেওয়া উত্তরও না।', 'Your Lytro storefront (megh.lytro.app) is not counted, nor is an answer a browser reuses from its cache.')}</li>
+  </ul></section>`;
+};
+const dvErrors = () => `<section class="dv-sec" id="dv-errors"><h2>${L('এরর', 'Errors')}</h2>
+  <p class="dv-p1">${L('রিফিউজ হলে success: false, আর errors.code বলে কী ধরনের সমস্যা। আপনার কোড statusCode আর errors.code দেখে সিদ্ধান্ত নেবে; message মানুষের পড়ার জন্য, আর Accept-Language অনুযায়ী ভাষা বদলায়।', 'A refusal has success: false, and errors.code names the kind. Let your code decide by statusCode and errors.code; message is for people, and its language follows Accept-Language.')}</p>
+  ${dvBox(401, L('রেসপন্স', 'Response'), JSON.stringify(DEVAPI.failed(dvLg()), null, 2), 'json')}
+  <h3>details.fields</h3><p class="dv-p1">${L('কোনো ফিল্ড ভুল হলে প্রতিটির নাম, সমস্যা (problem) আর বার্তা আসে। ফর্মে ঠিক ফিল্ডের নিচে বার্তাটা দেখান।', 'A wrong field comes back with its name, its problem and a message. Show the message under that field in your form.')}</p>
+  ${dvBox(400, L('রেসপন্স', 'Response'), JSON.stringify(DEVAPI.invalid(dvLg()), null, 2), 'json')}
+  <h3>errors.code</h3><div class="dv-codes">${DEVAPI.codes.map(([s, c, d]) => `<div class="dv-err"><span class="dv-s ${dvSc(s)}">${s}</span><code>${c}</code><span class="dv-em">${dvT(d)}</span></div>`).join('')}</div>
+  <h3>${L('প্রতিটি রুটে, এই ক্রমে যাচাই', 'Checked on every route, in this order')}</h3><p class="dv-p1">${L('কী → ওয়েবসাইট → শপ খোলা কিনা → মিনিটের লিমিট → সাইকেলের লিমিট। রিফিউজ হওয়া রিকোয়েস্ট গোনা হয় না।', 'The key → the website → the shop open → the minute limit → the cycle limit. A refused request is not counted.')}</p>
+  <div class="dv-codes">${DEVAPI.common.map(dvErrRow).join('')}</div></section>`;
+function dvPage(o = {}) {
+  const at = o.at || 'start';
+  const head = `${title('dvTitle')}<p class="dv-lead">${L('আপনার নিজের ওয়েবসাইট বা অ্যাপের জন্য Lytro API: প্রতিটি রুটের রিকোয়েস্ট আর রেসপন্সের নমুনা, curl আর JavaScript-এ।', 'The Lytro API for your own website or app: every route with a sample request and response, in curl and JavaScript.')}</p>
+  <div class="dv-base"><span>${L('বেস URL', 'Base URL')}</span><code>${DEVAPI.BASE}</code><span class="dv-ver">v1</span>${dvCopyBtn(false)}</div>${o.usedUp ? banner('bad', L('এই সাইকেলের 200,000 রিকোয়েস্ট শেষ। অর্ডারের রুটগুলো চলছে; বাকিগুলো 429 দিচ্ছে, পরের সাইকেলে আবার চালু হবে।', "This cycle's 200,000 requests are used up. The order routes still work; the rest answer 429 until the next cycle."), isRO() ? null : L('রিকোয়েস্ট প্যাক কিনুন', 'Buy a request pack'), 'addons') : ''}`;
+  const body = [dvStart(o), dvAuth(), dvLimits(o), dvErrors(), ...DEVAPI.groups.map((g) => dvGroup(g, o))].join('');
+  if (ST.device === 'desktop') return `${head}<div class="dv"><aside class="dv-side">${dvNav(at)}</aside><div class="dv-main">${body}</div></div>`;
+  return `${head}<details class="dv-toc" ${o.toc ? 'open' : ''}><summary>${ic('list', 18)}<span>${L('এই পেজে', 'On this page')}</span><small>${L('4টি অংশ · 24টি রুট', '4 parts · 24 routes')}</small>${ic('down', 18)}</summary>${dvNav(at)}</details><div class="dv-main">${body}</div>`;
+}
+function dvScrollTo(id) {
+  const el = document.getElementById('dv-' + id);
+  const sc = el && el.closest('.scroll');
+  if (!el || !sc) return;
+  sc.scrollTop += el.getBoundingClientRect().top - sc.getBoundingClientRect().top - 12;
+}
+function dvJump(id) {
+  const el = document.getElementById('dv-' + id);
+  if (!el) return;
+  if (el.tagName === 'DETAILS') el.open = true;
+  const toc = document.querySelector('#frame .dv-toc');
+  if (toc) toc.open = false;
+  document.querySelectorAll('#frame .dv-nav button').forEach((b) => b.classList.toggle('on', (b.getAttribute('onclick') || '').indexOf("'" + id + "'") > 0));
+  dvScrollTo(id);
+}
+function dvTab(k) {
+  DV.tab = k;
+  document.querySelectorAll('#frame .dv-tabs button').forEach((b) => b.classList.toggle('on', b.dataset.tab === k));
+  document.querySelectorAll('#frame .dv-code pre[data-tab]').forEach((p) => p.classList.toggle('on', p.dataset.tab === k));
+}
+function dvCopy(b) {
+  const box = b.closest('.dv-code, .dv-base');
+  const el = box && (box.querySelector('pre.on') || box.querySelector('code'));
+  try { if (el && navigator.clipboard) navigator.clipboard.writeText(el.textContent); } catch (e) { /* a sketch: the label still says so */ }
+  b.classList.add('done');
+  b.innerHTML = `${ic('check', 15)}<span>${t('copied')}</span>`;
+  setTimeout(() => { b.classList.remove('done'); b.innerHTML = `${ic('copy', 15)}<span>${t('copy')}</span>`; }, 1600);
+}
+const _renderDv = render;
+render = function () {
+  _renderDv();
+  const scr = SCREENS[ST.screen];
+  if (!scr || !scr.dvAt) return;
+  dvScrollTo(scr.dvAt);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (SCREENS[ST.screen] === scr) dvScrollTo(scr.dvAt); });
+};
+/* API keys: the Developer docs card under the lead; with no key of the shop's own yet, an empty state under Lytro's. */
+const dvEntry = () => `<button type="button" class="card dv-entry" onclick="go('dev-docs')"><span class="dv-ei">${ic('code', 20)}</span><span class="dv-eb"><span class="l1">${L('ডেভেলপার ডকস', 'Developer docs')}</span><span class="l2">${L('প্রতিটি রুটের রিকোয়েস্ট আর রেসপন্সের নমুনা, curl আর JavaScript-এ।', 'Every route with a sample request and response, in curl and JavaScript.')}</span></span>${ic('right', 18)}</button>`;
+SCREENS['dev-keys'] = { ...SCREENS['api-keys'], render: () => {
+  const h = SCREENS['api-keys'].render();
+  const at = h.indexOf('<div class="card flush list">');
+  if (at < 0) throw new Error('Developers: the API keys list not found');
+  return h.slice(0, at) + dvEntry() + h.slice(at);
+} };
+SCREENS['dev-keys-none'] = { ...SCREENS['api-keys'], render: () => `${title('akTitle', isRO() ? '' : btn('p sm', `${ic('plus')} ${t('akNew')}`, "onclick=\"go('sh-key-new')\""))}<p class="hint">${t('akLead')}</p>${dvEntry()}
+  <div class="card flush list">${ak25Row()}</div><p class="hint">${t('ak25Note')}</p>
+  <div class="card">${empty('key', L('আপনার নিজের ওয়েবসাইট বা অ্যাপের জন্য এখনও কোনো কী নেই।', 'No key yet for your own website or app.'), isRO() ? '' : btn('p sm', `${ic('plus')} ${t('akNew')}`, "onclick=\"go('sh-key-new')\""))}</div>` };
+const DV_BASE = { ...AK_BASE, title: 'dvTitle', base: 'api-keys', path: '/settings/developers' };
+const dvScreen = (id, o) => {
+  SCREENS[id] = { ...DV_BASE, dvAt: o.at || null, render: () => dvPage(o) };
+  if (o.toast) SCREENS[id].toast = () => `${ic('check')} ${t('copied')}`;
+};
+dvScreen('dev-docs', {});
+dvScreen('dev-docs-nokey', { nokey: true });
+dvScreen('dev-toc', { toc: true });
+dvScreen('dev-auth', { at: 'auth' });
+dvScreen('dev-limits', { at: 'limits' });
+dvScreen('dev-used-up', { usedUp: true });
+dvScreen('dev-errors', { at: 'errors' });
+dvScreen('dev-products', { at: 'products', tab: 'curl' });
+dvScreen('dev-products-js', { at: 'products-req', tab: 'js' });
+dvScreen('dev-order', { at: 'order', tab: 'curl' });
+dvScreen('dev-track', { at: 'track', tab: 'curl' });
+dvScreen('dev-shopper', { at: 'g-shopper', tab: 'curl' });
+dvScreen('dev-copied', { at: 'products-req', tab: 'curl', copied: 'products', toast: true });
+document.head.insertAdjacentHTML('beforeend', `<style>
+/* Developers: the API docs (sketch) */
+:root{--dv-mono:ui-monospace,'JetBrains Mono',Menlo,Consolas,'Noto Sans Bengali',monospace}
+.dv-lead{font-size:15px;color:var(--n700)}
+.dv-base{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);padding:10px 12px}
+.dv-base > span:first-child{font-size:13px;font-weight:600;color:var(--n700)}
+.dv-base code{font:600 14px/1.4 var(--dv-mono);color:var(--ink);overflow-wrap:anywhere;min-width:0}
+.dv-base .dv-copy{margin-left:auto;color:var(--n700);border-color:var(--line-strong)}
+.dv-base .dv-copy.done{color:var(--success);border-color:var(--success)}
+.dv-ver{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:999px;background:var(--info-soft);color:var(--info);font:700 12px/1 var(--dv-mono)}
+.dv{display:grid;grid-template-columns:220px minmax(0,1fr);gap:28px;align-items:start}
+.dv-side{position:sticky;top:0;max-height:660px;overflow:auto;padding:0 4px 8px 0}
+.dv-main{display:flex;flex-direction:column;gap:28px;min-width:0}
+.dv-nav{display:flex;flex-direction:column;gap:2px}
+.dv-nav button{display:flex;align-items:center;gap:8px;min-height:34px;padding:4px 10px;border-radius:8px;text-align:left;font-size:14px;color:var(--n700);width:100%}
+.dv-nav button:hover{background:var(--n100)}
+.dv-nav button.on{background:var(--primary-soft);color:var(--teal-900);font-weight:600}
+.dv-nav .dv-ng{font-size:12px;font-weight:700;color:var(--n700);padding:14px 10px 4px;letter-spacing:.05em;text-transform:uppercase}
+.frame[data-lang=bn] .dv-nav .dv-ng{text-transform:none;letter-spacing:0;font-size:13px}
+.dv-nav .dv-nr > span:last-child{font:12.5px/1.3 var(--dv-mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.dv-m{flex:none;display:inline-flex;align-items:center;justify-content:center;min-width:46px;height:20px;padding:0 6px;border-radius:5px;font:700 11px/1 var(--dv-mono);letter-spacing:.02em}
+.dv-m.get{background:var(--info-soft);color:var(--info)}
+.dv-m.post{background:var(--success-soft);color:var(--success)}
+.dv-m.patch{background:var(--warning-soft);color:var(--warning)}
+.dv-m.delete{background:var(--danger-soft);color:var(--danger)}
+.dv-toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card)}
+.dv-toc > summary{list-style:none;display:flex;align-items:center;gap:10px;min-height:52px;padding:0 14px;cursor:pointer;font-weight:600;font-size:15px}
+.dv-toc > summary::-webkit-details-marker,.dv-route > summary::-webkit-details-marker{display:none}
+.dv-toc > summary small{font-weight:500;font-size:13px;color:var(--n700);margin-left:auto}
+.dv-toc > summary > svg.i:last-child,.dv-line > svg.i:last-child{transition:transform .15s;color:var(--n700)}
+.dv-toc[open] > summary > svg.i:last-child,.dv-route[open] .dv-line > svg.i:last-child{transform:rotate(180deg)}
+.dv-toc .dv-nav{padding:6px 6px 10px;border-top:1px solid var(--line)}
+.dv-sec{display:flex;flex-direction:column;gap:12px}
+.dv-sec > h2{font-size:19px;font-weight:700;line-height:1.3}
+.dv-sec h3{font-size:15px;font-weight:600;margin-top:6px}
+.dv-p1{font-size:15px;color:var(--n700)}
+.dv-steps{list-style:none;counter-reset:dv;display:flex;flex-direction:column;gap:12px}
+.dv-steps > li{counter-increment:dv;position:relative;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);padding:14px 14px 14px 52px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.dv-steps > li::before{content:counter(dv);position:absolute;left:14px;top:12px;width:26px;height:26px;border-radius:50%;background:var(--primary);color:#fff;font-weight:700;font-size:14px;display:grid;place-items:center}
+.dv-steps > li > b{font-size:15px}
+.dv-steps > li > p{font-size:14px;color:var(--n700)}
+.frame.phone .dv-steps > li{padding:14px}
+.frame.phone .dv-steps > li > b{padding-left:36px;min-height:26px;display:flex;align-items:center}
+.frame.phone .dv-steps > li::before{top:13px}
+.dv-have{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px;color:var(--success);font-weight:500}
+.dv-have .btn{margin-left:auto}
+.dv-eg{display:flex;flex-direction:column;gap:6px;background:var(--n50);border-radius:8px;padding:10px 12px}
+.dv-eg div{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;font-size:13px;color:var(--n700)}
+.dv-eg code{font:13px/1.4 var(--dv-mono);color:var(--ink);overflow-wrap:anywhere}
+.dv-eg .ok b{color:var(--success)}
+.dv-eg .bad b{color:var(--danger)}
+.dv-callout{display:flex;gap:12px;align-items:flex-start;background:var(--primary-soft);border:1px solid var(--teal-200);border-radius:var(--r-card);padding:14px;color:var(--teal-900)}
+.dv-callout p{font-size:14px;margin-top:4px;color:var(--teal-900)}
+.dv-code{background:#0f1f1e;border-radius:10px;overflow:hidden;min-width:0}
+.dv-ch{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 6px 6px 8px;border-bottom:1px solid rgba(255,255,255,.08)}
+.dv-tabs{display:flex;gap:2px}
+.dv-tabs button{height:30px;padding:0 12px;border-radius:6px;font-size:13px;font-weight:600;color:#bccbca}
+.dv-tabs button.on{background:rgba(255,255,255,.12);color:#fff}
+.dv-copy{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px;border-radius:6px;font-size:13px;font-weight:600;color:#d5e5e2;border:1px solid rgba(255,255,255,.18);flex:none}
+.dv-copy svg.i{width:15px;height:15px}
+.dv-copy.done{color:var(--teal-300);border-color:var(--teal-300)}
+.dv-code pre{display:none;margin:0;padding:12px 14px;overflow:auto;max-height:440px;font:12.5px/1.6 var(--dv-mono);color:#e8f0ef;white-space:pre;tab-size:2}
+.dv-code pre.on{display:block}
+.dv-code .k{color:#7fdcd3}
+.dv-code .s{color:#f8cf6e}
+.dv-code .n{color:#f6b3c2}
+.dv-code .b{color:#c3b5f7}
+.dv-code .c{color:#9db0ae}
+.dv-rl{display:inline-flex;align-items:center;gap:8px;padding-left:4px;font-size:13px;font-weight:600;color:#d5e5e2}
+.dv-s{display:inline-flex;align-items:center;flex:none;height:20px;padding:0 7px;border-radius:5px;font:700 11.5px/1 var(--dv-mono)}
+.dv-s.ok{background:var(--success-soft);color:var(--success)}
+.dv-s.e4{background:var(--warning-soft);color:var(--warning)}
+.dv-s.e5{background:var(--danger-soft);color:var(--danger)}
+.dv-code .dv-s.ok{background:rgba(127,220,211,.16);color:#7fdcd3}
+.dv-code .dv-s.e4{background:rgba(248,207,110,.16);color:#f8cf6e}
+.dv-route{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card)}
+.dv-route > summary{list-style:none;display:flex;flex-direction:column;gap:4px;padding:12px 14px;cursor:pointer}
+.dv-line{display:flex;align-items:center;gap:8px;min-width:0}
+.dv-line > svg.i:last-child{margin-left:auto}
+.dv-path{font:600 14px/1.35 var(--dv-mono);color:var(--ink);overflow-wrap:anywhere;min-width:0}
+.dv-what{font-size:14px;color:var(--n700)}
+.dv-sell{flex:none;font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--mar-100);color:var(--mar-700)}
+.dv-rb{display:flex;flex-direction:column;gap:10px;padding:12px 14px 14px;border-top:1px solid var(--line)}
+.dv-sub{font-size:12px;font-weight:700;color:var(--n700);letter-spacing:.05em;text-transform:uppercase;margin-top:4px}
+.frame[data-lang=bn] .dv-sub{text-transform:none;letter-spacing:0;font-size:13px}
+.dv-ps{display:flex;flex-direction:column}
+.dv-p{display:flex;flex-direction:column;gap:3px;padding:8px 0;border-bottom:1px solid var(--n100)}
+.dv-p:last-child{border-bottom:0}
+.dv-pn{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.dv-pn code,.dv-h code{font:600 13px/1.4 var(--dv-mono);color:var(--ink);overflow-wrap:anywhere}
+.dv-in,.dv-ty{font:12px/1.4 var(--dv-mono);color:var(--n700);background:var(--n100);border-radius:4px;padding:1px 6px;overflow-wrap:anywhere}
+.dv-req{font-size:12px;font-weight:600;color:var(--n700)}
+.dv-req.on{color:var(--danger)}
+.dv-pd,.dv-none{font-size:14px;color:var(--n700)}
+.dv-err{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;padding:7px 0;font-size:14px;border-bottom:1px solid var(--n100)}
+.dv-err code{font:600 12.5px/1.4 var(--dv-mono);color:var(--ink)}
+.dv-em{color:var(--n700);flex:1 1 220px;min-width:0}
+.dv-codes{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);padding:4px 14px}
+.dv-codes .dv-err:last-child,.dv-hs .dv-h:last-child{border-bottom:0}
+.dv-also{font-size:13px;color:var(--n700)}
+.dv-lnk{color:var(--primary);font-weight:600;font-size:13px;text-decoration:underline}
+.dv-note{display:flex;gap:8px;align-items:flex-start;font-size:14px;color:var(--teal-900);background:var(--primary-soft);border-radius:8px;padding:10px 12px}
+.dv-note svg.i{margin-top:2px}
+.dv-hs{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);padding:2px 14px}
+.dv-h{display:flex;flex-direction:column;gap:4px;padding:10px 0;border-bottom:1px solid var(--n100)}
+.dv-h > div{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.dv-h p{font-size:14px;color:var(--n700)}
+.frame.desktop .dv-h{display:grid;grid-template-columns:260px 1fr;gap:4px 16px;align-items:baseline}
+.dv-lim{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.frame.desktop .dv-lim{grid-template-columns:repeat(5,1fr)}
+.dv-lc{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);padding:12px;display:flex;flex-direction:column;gap:4px}
+.dv-lc b{font-size:22px;font-weight:700;letter-spacing:-.02em}
+.dv-lc span{font-size:13px;color:var(--n700)}
+.dv-use{display:flex;flex-direction:column;gap:10px}
+.dv-use .actions{display:flex;gap:8px;flex-wrap:wrap}
+.dv-use .bar i.bad{background:var(--danger)}
+.dv-plans{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);padding:2px 14px}
+.dv-pl{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;border-bottom:1px solid var(--n100);font-size:14px}
+.dv-pl:last-child{border-bottom:0}
+.dv-pl.on{font-weight:600}
+.dv-ul{display:flex;flex-direction:column;gap:6px;padding-left:20px;font-size:14px;color:var(--n700)}
+.dv-entry{display:flex;align-items:center;gap:12px;text-align:left;width:100%;color:var(--ink)}
+.dv-ei{width:40px;height:40px;border-radius:10px;background:var(--ink);color:var(--teal-300);display:grid;place-items:center;flex:none}
+.dv-eb{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0}
+.dv-eb .l1{font-weight:600;font-size:15px}
+.dv-eb .l2{font-size:13px;color:var(--n700)}
+.dv-entry > svg.i:last-child{color:var(--n700)}
+</style>`);
+/* ---------- end of the developers' API docs (sketch) ---------- */
 </script>
 </body>
 </html>

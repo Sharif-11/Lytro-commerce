@@ -1,6 +1,6 @@
 # Tenant dashboard: the full design
 
-Status: v3.41, 2026-11-18 (the courier label laid out as Steadfast's, §7.47); v3.40, 2026-11-12 (photo designs for the seller -- each photo's design on the photos sheet, the design split by its photos, the pickers by photo, the order's and the label's design, size and SKU -- §7.42, Part 40); v3.39 of 2026-11-10 (Phase 8 for the seller -- the help line, the error ID on a server fault, a payment method being retired, a payment's screenshot in Billing, categories by dragging -- and the owner's six fixes, drawn for Slice 8.8, §7.41, Part 39; v3.38 of 2026-11-09: paying Lytro on the developed payment page: §7.19 is current, Part 38, reversing D5-3's amendment of 2026-11-03; v3.37 of 2026-11-07: Phase 7 for the seller -- SMS settings, the log and the report, the bell, its switches and
+Status: v3.42, 2026-11-21 (the developer API docs beside API keys, a sketch, §7.48); v3.41, 2026-11-18 (the courier label laid out as Steadfast's, §7.47); v3.40, 2026-11-12 (photo designs for the seller -- each photo's design on the photos sheet, the design split by its photos, the pickers by photo, the order's and the label's design, size and SKU -- §7.42, Part 40); v3.39 of 2026-11-10 (Phase 8 for the seller -- the help line, the error ID on a server fault, a payment method being retired, a payment's screenshot in Billing, categories by dragging -- and the owner's six fixes, drawn for Slice 8.8, §7.41, Part 39; v3.38 of 2026-11-09: paying Lytro on the developed payment page: §7.19 is current, Part 38, reversing D5-3's amendment of 2026-11-03; v3.37 of 2026-11-07: Phase 7 for the seller -- SMS settings, the log and the report, the bell, its switches and
 push, the bounced email, Lytro's notice board with its marquee and prompt, the fake order check, reading a pasted
 message and the reads allowance -- drawn for Slice 7.7, §7.40, Part 37; v3.36 of 2026-11-07: the Phase 6 close-out: editing a booked order, §7.39, Part 36's `c36-edit` and `c36-edited`; v3.35 of 2026-11-06: Couriers, booking, the order's Courier card and courier money, drawn for Phase 6 Slice 6.7, §7.39, Part 36; v3.34 of 2026-11-05: Payments and Listener phones, drawn and built together for Slice 5.8's parts 3 and 4, §7.36 to §7.38; v3.33 of 2026-11-04: Payment methods and the owner's phone as built, §7.35; v3.32 of 2026-11-04: the Phase 4 close-out's small screens, Part 34, §7.36: removing a photo on past orders, a
 shipment the balance can't pay for, serials at shipping scanned, pasted or typed, the Orders list by where an order came
@@ -2264,6 +2264,105 @@ screenshots/courier-label-steadfast.
 - **Foot:** "Printed: 18/11/26 05:18pm" at the left and **Lytro** · lytro.app at the right, over a thin rule.
 - No outer border: a thermal roll's edge drifts. On screen the label sits on the sheet's grey with a shadow. The names
   follow the dashboard's language; Bangla names are 1.5 px larger and not spaced out.
+
+### 7.48 Developers: the API docs beside API keys (`/settings/developers`, sketch 2026-11-21)
+
+The owner, 2026-11-21: "we need developers api route for tenants in their dashboard like the steadfast, redx provide a
+developers api for us with sample request, response and so on, so that any one can understand it easily". It replaces
+the Swagger/Scalar reference as what a seller's developer reads (that one leaves production; see the small fixes list).
+Drawn in `brand/lytro-dashboard.html`'s group "Developers · the API docs (sketch)": `dev-keys`, `dev-keys-none`,
+`dev-docs`, `dev-docs-nokey`, `dev-toc`, `dev-auth`, `dev-limits`, `dev-used-up`, `dev-errors`, `dev-products`,
+`dev-products-js`, `dev-copied`, `dev-order`, `dev-track`, `dev-shopper`. The same content is public at
+lytro.app/developers (SITE-PAGES-DESIGN §7).
+
+**Job.** Let anyone the seller hands a key to (a freelancer, the seller's nephew, an agency) build the shop's own site
+or app without asking Lytro: what each route is for in plain words, and a request and an answer to copy.
+
+**Where.** API keys gets a **Developer docs** card under its lead (a code icon, "Every route with a sample request and
+response, in curl and JavaScript", a chevron). It opens Developer API at `/settings/developers`; back returns to API
+keys. With no key of the shop's own yet, API keys shows Lytro's storefront row, its note, then an empty state with
+New key (`dev-keys-none`).
+
+**Layout.** One page, read top to bottom or jumped through:
+
+- **Head:** a line on what it is; the base URL `https://api.lytro.app/v1` with `v1` and Copy.
+- **Getting started:** three numbered steps. 1, make a key (shown once, up to 20 live), with the shop's state: "You have
+  2 live keys" and See API keys, or, with none, a warning and New key. 2, the website addresses: https, the domain and
+  a port, no path, `http://localhost` and `http://127.0.0.1` for testing, up to 10 a key, with ticks and crosses for
+  five examples (www is its own address). 3, a first call (`GET /v1/catalogue/version`) and its answer. Then "This is a
+  public key": anyone can read it in the site's code, no other website can use it from a browser, and it can only do
+  what a shopper can; revoke and replace it if it leaks.
+- **Authentication and headers:** the request headers (Authorization, Origin, Accept-Language, Content-Type,
+  Idempotency-Key, X-Shopper-Token) and the response headers (the X-RateLimit trio, Retry-After, X-Request-Id,
+  Idempotent-Replay, ETag and Cache-Control), each with when and why; the envelope and a sample.
+- **Limits:** the minute limits (120 requests a visitor, 10 orders a visitor, 180 orders a shop, 60 tracking reads, 5
+  codes and 10 sign-ins a visitor); this shop's cycle (Starter, 48,210 / 200,000, a bar, See usage, Buy a request
+  pack); every plan's requests a cycle (Trial 20,000, Pay-as-you-go 100,000, Starter 200,000, Growth 600,000, Pro
+  2,000,000) with this shop's marked; the 50/80/95% warnings; past the cycle only the three routes an order needs keep
+  answering; the shop's own storefront and a browser's cached answers are not counted.
+- **Errors:** the error envelope with a sample, `details.fields` with a sample, every `errors.code` a public route
+  answers with its status and when, and the checks every route makes in order (key, website, shop, minute, cycle) with
+  each message in both languages.
+- **The routes,** by group: Shop, Catalogue, Offers, Delivery, Orders and tracking, Shopper accounts, Feeds, Payment
+  methods, Version; 24 in all. A group may open with a line (the order flow: a thana, the total, the order, then
+  tracking). Each route: the method badge (GET teal, POST green, PATCH amber, DELETE red) and its path, "Works past the
+  limit" on the three an order needs, what it is for; its parameters (name, where, type, Required or Optional, what);
+  the request as **curl** or **JavaScript** (one switch for the whole page), Copy; the answer with its status, Copy; a
+  note where one helps (the old-slug redirect, the idempotency replay, the advance's payment page); its own errors, then
+  a link to the errors every route has.
+
+| Width | The list | A route |
+| --- | --- | --- |
+| Phone, tablet | "On this page" folded under the head (4 parts, 24 routes); a tap jumps and folds it | One line (badge, path, what) that opens |
+| Computer | A 220 px list at the side, sticky, the current part marked | Open |
+
+Code, field names and JSON stay English; every word around them follows the language switch, and a sample's
+`Accept-Language` and `message` follow it too, so a Bangla reader sees the Bangla answer. Muted text is `--n700`.
+Code sits on the ink block with the brand's teal and marigold for keys and strings.
+
+**States.** Keys live (`dev-docs`); no key of the shop's own (`dev-docs-nokey`, step 1 warns and offers New key); the
+cycle's requests used up (`dev-used-up`: a red banner, "the order routes still work; the rest answer 429 until the
+next cycle", Buy a request pack; the bar full and red); read-only shop (no New key or Buy, the docs still readable);
+copied (the button turns to Copied with a check for 1.6 s and the toast says so, `dev-copied`). There is no plan
+without API access: every plan has a `requests_monthly` (migration 0064), so no such state is drawn.
+
+**One definition, never drifting.** The sketch already draws both pages from one object (`DEVAPI`). The build keeps
+that rule:
+
+- One module (proposed `packages/api-docs`, read by `apps/dashboard` and `apps/website`) holds each route: method, path,
+  parameters, the sample's query and body, the sample `data`, its message key, its errors as message keys, the notes in
+  both languages. curl and fetch are generated from it, never typed.
+- The words of a sample's `message` and of each error come from `translate(key, lang)` (apps/server's
+  `i18n/messages.ts`, moved or re-exported where both apps can read it), so a reworded message changes the docs.
+- A server test parses every sample: the body with the route's input schema (`publicOrderSchema`,
+  `deliveryEstimateSchema`, the shopper schemas), the `data` with the route's own response DTO schema made strict all
+  the way down, so an invented or missing field fails. The response schemas now live inside the controllers; the
+  build exports them (or moves them to `packages/validators`).
+- The same test checks each error's status is `HTTP_STATUS[code]`, and that the documented routes are exactly the
+  `@PublicApi()` routes Nest has (by reflecting the routes, or from the OpenAPI document the api-docs test already
+  builds), so a new public route can't ship undocumented.
+- The limits come from their constants (`ORDERS_PER_VISITOR_PER_MINUTE`, `PUBLIC_PAGE_SIZE_MAX`, ...) and the plan
+  table from the plans' limits, never typed.
+
+**Open questions for the owner.**
+
+1. A "Try it" console later (send a real request with the shop's own key from the page)? Proposed: later; it needs the
+   dashboard's own address treated as a website of the key, or a proxy.
+2. Shopper accounts: customer accounts were parked (2026-11-18), but the 12 routes are live and not switched off. List
+   them as drawn, or leave them out until the customer-accounts switch is decided?
+3. The Meta feed is for Meta, not a developer. Keep it here, or only in Settings → Facebook and Meta?
+4. Code comments stay English in both languages (as drawn), or Bangla comments on the Bangla page?
+5. `errors.code` names the kind only: a missing, wrong, revoked and expired key are all `unauthenticated`, told apart
+   only by the words. Add the reason (`errors.reason: "ApiKeyExpired"`, the message key) to every refusal? Additive,
+   nothing breaks.
+6. The key is a browser's: from a server, the developer must send an `Origin` of the key's own. A secret key for
+   servers later?
+7. Two lines already in the sketch disagree with the code: API keys' limit card says "60 a minute" (the old per-key
+   limit, gone since KNOWN-GAPS §82), and Part 25's note says the storefront key's requests count (D9-32 made them
+   free). Change both to match these docs?
+8. In the dashboard, the samples could use the shop's own values (its first key's website as `Origin`, its slug, a
+   real product). Proposed: the website only; the products stay the sample's, so the page never shows a stranger's data
+   when a staff member screenshots it.
 
 ## 8. Screens designed for later phases
 
