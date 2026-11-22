@@ -20,8 +20,14 @@ class Application {
     });
     new HttpSetup().apply(app);
 
-    const docs = new ApiDocs();
-    docs.mount(app, docs.build(app));
+    // The full API reference (/reference, /swagger, /swagger-json) describes every route, the operator's and the
+    // dashboard's included, so it is served on a developer's machine only, never in production or on staging (the
+    // owner, 2026-11-21). Sellers get their own developer pages in the dashboard instead. api-docs.e2e still builds
+    // the document, so every schema keeps turning into JSON Schema.
+    if (env.NODE_ENV !== 'production') {
+      const docs = new ApiDocs();
+      docs.mount(app, docs.build(app));
+    }
 
     // On SIGTERM/SIGINT (every container stop/restart/deploy): stop accepting new requests, let
     // in-flight ones finish, run every onModuleDestroy hook (PgBossClient, the mail/SMS workers),
