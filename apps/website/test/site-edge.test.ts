@@ -50,7 +50,7 @@ describe('SiteEdgePolicy', () => {
       '/privacy/2026-11-20',
       '/robots.txt',
       '/sitemap.xml',
-      '/opengraph-image',
+      '/opengraph-image.png',
       '/nope',
       '/about/',
     ])
