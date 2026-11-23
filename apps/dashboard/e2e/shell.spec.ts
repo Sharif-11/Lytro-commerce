@@ -291,3 +291,16 @@ test.describe('the balance in the top bar, and a quick sign-out (the owner, 2026
     await expect(page).toHaveURL(/\/sign-in\?mode=password$/);
   });
 });
+
+test('opens signed in on a second tab, as a link from an SMS or WhatsApp does (SEC-14)', async ({
+  page,
+}) => {
+  // The session cookie is the browser's, not the tab's; since 2026-11-23 the CSRF token a change carries is too.
+  await open(page, '/orders');
+  await expect(hubs(page)).toBeVisible();
+  const second = await page.context().newPage();
+  await mockApi(second, { ownToken: false });
+  await second.goto(`/${SLUG}/orders`);
+  await expect(hubs(second)).toBeVisible();
+  await expect(second).toHaveURL(new RegExp(`/${SLUG}/orders`));
+});

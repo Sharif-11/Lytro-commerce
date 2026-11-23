@@ -151,6 +151,11 @@ export interface MoneyState {
 }
 
 export interface ShopState {
+  /**
+   * False for a second tab of the same browser: it answers the API but leaves no token of its own, so the page must find
+   * the one the first tab's sign-in left (SEC-14, shared since 2026-11-23).
+   */
+  ownToken?: boolean;
   /** Slice 4.8d: what Sales reads. */
   sales?: SalesFixture;
   language?: Language;
@@ -387,6 +392,7 @@ const FIRST_BUILD_READS: Record<string, unknown> = {
 /** The shop's state with every field filled in: the prototype's working shop unless a test says otherwise. */
 export function shopState(given: ShopState = {}): Required<ShopState> {
   return {
+    ownToken: true,
     language: 'bn',
     state: 'active',
     periodEndDays: 20,
@@ -664,9 +670,11 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
       [...log.calls].reverse().find((call) => call.method === method && call.path === path)?.body,
     phase7: phase7Writes(),
   };
-  await page.addInitScript(() => {
-    sessionStorage.setItem('lytro.tenant.csrf', 'csrf-e2e');
-  });
+  if (given.ownToken !== false) {
+    await page.addInitScript(() => {
+      localStorage.setItem('lytro.tenant.csrf', 'csrf-e2e');
+    });
+  }
   await startIn(page, state.language);
   // The add-on request a purchase pays for (Slice 11.5c).
   let quoted: { key: string; quantity: number; amount: string; renews: boolean } | null = null;

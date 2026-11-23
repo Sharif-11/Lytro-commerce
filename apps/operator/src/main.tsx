@@ -41,6 +41,13 @@ const queryClient: QueryClient = new QueryClient({
   }),
 });
 
+// Another tab signed out: the cookie every tab shares has ended, so this one returns to sign-in too.
+operatorSession.whenSignedOutElsewhere(() => {
+  void router.navigate({ to: '/sign-in' }).then(() => {
+    queryClient.clear();
+  });
+});
+
 const root = document.getElementById('root');
 if (!root) {
   throw new Error('Root element #root not found');
