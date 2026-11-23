@@ -1,9 +1,10 @@
 // lytro.app's link preview (BRAND-IDENTITY.md §8.6): the landing page's hero, captured in a browser at 1640x861 (the
-// preview's 1.91:1) without the navigation bar, then saved at 1200x630 as apps/website/src/app/opengraph-image.png.
+// preview's 1.91:1) without the navigation bar, then saved at 1200x630 as apps/website/src/app/opengraph-image.jpg: a
+// JPEG of about 110 KB, since WhatsApp skips a preview image over about 300 KB (the first PNG was 399 KB).
 // A browser shapes Bangla correctly; next/og's ImageResponse (satori) doesn't ("দ োকান", "বকিাশ" in every preview).
 // Re-capture after the hero changes, from the repo root (Playwright's Chromium installed):
-//   node docs/brand/og-image-capture.cjs && <ffmpeg> -y -i og-capture.png -vf scale=1200:630:flags=lanczos \
-//     apps/website/src/app/opengraph-image.png
+//   node docs/brand/og-image-capture.cjs && <ffmpeg> -y -i og-capture.png -vf scale=1200:630:flags=lanczos -q:v 2 \
+//     apps/website/src/app/opengraph-image.jpg
 const { chromium } = require('playwright');
 
 (async () => {
