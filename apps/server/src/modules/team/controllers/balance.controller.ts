@@ -182,7 +182,7 @@ export class BalanceController {
   @ApiOperation({ summary: 'Get the current platform rates' })
   @ZodResponse({ type: [RateValueDto] })
   currentRates(): Promise<RateValue[]> {
-    return this.rates.list();
+    return this.rates.listForShops();
   }
 
   @Get('essential-sms')

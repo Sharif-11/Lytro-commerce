@@ -1,3 +1,4 @@
+import type { PayAsYouGoShopRow } from '@lytronix/db';
 import type { PlanStanding } from '@lytronix/db';
 import type {
   BalanceRow,
@@ -66,15 +67,7 @@ export interface TenantStore {
     horizon: Date,
   ): Promise<{ id: string; periodEnd: Date }[]>;
   /** PYG-26 (PF-14): every live pay-as-you-go shop, for the day's API charge. */
-  listPayAsYouGo(tx: Transaction): Promise<
-    {
-      id: string;
-      state: TenantState;
-      periodStart: Date | null;
-      createdAt: Date;
-      apiMonthlyCap: string;
-    }[]
-  >;
+  listPayAsYouGo(tx: Transaction): Promise<PayAsYouGoShopRow[]>;
   /** PYG-26 (PF-36): the shop's API spending cap a cycle. */
   setApiMonthlyCap(tx: Transaction, tenantId: string, cap: string): Promise<void>;
   /** PLN-17/TRL-07: activates a plan assignment with a normal snapshot; `state` is the caller's to decide. */

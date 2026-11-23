@@ -1,4 +1,4 @@
-import { and, asc, eq, sql } from 'drizzle-orm';
+import { and, asc, eq, gte, sql } from 'drizzle-orm';
 import { apiUsage, apiUsageDaily } from '../../schema';
 import type { Executor } from '../../transactions';
 import type { CyclePackFields, TenantTotal } from '../billing/addon-purchase.repository';
@@ -141,6 +141,22 @@ export class ApiUsageRepository {
       .for('update');
     if (!row) throw new Error('no api usage row after making it');
     return row;
+  }
+
+  /** PYG-13 as amended (PF-38): the shop's own website's requests, and the successful ones, on the days since `fromDay`. */
+  async sinceDay(
+    db: Executor,
+    tenantId: string,
+    fromDay: string,
+  ): Promise<{ requests: number; billable: number }> {
+    const [row] = await db
+      .select({
+        requests: sql<number>`coalesce(sum(${apiUsageDaily.requests}), 0)::bigint`.mapWith(Number),
+        billable: sql<number>`coalesce(sum(${apiUsageDaily.billable}), 0)::bigint`.mapWith(Number),
+      })
+      .from(apiUsageDaily)
+      .where(and(eq(apiUsageDaily.tenantId, tenantId), gte(apiUsageDaily.day, fromDay)));
+    return row ?? { requests: 0, billable: 0 };
   }
 
   /** RTE-11: what the shop's cycles took from its request packs. */

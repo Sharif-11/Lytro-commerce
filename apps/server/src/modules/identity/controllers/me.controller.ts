@@ -1,7 +1,10 @@
 import { Body, Controller, Get, Inject, Put, Req, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
-import { LAPSED_TENANT_STATES, TenantState } from '@lytronix/validators';
+import { LAPSED_TENANT_STATES, RateKey, TenantState } from '@lytronix/validators';
+import { RateService } from '../../balance/services/rate.service';
+import { storefrontPaused } from '../../fair-use/services/fair-use-rules';
+import { FairUseSwitch } from '../../fair-use/services/fair-use-switch';
 import { ApiError } from '../../../common/api-error';
 import { Dashboard } from '../../../common/decorators/dashboard';
 import { ResponseMessage } from '../../../common/decorators/response-message';
@@ -67,6 +70,8 @@ export interface MeResponse {
         brand: LiveBrand | null;
         /** Slice 13: the shop's own domain while it serves, its main address then; null for its Lytro address. */
         ownDomain: string | null;
+        /** PAYG-FAIR-USE-PLAN: fair use's switch, the shop's pause, and the prices the dashboard names. */
+        fairUse: ShopFairUse;
       } & ShopStanding)
     | null;
   shops: ShopListing[];
@@ -80,6 +85,16 @@ export interface MeResponse {
   language: 'bn' | 'en' | null;
   /** NTF-06 (Slice 7.3's read): Lytro stopped emailing the owner's address, for the dashboard's banner. */
   emailBounced: boolean;
+}
+
+/** PAYG-FAIR-USE-PLAN: fair use as the dashboard reads it. */
+interface ShopFairUse {
+  on: boolean;
+  paused: boolean;
+  activationTopUp: number;
+  unlockPhone: string;
+  unlockConfirm: string;
+  bookingFee: string;
 }
 
 /**
@@ -119,6 +134,8 @@ export class MeController {
     @Inject(LifecycleService) private readonly lifecycle: LifecycleService,
     @Inject(IdentitiesService) private readonly identities: IdentitiesService,
     @Inject(MailService) private readonly mail: MailService,
+    @Inject(FairUseSwitch) private readonly fairUse: FairUseSwitch,
+    @Inject(RateService) private readonly rates: RateService,
   ) {}
 
   @Get()
@@ -173,6 +190,7 @@ export class MeController {
               icon,
               brand,
               ownDomain: await this.domains.servingHost(tenant.id),
+              fairUse: await this.fairUseOf(tenant),
               ...(await this.standingOf(tenant)),
             },
       shops,
@@ -201,6 +219,31 @@ export class MeController {
     const userId = request.session?.userId ?? null;
     const kept = await this.staff.setLanguage(tenant, userId, body.language);
     return { language: body.language, kept };
+  }
+
+  /**
+   * PAYG-FAIR-USE-PLAN (PF-2, PF-3, PF-11, PF-13): whether fair use is on, whether the shop's storefront is paused until
+   * its activation top-up, and the prices the dashboard names -- ৳7, ৳3, ৳10.
+   */
+  private async fairUseOf(tenant: TenantSummary): Promise<ShopFairUse> {
+    const on = await this.fairUse.isOn();
+    const info =
+      on && tenant.state === TenantState.PayAsYouGo
+        ? await this.tenants.runStandalone((tx) => this.tenants.findBillingInfo(tx, tenant.id))
+        : null;
+    const rate = async (key: RateKey): Promise<string> =>
+      (await this.rates.current(key))?.value ?? '0';
+    return {
+      on,
+      paused: storefrontPaused(on, {
+        state: tenant.state,
+        storefrontActivatedAt: info === null ? new Date(0) : info.storefrontActivatedAt,
+      }),
+      activationTopUp: await this.fairUse.activationTopUp(),
+      unlockPhone: await rate(RateKey.PaygUnlockPhone),
+      unlockConfirm: await rate(RateKey.PaygUnlockConfirm),
+      bookingFee: await rate(RateKey.PaygBookingFee),
+    };
   }
 
   /** NTF-06: whether Lytro has stopped emailing the owner's address. */

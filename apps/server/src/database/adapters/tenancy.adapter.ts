@@ -1,3 +1,4 @@
+import type { PayAsYouGoShopRow } from '@lytronix/db';
 import type { PlanStanding } from '@lytronix/db';
 import { Inject, Injectable } from '@nestjs/common';
 import {
@@ -177,15 +178,7 @@ export class DrizzleTenantStore implements TenantStore {
     return this.tenants.findTrialsToWarn(tx, now, horizon);
   }
 
-  listPayAsYouGo(tx: Transaction): Promise<
-    {
-      id: string;
-      state: TenantState;
-      periodStart: Date | null;
-      createdAt: Date;
-      apiMonthlyCap: string;
-    }[]
-  > {
+  listPayAsYouGo(tx: Transaction): Promise<PayAsYouGoShopRow[]> {
     return this.tenants.listPayAsYouGo(tx);
   }
 

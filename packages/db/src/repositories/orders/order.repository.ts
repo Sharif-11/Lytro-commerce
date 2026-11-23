@@ -27,7 +27,7 @@ import {
   type CourierKey,
   type FulfillmentStatus,
   type OrderPaymentStatus,
-  type OrderSource,
+  OrderSource,
   type ParcelAttention,
   type ParcelReading,
   type ParcelState,
@@ -497,6 +497,33 @@ export class OrderRepository {
       .orderBy(sql`max(${orders.shippedAt}) DESC NULLS LAST`)
       .limit(limit);
     return rows.flatMap((row) => (row.name === null ? [] : [row.name]));
+  }
+
+  /**
+   * PYG-13 as amended (PF-38): the shop's orders from Lytro since `from` -- received, opened (phone shown), confirmed --
+   * for the operator's fair-use report.
+   */
+  async fairUseCounts(
+    tx: Transaction,
+    tenantId: string,
+    from: Date,
+  ): Promise<{ received: number; opened: number; confirmed: number }> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const [row] = await tx
+      .select({
+        received: sql<number>`count(*)::int`,
+        opened: sql<number>`count(*) FILTER (WHERE ${orders.phoneShownAt} IS NOT NULL OR ${orders.access} IN ('phone', 'confirmed'))::int`,
+        confirmed: sql<number>`count(*) FILTER (WHERE ${orders.access} = 'confirmed')::int`,
+      })
+      .from(orders)
+      .where(
+        and(
+          eq(orders.tenantId, tenantId),
+          ne(orders.source, OrderSource.Dashboard),
+          gte(orders.createdAt, from),
+        ),
+      );
+    return row ?? { received: 0, opened: 0, confirmed: 0 };
   }
 
   /** PYG-22 (PF-25): how many of the shop's orders are still locked, for the order list's top line. */

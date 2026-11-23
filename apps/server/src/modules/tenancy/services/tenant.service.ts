@@ -1,3 +1,4 @@
+import type { PayAsYouGoShopRow } from '@lytronix/db';
 import type { PlanStanding } from '@lytronix/db';
 import { Inject, Injectable } from '@nestjs/common';
 import type {
@@ -122,15 +123,7 @@ export class TenantService {
   }
 
   /** PYG-26 (PF-14): every live pay-as-you-go shop, for the day's API charge. */
-  listPayAsYouGo(tx: Transaction): Promise<
-    {
-      id: string;
-      state: TenantState;
-      periodStart: Date | null;
-      createdAt: Date;
-      apiMonthlyCap: string;
-    }[]
-  > {
+  listPayAsYouGo(tx: Transaction): Promise<PayAsYouGoShopRow[]> {
     return this.store.listPayAsYouGo(tx);
   }
 

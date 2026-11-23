@@ -19,6 +19,7 @@ export {
   type TenantSearchRow,
   type BalanceRow,
   type BillingInfoRow,
+  type PayAsYouGoShopRow,
   type LapsingCandidateRow,
   type LifecycleFactsRow,
   type StageLengthsSnapshot,

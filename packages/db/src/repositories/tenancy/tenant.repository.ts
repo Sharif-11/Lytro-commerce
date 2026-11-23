@@ -507,15 +507,7 @@ export class TenantRepository {
   }
 
   /** PYG-26 (PF-14): every live pay-as-you-go shop, with what its API cycle and cap are worked out from. */
-  async listPayAsYouGo(tx: Executor): Promise<
-    {
-      id: string;
-      state: TenantState;
-      periodStart: Date | null;
-      createdAt: Date;
-      apiMonthlyCap: string;
-    }[]
-  > {
+  async listPayAsYouGo(tx: Executor): Promise<PayAsYouGoShopRow[]> {
     return tx
       .select({
         id: tenants.id,
@@ -523,6 +515,10 @@ export class TenantRepository {
         periodStart: tenants.periodStart,
         createdAt: tenants.createdAt,
         apiMonthlyCap: tenants.apiMonthlyCap,
+        shopName: tenants.shopName,
+        slug: tenants.slug,
+        balanceAmount: tenants.balanceAmount,
+        storefrontActivatedAt: tenants.storefrontActivatedAt,
       })
       .from(tenants)
       .where(
@@ -1124,6 +1120,19 @@ export class TenantRepository {
       .set({ retentionFloorDays: floor.days, retentionFloorUntil: floor.until })
       .where(eq(tenants.id, tenantId));
   }
+}
+
+/** PYG-26, PF-38: a live pay-as-you-go shop, for the night's API charge and the operator's fair-use report. */
+export interface PayAsYouGoShopRow {
+  id: string;
+  state: TenantState;
+  periodStart: Date | null;
+  createdAt: Date;
+  apiMonthlyCap: string;
+  shopName: string;
+  slug: string;
+  balanceAmount: string;
+  storefrontActivatedAt: Date | null;
 }
 
 export interface BillingInfoRow {

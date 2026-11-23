@@ -255,6 +255,9 @@ export const FIELD_LABELS: Readonly<Record<string, Translation | null>> = {
   modifierGroups: { en: 'Modifier groups', bn: 'মডিফায়ার গ্রুপ' },
   modifiers: { en: 'Modifiers', bn: 'মডিফায়ার' },
   monthlySpendCap: { en: 'Monthly SMS spend limit', bn: 'মাসে এসএমএস খরচের লিমিট' },
+  // PAYG-FAIR-USE-PLAN: the API's monthly spending cap (PF-36) and the order list's locked filter (PF-25).
+  cap: { en: 'Monthly API spending limit', bn: 'মাসে API খরচের লিমিট' },
+  access: { en: 'Locked orders', bn: 'লক করা অর্ডার' },
   months: { en: 'Months', bn: 'মাস' },
   name: { en: 'Name', bn: 'নাম' },
   model: { en: 'Phone model', bn: 'ফোনের মডেল' },
