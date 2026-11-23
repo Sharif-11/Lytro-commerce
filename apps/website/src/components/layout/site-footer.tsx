@@ -91,7 +91,7 @@ export async function SiteFooter({ language }: { language: Language }) {
             <p className="about">{copy.of(text.tagline)}</p>
             <span className="bn-lock" lang="bn">
               <Mark size={22} />
-              লাইট্রো
+              লিট্রো
             </span>
           </div>
           <div className="cols">

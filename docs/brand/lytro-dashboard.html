@@ -1031,7 +1031,7 @@ document.querySelectorAll('#segLang button').forEach(b => b.addEventListener('cl
 <script>
 /* ---------- Part 5: onboarding, the current-state home, Slice 1 to 3 detail screens, scope ---------- */
 Object.assign(S, {
-  obWelcome:['লাইট্রোতে স্বাগতম','Welcome to Lytro'],obLead:['চালিয়ে যেতে আপনার ফোন নম্বর দিন।','Enter your phone number to continue.'],
+  obWelcome:['লিট্রোতে স্বাগতম','Welcome to Lytro'],obLead:['চালিয়ে যেতে আপনার ফোন নম্বর দিন।','Enter your phone number to continue.'],
   phoneLabel:['ফোন নম্বর','Phone number'],passwordLabel:['পাসওয়ার্ড','Password'],cont:['এগিয়ে যান','Continue'],signInPw:['লগইন করুন','Sign in'],usePw:['পাসওয়ার্ড দিয়ে লগইন করুন','Use a password instead'],useCode:['কোড দিয়ে লগইন করুন','Use a code instead'],forgotPw:['পাসওয়ার্ড ভুলে গেছেন?','Forgot your password?'],
   google:['গুগল দিয়ে চালিয়ে যান','Continue with Google'],facebook:['ফেসবুক দিয়ে চালিয়ে যান','Continue with Facebook'],or:['অথবা','or'],
   freeSmsNote:['পুরনো শপে কোড দিয়ে লগইন করলে শপের ফ্রি SMS থেকে একটা খরচ হয়। পাসওয়ার্ড দিয়ে লগইন ফ্রি।','Signing in to an existing shop by code uses one of its free SMS. Password sign-in is free.'],
@@ -2865,13 +2865,13 @@ SCREENS['sh-payg-switch'].render = () => SCREENS.plan.render();
 Object.assign(S, {
   secBilling: ['বিলিং', 'Billing'],
   seeInvoices: ['বিলিং দেখুন', 'See billing'],
-  blEmpty: ['লাইট্রোকে করা পেমেন্ট আর তার ইনভয়েস এখানে থাকবে। প্ল্যান নিলে বা টপ-আপ করলে প্রথমটা আসবে।', 'Your payments to Lytro and their invoices appear here. The first comes with a plan or a top-up.'],
+  blEmpty: ['লিট্রোকে করা পেমেন্ট আর তার ইনভয়েস এখানে থাকবে। প্ল্যান নিলে বা টপ-আপ করলে প্রথমটা আসবে।', 'Your payments to Lytro and their invoices appear here. The first comes with a plan or a top-up.'],
   blChecking: ['চেক হচ্ছে', 'Being checked'], blPaid: ['পেইড', 'Paid'], blRejected: ['রিজেক্টেড', 'Rejected'], blAwaiting: ['পেমেন্ট পেন্ডিং', 'Awaiting payment'],
   blTopUp: ['ব্যালেন্স টপ-আপ', 'Balance top-up'], blRenewal: ['{p} · {t} · রিনিউ', '{p} · {t} · renewal'], blFirst: ['{p} · {t}', '{p} · {t}'],
   blFor: ['কিসের জন্য', 'For'], blForPlan: ['{p} · {t} · {d}', '{p} · {t} · {d}'], blForTopUp: ['ব্যালেন্সে ৳{n} যোগ হবে', '৳{n} to be added to the balance'], blForTopUpDone: ['ব্যালেন্সে ৳{n} যোগ হয়েছে', '৳{n} added to the balance'],
   blSentFrom: ['যে নম্বর থেকে', 'Sent from'], blSubmitted: ['জমা', 'Submitted'], blRequested: ['অনুরোধ', 'Requested'], blInvoice: ['ইনভয়েস', 'Invoice'], blNoTrx: ['পেমেন্ট জমা হয়নি', 'No payment submitted'],
   blSeeStatement: ['স্টেটমেন্ট দেখুন', 'See statement'], blPayAgain: ['আবার পেমেন্ট করুন', 'Pay again'], blFinish: ['পেমেন্ট শেষ করুন', 'Finish paying'], blDetails: ['বিস্তারিত', 'Details'],
-  blCheckingLead: ['লাইট্রো সাপোর্ট পেমেন্টটা মিলিয়ে দেখছে, সাধারণত এক ঘণ্টার মধ্যে। কনফার্ম হওয়ার আগে কিছু বদলায় না; হলে আমরা জানাবো।', 'Lytro support is matching the payment, usually within an hour. Nothing changes before it is confirmed; we will tell you when it is.'],
+  blCheckingLead: ['লিট্রো সাপোর্ট পেমেন্টটা মিলিয়ে দেখছে, সাধারণত এক ঘণ্টার মধ্যে। কনফার্ম হওয়ার আগে কিছু বদলায় না; হলে আমরা জানাবো।', 'Lytro support is matching the payment, usually within an hour. Nothing changes before it is confirmed; we will tell you when it is.'],
   blRejectedLead: ['এই পেমেন্টে কিছু চালু হয়নি; প্ল্যান আর ব্যালেন্স আগের মতোই। সাপোর্টের নোট দেখে আবার পেমেন্ট করুন, বা সাপোর্টে লিখুন।', 'Nothing was activated by this payment; the plan and the balance are as they were. Read the note from support and pay again, or write to support.'],
   blNote: ['সাপোর্টের নোট', 'Note from support'],
   blNoteSample: ['SMS-এ ৳440 এসেছে, পাঠানোর কথা ৳449। পুরো টাকা পাঠিয়ে আবার জমা দিন।', 'The SMS shows ৳440; the amount was ৳449. Send the full amount and submit again.'],
@@ -2879,8 +2879,8 @@ Object.assign(S, {
   blExpiredLead: ['24 ঘণ্টার মধ্যে পেমেন্ট না আসায় রিকোয়েস্টটি এক্সপায়ার হয়েছে। কিছু কাটা হয়নি। চাইলে আবার শুরু করুন।', 'No payment arrived within 24 hours, so the request lapsed. Nothing was charged. Start again when you like.'],
   blAwaitingLead: ['পেমেন্ট পেজ খোলা হয়েছিল, পেমেন্ট জমা হয়নি। {h} ঘণ্টার মধ্যে দিন, না হলে অনুরোধ ক্যানসেল হবে; কিছু কাটা হবে না।', 'The payment page was opened but no payment was submitted. Pay within {h} hours or the request lapses; nothing is charged.'],
   blLapses: ['{h} ঘণ্টা পর এক্সপায়ার হবে', 'Lapses in {h} h'],
-  blTlRequested: ['অনুরোধ তৈরি', 'Requested'], blTlSubmitted: ['পেমেন্ট জমা · {m} · TrxID {x}', 'Payment submitted · {m} · TrxID {x}'], blTlChecking: ['লাইট্রো সাপোর্ট চেক করছে', 'Lytro support is checking'],
-  blTlChecking2: ['সাধারণত এক ঘণ্টার মধ্যে', 'Usually within an hour'], blTlPaid: ['কনফার্ম · {w}', 'Confirmed · {w}'], blTlRejected: ['লাইট্রো সাপোর্ট রিজেক্ট করেছে', 'Rejected by Lytro support'],
+  blTlRequested: ['অনুরোধ তৈরি', 'Requested'], blTlSubmitted: ['পেমেন্ট জমা · {m} · TrxID {x}', 'Payment submitted · {m} · TrxID {x}'], blTlChecking: ['লিট্রো সাপোর্ট চেক করছে', 'Lytro support is checking'],
+  blTlChecking2: ['সাধারণত এক ঘণ্টার মধ্যে', 'Usually within an hour'], blTlPaid: ['কনফার্ম · {w}', 'Confirmed · {w}'], blTlRejected: ['লিট্রো সাপোর্ট রিজেক্ট করেছে', 'Rejected by Lytro support'],
   blTlExpired: ['24 ঘণ্টায় পেমেন্ট আসেনি · রিকোয়েস্ট এক্সপায়ার্ড', 'No payment within 24 hours · request lapsed'], blTlOpened: ['পেমেন্ট পেজ খোলা হয়েছে', 'Payment page opened'],
   blHistory: ['কী হলো', 'What happened'], blNow: ['এখন', 'now'],
   jobPayRejected: ['৳{n} পেমেন্ট রিজেক্ট হয়েছে · কারণ দেখুন', '৳{n} payment rejected · see why'],
