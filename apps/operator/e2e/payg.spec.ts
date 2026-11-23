@@ -1,3 +1,4 @@
+import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { drawnSettings } from './support/console-data';
 import { mockApi } from './support/mock-api';
@@ -19,6 +20,13 @@ test('the PAYG fair use report: a row a shop, Watch marked, and the Watch and Pa
   await expect(main(page).getByText('14%')).toBeVisible();
   await expect(main(page).getByText('Rongila Fashion')).toBeVisible();
   await expect(main(page).getByText('1,70,000')).toBeVisible();
+  const { scrollWidth, clientWidth } = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    clientWidth: document.documentElement.clientWidth,
+  }));
+  expect(scrollWidth).toBeLessThanOrEqual(clientWidth);
+  const { violations } = await new AxeBuilder({ page }).analyze();
+  expect(violations.map((each) => each.id)).toEqual([]);
 
   await main(page)
     .getByRole('button', { name: /^Watch/ })

@@ -8,7 +8,7 @@ import { Banner } from '@/components/ui/banner';
 import { Chip } from '@/components/ui/chips';
 import { allows } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
-import { useUnlockPrices } from './order-access';
+import { useUnlockPrices } from './order-access-rules';
 
 /**
  * PYG-22 (PAYG-FAIR-USE-PLAN PF-25, the sketch's `pf-list`): with locked orders waiting, a chip that shows only them and a

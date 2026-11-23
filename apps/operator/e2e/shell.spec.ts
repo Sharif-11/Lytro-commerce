@@ -38,6 +38,7 @@ const DESTINATIONS = [
   // Slice 9.9: the daily money check, first of the records.
   ['Money check', '/money-check'],
   ['Reports', '/reports'],
+  ['PAYG fair use', '/reports/payg-fair-use'],
   ['Audit log', '/audit'],
   ['Media costs', '/media-costs'],
   ['Shop types', '/catalogue/shop-types'],
