@@ -1,11 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import {
-  LedgerEntryType,
-  NotificationKind,
-  PAYG_API_BLOCK,
-  RateKey,
-  TenantState,
-} from '@lytronix/validators';
+import { LedgerEntryType, NotificationKind, RateKey, TenantState } from '@lytronix/validators';
 import { dhakaDate, HOUR_MS, usageCycleStart } from '../../../common/time';
 import { BalanceService } from '../../balance/services/balance.service';
 import { fromPaisa, rateToPaisa, toPaisa } from '../../balance/services/money';
@@ -151,7 +145,9 @@ export class ApiCharges {
       try {
         if (await this.chargeShop(shop, at)) charged += 1;
       } catch (error) {
-        this.logger.error(`could not charge ${shop.id}'s API requests`, error as Error);
+        this.logger.error(
+          `could not charge ${shop.id}'s API requests: ${error instanceof Error ? error.message : JSON.stringify(error)}`,
+        );
       }
     }
     return { charged, activated };
@@ -190,8 +186,8 @@ export class ApiCharges {
         await this.balance.charge(tx, {
           tenantId: shop.id,
           type: LedgerEntryType.ApiRequests,
-          amount: fromPaisa(amountPaisa),
-          units: String(blocks * PAYG_API_BLOCK),
+          // Charged as whole 1,000s at the price of 1,000: the ledger works the amount out from the two.
+          units: String(blocks),
           rateUsed: rate,
           reference: {
             cycleStart: cycleStart.toISOString(),
