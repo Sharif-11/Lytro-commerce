@@ -74,7 +74,7 @@ test('a mistyped code keeps the operator signed in, and says the tries left unde
     panel.locator('label', { hasText: 'Fresh authenticator code' }).getByRole('alert'),
   ).toHaveText('That code did not match. 4 attempts left before a 15-minute wait.');
   await expect(page).toHaveURL('/account');
-  expect(await page.evaluate(() => sessionStorage.getItem('lytro.operator.csrf'))).toBe('csrf-e2e');
+  expect(await page.evaluate(() => localStorage.getItem('lytro.operator.csrf'))).toBe('csrf-e2e');
 });
 
 test('a mistyped password keeps the operator signed in, and says so under it', async ({ page }) => {

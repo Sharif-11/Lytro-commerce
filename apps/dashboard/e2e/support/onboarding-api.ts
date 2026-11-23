@@ -128,7 +128,7 @@ export async function mockOnboarding(page: Page, journey: Journey = {}): Promise
 
   if (signedIn) {
     await page.addInitScript(() => {
-      sessionStorage.setItem('lytro.tenant.csrf', 'csrf-e2e');
+      localStorage.setItem('lytro.tenant.csrf', 'csrf-e2e');
     });
   }
   await startIn(page, language);

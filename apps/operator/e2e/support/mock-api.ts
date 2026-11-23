@@ -559,7 +559,7 @@ export async function mockApi(page: Page, given: ConsoleState = {}): Promise<Api
   };
   if (state.signedIn) {
     await page.addInitScript(() => {
-      sessionStorage.setItem('lytro.operator.csrf', 'csrf-e2e');
+      localStorage.setItem('lytro.operator.csrf', 'csrf-e2e');
     });
   }
   await startIn(page, state.language);
