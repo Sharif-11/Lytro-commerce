@@ -3,6 +3,7 @@ import { QueueName } from '@lytronix/validators';
 import type { FraudCheckJob } from '../../../fraud-checks/services/fraud-check-queue';
 import { FraudChecks } from '../../../fraud-checks/services/fraud-checks';
 import { PgBossClient } from '../../queue/services/pg-boss-client';
+import { DRAIN_BACKLOG } from '../drain-backlog';
 
 // FRD-05 (Slice 7.5): a check that failed for a reason of the server's own is tried once more, a minute later; a check
 // the rule or a refusal leaves out is skipped, not failed.
@@ -26,10 +27,14 @@ export class FraudCheckWorker implements OnModuleInit {
       retryDelay: FRAUD_CHECK_RETRY_DELAY_SECONDS,
       notify: true,
     });
-    await this.pgBoss.boss.work<FraudCheckJob>(QueueName.OrderFraudCheck, async (jobs) => {
-      for (const job of jobs) {
-        await this.checks.onNewOrder(job.data);
-      }
-    });
+    await this.pgBoss.boss.work<FraudCheckJob>(
+      QueueName.OrderFraudCheck,
+      DRAIN_BACKLOG,
+      async (jobs) => {
+        for (const job of jobs) {
+          await this.checks.onNewOrder(job.data);
+        }
+      },
+    );
   }
 }

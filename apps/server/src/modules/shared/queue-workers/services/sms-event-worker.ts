@@ -7,6 +7,7 @@ import {
 } from '../../../sms-events/services/sms-event-sender';
 import type { SmsEventJob } from '../../../sms-events/services/sms-event-queue';
 import { PgBossClient } from '../../queue/services/pg-boss-client';
+import { DRAIN_BACKLOG } from '../drain-backlog';
 
 /**
  * SMS-01, SMS-08 (Slice 7.2): sends an order's SMS events, queued in the transaction where the order changed. A send that
@@ -26,7 +27,7 @@ export class SmsEventWorker implements OnModuleInit {
       retryBackoff: true,
       notify: true,
     });
-    await this.pgBoss.boss.work<SmsEventJob>(QueueName.OrderSms, async (jobs) => {
+    await this.pgBoss.boss.work<SmsEventJob>(QueueName.OrderSms, DRAIN_BACKLOG, async (jobs) => {
       for (const job of jobs) {
         await this.sender.send(job.data);
       }

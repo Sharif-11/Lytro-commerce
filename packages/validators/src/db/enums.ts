@@ -1162,6 +1162,9 @@ export const BRAND_IDENTITY_ADDON = 'brand_identity';
 // TEN-09, TEN-10 (Slice 13): the plan feature (or add-on key) that lets a shop serve its own domain; Growth and Pro
 // carry it in their features.
 export const CUSTOM_DOMAIN_FEATURE = 'custom_domain';
+// WAL-20, WAL-21 (amended 2026-11-23, the owner): the plan feature that waives the payment-check fees -- the
+// listener's and a wallet checkout's -- for its shops. The Pilot plan carries it.
+export const VERIFICATION_FEES_WAIVED_FEATURE = 'verification_fees_waived';
 
 // BRN-02 (agreed for Slice 11.2): the curated typefaces a brand identity's headings and its body text are set in, each
 // a Bangla face with the Latin face that suits it, all from Google Fonts. Galada with Playfair Display is for headings

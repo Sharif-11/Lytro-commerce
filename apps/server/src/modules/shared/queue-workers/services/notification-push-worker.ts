@@ -3,6 +3,7 @@ import { QueueName } from '@lytronix/validators';
 import type { NotificationPushJob } from '../../../notifications/services/notifications';
 import { PushSender } from '../../../notifications/services/push-sender';
 import { PgBossClient } from '../../queue/services/pg-boss-client';
+import { DRAIN_BACKLOG } from '../drain-backlog';
 
 /**
  * NTF-02 (Phase 7 Slice 7.3): sends each notification's push, queued in the transaction that wrote it. A failed push is
@@ -17,10 +18,14 @@ export class NotificationPushWorker implements OnModuleInit {
 
   async onModuleInit(): Promise<void> {
     await this.pgBoss.boss.createQueue(QueueName.NotificationPush, { retryLimit: 0, notify: true });
-    await this.pgBoss.boss.work<NotificationPushJob>(QueueName.NotificationPush, async (jobs) => {
-      for (const job of jobs) {
-        await this.sender.send(job.data);
-      }
-    });
+    await this.pgBoss.boss.work<NotificationPushJob>(
+      QueueName.NotificationPush,
+      DRAIN_BACKLOG,
+      async (jobs) => {
+        for (const job of jobs) {
+          await this.sender.send(job.data);
+        }
+      },
+    );
   }
 }

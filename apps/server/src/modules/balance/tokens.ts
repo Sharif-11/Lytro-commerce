@@ -3,4 +3,5 @@ export const RATE_STORE = Symbol('RATE_STORE');
 export const PLATFORM_WALLETS_STORE = Symbol('PLATFORM_WALLETS_STORE');
 export const SHOP_SETTINGS_STORE = Symbol('SHOP_SETTINGS_STORE');
 export const LOW_BALANCE_NOTIFIER = Symbol('LOW_BALANCE_NOTIFIER');
+export const FEE_WAIVER_STORE = Symbol('FEE_WAIVER_STORE');
 export const CLOCK = Symbol('BALANCE_CLOCK');
