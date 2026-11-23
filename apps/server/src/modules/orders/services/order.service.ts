@@ -78,6 +78,7 @@ import type {
   OrderWarning,
   UnnumberedOrder,
 } from '../types/orders';
+import type { HandlingShop } from './handling-quota';
 import { newTrackingId, orderNumberOf } from './order-numbers';
 import {
   chooseModifiers,
@@ -325,11 +326,12 @@ export class OrderService {
    * phone and note, and its customer made. Short of balance the step is refused and the order stays locked. A second tap
    * on an order already opened charges nothing.
    */
-  async showPhone(tenantId: string, orderId: string, actor: CatalogueActor): Promise<OrderView> {
+  async showPhone(shop: HandlingShop, orderId: string, actor: CatalogueActor): Promise<OrderView> {
+    const tenantId = shop.id;
     const who = await this.activity.resolve(tenantId, actor);
     return this.store.run(tenantId, async (tx) => {
       const order = await this.find(tx, tenantId, orderId, true);
-      const shown = await this.access.showPhoneWithin(tx, tenantId, order, who, new Date());
+      const shown = await this.access.showPhoneWithin(tx, tenantId, order, who, new Date(), shop);
       return this.viewWithin(tx, tenantId, shown, []);
     });
   }

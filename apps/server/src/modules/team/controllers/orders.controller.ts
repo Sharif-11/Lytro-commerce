@@ -318,7 +318,7 @@ export class OrdersController {
   @ZodResponse({ type: OrderViewDto })
   showPhone(@Param('id') id: string, @Req() request: DashboardRequest): Promise<OrderView> {
     return this.orders.showPhone(
-      this.request.tenantIdOf(request),
+      this.shopOf(request),
       this.request.idOf(id, 'OrderNotFound'),
       this.request.actorOf(request),
     );

@@ -8,6 +8,7 @@ import { CustomerService } from '../../customers/services/customer.service';
 import type { OrderStore } from '../ports/order-store';
 import { ORDER_STORE } from '../tokens';
 import type { OrderRecord } from '../types/orders';
+import { HandlingQuota, type HandlingShop } from './handling-quota';
 
 /**
  * PYG-22 to PYG-24, PYG-27 (PAYG-FAIR-USE-PLAN PF-1 to PF-6, PF-22 to PF-24, PF-27, PF-31, PF-33, PFQ-3): the steps that
@@ -29,22 +30,33 @@ export class OrderAccessSteps {
     @Inject(PayAsYouGoBillingService) private readonly payg: PayAsYouGoBillingService,
     @Inject(CustomerService) private readonly customers: CustomerService,
     @Inject(CatalogueActivity) private readonly activity: CatalogueActivity,
+    @Inject(HandlingQuota) private readonly quota: HandlingQuota,
   ) {}
 
-  /** PF-2: step 1. An order already past it is returned as it is, so a second tap charges nothing. */
+  /**
+   * PF-2: step 1. An order already past it is returned as it is, so a second tap charges nothing. Given the shop, the
+   * order takes its place under the shop's handling limits here, once ever (PF-8): the day's cap counts it at step 1,
+   * before the ৳7 is charged, and its later handling doesn't count it again.
+   */
   async showPhoneWithin(
     tx: Transaction,
     tenantId: string,
     order: OrderRecord,
     who: ResolvedActor,
     now: Date,
+    shop?: HandlingShop,
   ): Promise<OrderRecord> {
     if (order.access !== OrderAccess.Locked) return order;
     if (order.statusOverride === StatusOverride.Cancelled) {
       throw new ApiError('conflict', 'OrderIsCancelled', {});
     }
+    const counts = shop !== undefined && order.handledAt === null;
+    if (counts) await this.quota.admitWithin(tx, shop, now);
     const charged = await this.payg.chargeUnlock(tx, tenantId, order.id, 'phone');
-    const updated = await this.reachedWithin(tx, tenantId, order, OrderAccess.Phone, who, now);
+    const reached = await this.reachedWithin(tx, tenantId, order, OrderAccess.Phone, who, now);
+    const updated = counts
+      ? await this.store.updateOrder(tx, tenantId, order.id, { handledAt: now })
+      : reached;
     await this.record(tx, tenantId, who, updated, 'phone', charged?.amount ?? null);
     return updated;
   }

@@ -206,6 +206,7 @@ async function ledger(
 
 interface Detail {
   access: string;
+  handledAt: string | null;
   customerName: string | null;
   customerPhone: string | null;
   deliveryAddress: string | null;
@@ -290,6 +291,8 @@ describeIfDatabase(
       });
       expect((shown.body as Detail).customerId).not.toBeNull();
       await shop.post(`/orders/${order.id}/unlock-phone`, {});
+      // PF-8: the day's cap counted it at step 1, once.
+      expect(((await shop.get(`/orders/${order.id}`)).body as Detail).handledAt).not.toBeNull();
       expect(await ledger(shop.tenantId, 'order_unlock')).toEqual([
         { amount: '-7.00', reference: { orderId: order.id, step: 'phone', rate: '7.0000' } },
       ]);
