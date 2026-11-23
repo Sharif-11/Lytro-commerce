@@ -11,7 +11,7 @@ Decision recorded here: the product is called **Lytro**, made by **Lytronix**. T
 | | |
 | --- | --- |
 | Name | Lytro. Written "Lytro" in prose, "lytro" only inside the wordmark. Never "Lytro Commerce" in customer-facing text. |
-| Bangla | লাইট্রো (already used in the dashboard sign-in). Pronounced LY-tro. |
+| Bangla | লিট্রো, said LEE-tro (the owner's spelling, 2026-11-23; it replaced the earlier লাইট্রো everywhere). Used in the dashboard sign-in and the ad voice-over. |
 | Company | Lytronix. Appears as the endorser ("Lytro by Lytronix") on the landing page footer, legal pages, invoices and app store listings. Nowhere else. |
 | Audience | A small Bangladeshi online seller, usually a Facebook page, 50 to 500 orders a month, running the business from a phone. |
 | Positioning | The fastest, simplest way for a Bangladeshi seller to run a real online shop, with orders, payments, couriers and fraud checks already connected, in Bangla, with no monthly fee to start. |
@@ -57,7 +57,7 @@ Attribution wording changes from "Powered by Lytronix" to "Powered by Lytro". Th
 - Minimum size: mark 16 px, wordmark 72 px wide, "Powered by" lockup 16 px tall.
 - Colour: teal-700 on light, teal-400 on dark, white on teal or ink tiles, marigold only on the operator icon. Monochrome version uses `currentColor`.
 
-**The wordmark.** The mark is the first letter. The L-tick stands in for the L, followed by "ytro" in Plus Jakarta Sans ExtraBold, tracking -0.03 em, ink on light and white on dark. The mark sits on the baseline and rises to ascender height, with the tick almost touching the y. Never write a separate lowercase l after the mark; that was the first draft and it read as L, l (changed 2026-10-18). The Bangla lockup uses লাইট্রো in Noto Sans Bengali Bold at the same height and is used where the Latin word would be the only Latin on screen (SMS templates, printed labels, notices).
+**The wordmark.** The mark is the first letter. The L-tick stands in for the L, followed by "ytro" in Plus Jakarta Sans ExtraBold, tracking -0.03 em, ink on light and white on dark. The mark sits on the baseline and rises to ascender height, with the tick almost touching the y. Never write a separate lowercase l after the mark; that was the first draft and it read as L, l (changed 2026-10-18). The Bangla lockup uses লিট্রো in Noto Sans Bengali Bold at the same height and is used where the Latin word would be the only Latin on screen (SMS templates, printed labels, notices).
 
 The SVG wordmarks in `docs/brand/` are set in live text. Before any production use they must be outlined to paths in Figma so they render without the font installed. The mark is final geometry and needs no outlining.
 
@@ -221,7 +221,7 @@ Used for manual payments only. A wallet whose gateway the seller has connected s
 | `lytro-mark.svg` | The mark in teal-700. Favicon source, in-app logo. |
 | `lytro-mark-mono.svg` | `currentColor` mark for footers, print and notification contexts. |
 | `lytro-wordmark.svg` / `lytro-wordmark-dark.svg` | Mark plus wordmark, light and dark. Outline before shipping. |
-| `lytro-lockup-bn.svg` | Mark plus লাইট্রো. Outline before shipping. |
+| `lytro-lockup-bn.svg` | Mark plus লিট্রো. Outline before shipping. |
 | `powered-by-lytro.svg` | Attribution lockup for tenant surfaces. |
 | `icon-dashboard.svg`, `icon-operator.svg`, `icon-listener.svg` | 512 px app icons, maskable-safe. |
 | `icon-listener-notification.svg` | 24 dp white notification glyph. |
