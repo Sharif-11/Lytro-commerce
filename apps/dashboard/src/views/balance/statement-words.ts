@@ -19,6 +19,8 @@ export const STATEMENT_CHIPS: readonly { key: string; types: readonly LedgerEntr
     key: 'fees',
     types: [
       LedgerEntryType.OrderFee,
+      LedgerEntryType.OrderUnlock,
+      LedgerEntryType.ApiRequests,
       LedgerEntryType.ProductFee,
       LedgerEntryType.VerificationFee,
       LedgerEntryType.Extraction,
@@ -70,6 +72,12 @@ export function entryTitle(
     }
     case LedgerEntryType.Adjustment:
       return reference.reason ? `${word} · ${reference.reason}` : word;
+    case LedgerEntryType.OrderUnlock:
+      return reference.step === 'phone'
+        ? `${word} · ${t('unlockPhone')}`
+        : reference.step === 'confirm'
+          ? `${word} · ${t('unlockConfirm')}`
+          : word;
     default:
       return word;
   }

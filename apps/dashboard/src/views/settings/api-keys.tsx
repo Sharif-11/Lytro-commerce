@@ -16,6 +16,7 @@ import { allows } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
 import { ShellPage } from '@/shell/shell-page';
 import type { ApiKey, CreatedApiKey } from '@/types/api-key';
+import { ApiChargesSection } from './api-charges';
 import { CreatedKeySheet, EditKeySheet, NewKeySheet, RevokeKeySheet } from './api-key-sheets';
 import { keyLine } from './api-key-words';
 
@@ -56,6 +57,7 @@ export function ApiKeysView(): React.JSX.Element {
       }
     >
       <p className="text-[14px] text-fg-muted">{t('akLead')}</p>
+      <ApiChargesSection />
       {keys.isError ? <ErrorBanner error={keys.error} /> : null}
       {listed ? (
         <Card flush>

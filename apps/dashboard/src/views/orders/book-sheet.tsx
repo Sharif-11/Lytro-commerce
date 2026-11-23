@@ -7,10 +7,13 @@ import { formatTaka } from '@lytronix/ui';
 import {
   CourierConnectionState,
   CourierKey,
+  OrderSource,
   PARCEL_NOTE_MAX_LENGTH,
   Permission,
   SmsEvent,
+  TenantState,
 } from '@lytronix/validators';
+import { useBalance } from '@/api/balance';
 import { useBookOrder, useCancelBooking, useCourierAreas, useSettleParcel } from '@/api/couriers';
 import { useLocations } from '@/api/delivery';
 import { ORDERS_QUERY_KEY, useOrderSerials } from '@/api/orders';
@@ -58,6 +61,47 @@ function failureOf(error: unknown): BookFailure | null {
     }
   }
   return { kind: 'other', error };
+}
+
+/**
+ * PYG-02 as amended (PAYG-FAIR-USE-PLAN PF-11, the sketch's `pf-manual`): with fair use on, a manual order's courier booked
+ * through Lytro costs a flat fee, its line and the balance after it shown before booking. Nothing for an order from Lytro,
+ * whose steps paid its way, nor off pay-as-you-go.
+ */
+function ManualBookingFee({ order }: { order: Order }): React.JSX.Element | null {
+  const { t } = useTranslation('orders');
+  const { tenant, viewer } = useShell();
+  const balance = useBalance({ enabled: allows(viewer, [Permission.BalanceRead]) });
+  const fair = tenant.fairUse;
+  if (
+    fair?.on !== true ||
+    tenant.state !== TenantState.PayAsYouGo ||
+    order.source !== OrderSource.Dashboard ||
+    order.handledAt !== null
+  ) {
+    return null;
+  }
+  const fee = Number(fair.bookingFee);
+  const have = balance.data ? Number(balance.data.amount) - Number(balance.data.held) : null;
+  return (
+    <div className="flex flex-col gap-2 rounded-[10px] bg-neutral-50 px-3 py-2.5">
+      <Kv label={t('fair.bookFee')} value={<span className="num">{formatTaka(fee)}</span>} />
+      {have === null ? null : (
+        <Kv
+          label={t('fair.bookBalance')}
+          value={
+            <span className="num">
+              {formatTaka(have)} → {formatTaka(have - fee)}
+            </span>
+          }
+        />
+      )}
+      <p className="flex items-start gap-2 text-[13px] text-fg-muted">
+        <Icon name="info" size={16} />
+        <span>{t('fair.bookFeeNote')}</span>
+      </p>
+    </div>
+  );
 }
 
 /** The order's items weighed, where every one has a weight; null where some don't. */
@@ -434,6 +478,7 @@ export function BookSheet({
           setNote(event.target.value);
         }}
       />
+      <ManualBookingFee order={order} />
       <p className="text-[14px] text-fg-muted">{t('crBookInfo')}</p>
       {/* Part 37's `p37-o-book` (D7-20): the shipped SMS goes when the courier picks it up. */}
       <SmsLine event={SmsEvent.OrderShipped} words="p37LineBook" values={{ c: name }} />

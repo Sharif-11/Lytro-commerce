@@ -4,6 +4,8 @@ export interface LedgerReference {
   productId?: string;
   planPaymentId?: string;
   reason?: string;
+  /** An order's fair-use charge (PAYG-FAIR-USE-PLAN PF-2): `phone` or `confirm`. */
+  step?: string;
   fromTenantId?: string;
   toTenantId?: string;
 }
@@ -22,6 +24,7 @@ export function readLedgerReference(reference: unknown): LedgerReference {
     productId: stringField(record, 'productId'),
     planPaymentId: stringField(record, 'planPaymentId'),
     reason: stringField(record, 'reason'),
+    step: stringField(record, 'step'),
     fromTenantId: stringField(record, 'fromTenantId'),
     toTenantId: stringField(record, 'toTenantId'),
   };
