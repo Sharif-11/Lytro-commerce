@@ -229,7 +229,7 @@ test("a rejected payment quotes support, and Pay again opens How to pay at today
     '/billing/pay_8m3pqr',
   );
   await expect(main(page).getByText(/সাপোর্টের নোট:/)).toBeVisible();
-  await expect(main(page).getByText('লাইট্রো সাপোর্ট রিজেক্ট করেছে')).toBeVisible();
+  await expect(main(page).getByText('লিট্রো সাপোর্ট রিজেক্ট করেছে')).toBeVisible();
   await main(page).getByRole('button', { name: 'আবার পেমেন্ট করুন' }).click();
   await expect(sheet(page).getByRole('heading', { name: '৳449 কীভাবে দেবেন?' })).toBeVisible();
   expect(log.calls.some((call) => call.path === '/billing/quote')).toBe(false);
