@@ -229,9 +229,12 @@ for `active`) with zero infrastructure work on this platform's side per tenant.
    address off.
 2. Its CORS policy: `GET` and `HEAD` from any origin, the `Range` header allowed, and `Content-Length`, `Content-Range`,
    `Accept-Ranges` and `ETag` exposed (MED-13).
-3. A Cache Rule for `media.lytro.app`: eligible for cache, Edge TTL and Browser TTL a year (files are named by their
-   content, MED-08, and stored with `Cache-Control: public, max-age=31536000, immutable`). A Response Header Transform
-   Rule adds `X-Content-Type-Options: nosniff`. Turn Smart Tiered Cache on for the zone; keep Always Online off.
+3. A Cache Rule for the media hosts, `(http.host in {"media.lytro.app" "media-staging.lytro.app"})`: **Eligible for
+   cache**, Edge TTL **Use cache-control header if present, use default Cloudflare caching behavior if not**, Browser
+   TTL **Respect origin**. Files are named by their content (MED-08) and stored with
+   `Cache-Control: public, max-age=31536000, immutable`, so each is kept a year. Never set a fixed year instead: that
+   would also keep a 404 (a file asked for before it is there) for a year. A Response Header Transform Rule on the same
+   hosts adds `X-Content-Type-Options: nosniff`. Turn Smart Tiered Cache on for the zone; keep Always Online off.
 4. The server's account API token (`CLOUDFLARE_API_TOKEN`, with `CLOUDFLARE_ACCOUNT_ID`): **Account Analytics: Read**
    (media costs) and **Zone: Cache Purge** on `lytro.app` (a lapsed shop's media, MED-10), the server's address only.
    Set `CLOUDFLARE_ZONE_ID` to lytro.app's zone id. Without it the server says so as it starts, and a lapsed shop's

@@ -187,7 +187,7 @@ function QueueShotPanel({
       title={t('queue.shotTitle', { trx: payment.transactionId ?? '' })}
       sub={`${payment.shopName} · ${t('queue.copyNote')}`}
       file={evidence.file}
-      failed={evidence.failed}
+      failure={evidence.failure}
       note={
         <Banner tone="warn" icon="warn">
           {t('queue.shotNote')}

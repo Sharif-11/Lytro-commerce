@@ -125,9 +125,9 @@ one build serves both.
 2. **The site key**, as a repository variable: `gh variable set DASHBOARD_TURNSTILE_SITE_KEY --body <site key>`. The
    next deploy draws the widget.
 3. **The secret key**, on each server, by you alone, never in a chat or a file in the repository:
-   `sudo nano /opt/lytro/env/server.env`, set `TURNSTILE_SECRET_KEY=<secret key>`, then restart the API
-   (`docker compose up -d api` from `/opt/lytro`). With it, every code request needs a token Cloudflare passes, and
-   production's per-address limits are the raised ones. A server refuses to start with one of Cloudflare's test secrets.
+   `sudo nano /opt/lytro/env/server.env`, set `TURNSTILE_SECRET_KEY=<secret key>`, then remake the API's
+   containers ("Day to day" below, after changing an API setting). With it, every code request needs a token Cloudflare
+   passes, and production's per-address limits are the raised ones. A server refuses to start with one of Cloudflare's test secrets.
 4. **Check:** sign up on the dashboard with a new number: the code comes, and no `Turnstile` line in the server's log
    says `refused` or `couldn't say` for it.
 
@@ -282,6 +282,19 @@ only on the server: JSON lines in its journal, kept 14 days (`journalctl CONTAIN
 
 - **What runs:** `ssh lytro@<address>`, then `sudo docker ps`; or `cat /opt/lytro/state/release.env`.
 - **A container's log:** `sudo docker logs --tail 100 lytro-api-1-1` (and `lytro-worker-1`, `lytro-edge-1`, ...).
+- **After changing an API setting** (`/opt/lytro/env/server.env` or `server-api.env`): the API reads it only when its
+  containers are made again. They are `api-1` and `api-2` (there is no `api`), from the release's folder, one at a
+  time so the other keeps answering:
+  ```
+  sudo -s
+  cd /opt/lytro/state/current
+  set -a; . /opt/lytro/settings.env; . /opt/lytro/state/release.env; set +a
+  docker compose up -d --no-deps --force-recreate --wait api-1
+  docker compose up -d --no-deps --force-recreate --wait api-2
+  exit
+  ```
+  `--wait` returns once each is healthy. The worker reads `server.env` too: for a setting it uses, do the same for
+  `worker`.
 - **Rolling back:** re-run an earlier commit's Deploy workflow (Actions → Deploy → that run → Re-run all jobs). It
   deploys that commit's images again. Migrations only ever add, so the older code runs on the newer database.
 - **The dumps before each deploy:** `/opt/lytro/backups/pre-deploy/`, the last five, for a quick rollback on the server.

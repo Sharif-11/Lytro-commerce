@@ -364,6 +364,24 @@ test.describe("the seller's screenshot in the queue", () => {
     await expect(panel(page).getByText("The seller's screenshot")).toBeVisible();
   });
 
+  test('one the server removed after two years says so', async ({ page }) => {
+    await mockApi(page, { shotsGone: [REVIEW_RENEWAL] });
+    await page.goto(`/queue/${REVIEW_RENEWAL}?step=screenshot`);
+    await expect(
+      panel(page).getByText('This screenshot was removed after two years.'),
+    ).toBeVisible();
+    await expect(panel(page).getByRole('img')).toHaveCount(0);
+  });
+
+  test('one that only fails to come says it cannot be read now, not that it is gone', async ({
+    page,
+  }) => {
+    await mockApi(page, { shotsUnreadable: [REVIEW_RENEWAL] });
+    await page.goto(`/queue/${REVIEW_RENEWAL}?step=screenshot`);
+    await expect(panel(page).getByText("The screenshot can't be read now.")).toBeVisible();
+    await expect(panel(page).getByText('removed after two years')).toHaveCount(0);
+  });
+
   test('a payment without one shows nothing for it', async ({ page }) => {
     await mockApi(page);
     await page.goto('/queue/pay-9104');

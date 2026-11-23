@@ -162,6 +162,30 @@ test('a Facebook account that gave a phone is not told Facebook is its only way 
   expect(await page.evaluate(() => sessionStorage.getItem('lytro.recovery-note'))).toBeNull();
 });
 
+test('the longest shop link stays inside its chip on a narrow phone', async ({ page }) => {
+  // A shop address may be 30 letters (SLUG_MAX_LENGTH); at 360 pixels its link takes two lines.
+  await page.setViewportSize({ width: 360, height: 740 });
+  await mockOnboarding(page);
+  await page.goto('/sign-in?shop=megh-fashion-house-chattogram');
+  const link = page.getByText('আপনার লিংক: megh-fashion-house-chattogram.lytro.app');
+  await expect(link).toBeVisible();
+  const inside = await link.evaluate((text) => {
+    let chip: Element | null = text;
+    while (chip && getComputedStyle(chip).borderTopWidth === '0px') chip = chip.parentElement;
+    const words = document.createRange();
+    words.selectNodeContents(text);
+    const drawn = words.getBoundingClientRect();
+    const box = (chip ?? text).getBoundingClientRect();
+    return (
+      drawn.top >= box.top &&
+      drawn.bottom <= box.bottom &&
+      drawn.right <= box.right &&
+      box.right <= window.innerWidth
+    );
+  });
+  expect(inside).toBe(true);
+});
+
 test('walks a new owner from the website to Home: code, shop, checkout, password, set-up', async ({
   page,
 }) => {
