@@ -1,14 +1,16 @@
-import { ApiClient } from '@lytronix/api-client';
+import { ApiClient, CsrfTokenStore } from '@lytronix/api-client';
 import type { MeResponse } from '../types/me';
 import { shopOfPath } from './shop-of-path';
 
 // The CSRF token is only ever sent once, in a sign-in response body (SEC-14); only its hash is stored
-// server-side. A copy in sessionStorage lets a page reload survive without a fresh sign-in.
+// server-side. A copy every tab and the installed app share (CsrfTokenStore, 2026-11-23) lets a reload, a second tab or
+// a link opened from an SMS work without a fresh sign-in, for as long as the session cookie (7 days) lasts.
 const CSRF_STORAGE_KEY = 'lytro.tenant.csrf';
 
 /**
  * Holds the tenant session's CSRF token and the last `/me` result, and the auth-init gate every protected
- * screen waits on. One instance for the whole app (main.tsx); tests construct their own.
+ * screen waits on. One instance for the whole app (main.tsx); tests construct their own. Another tab's sign-in hands
+ * this one its new token; its sign-out sends this one to sign-in.
  */
 export class TenantSession {
   readonly client: ApiClient;
@@ -17,8 +19,19 @@ export class TenantSession {
   private readonly ready: Promise<void>;
   private resolveReady!: () => void;
 
-  constructor(baseUrl = '/api/v1') {
-    this.csrfToken = TenantSession.readStoredToken();
+  private signedOutElsewhere: () => void = () => undefined;
+
+  constructor(
+    baseUrl = '/api/v1',
+    private readonly tokens = new CsrfTokenStore(CSRF_STORAGE_KEY),
+  ) {
+    this.csrfToken = tokens.read();
+    tokens.watch((token) => {
+      const wasSignedIn = this.csrfToken !== null;
+      this.csrfToken = token;
+      if (token === null) this.me = null;
+      if (token === null && wasSignedIn) this.signedOutElsewhere();
+    });
     this.client = new ApiClient({
       baseUrl,
       getCsrfToken: () => this.csrfToken,
@@ -54,14 +67,15 @@ export class TenantSession {
     return this.ready;
   }
 
+  /** What this tab does once another tab has signed out, ending the cookie they share (main.tsx: back to sign-in). */
+  whenSignedOutElsewhere(then: () => void): void {
+    this.signedOutElsewhere = then;
+  }
+
   /** Called after a successful sign-in/verify/OAuth response. */
   setSignedIn(csrfToken: string, me?: MeResponse): void {
     this.csrfToken = csrfToken;
-    try {
-      sessionStorage.setItem(CSRF_STORAGE_KEY, csrfToken);
-    } catch {
-      // Without storage a reload needs a fresh sign-in; the current page still works.
-    }
+    this.tokens.write(csrfToken);
     if (me) this.me = me;
   }
 
@@ -83,21 +97,9 @@ export class TenantSession {
   clear(): void {
     this.csrfToken = null;
     this.me = null;
-    try {
-      sessionStorage.removeItem(CSRF_STORAGE_KEY);
-    } catch {
-      // Nothing stored, nothing to remove.
-    }
-  }
-
-  private static readStoredToken(): string | null {
-    try {
-      return sessionStorage.getItem(CSRF_STORAGE_KEY);
-    } catch {
-      return null;
-    }
+    this.tokens.clear();
   }
 }
 
-// One instance for the whole app: a browser tab has exactly one tenant session.
+// One instance for the whole app; every tab's instance shares the one token.
 export const tenantSession = new TenantSession();

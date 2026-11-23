@@ -351,7 +351,7 @@ test('an expired session returns to sign-in, and leaves nothing of it behind', a
   await mockApi(page, { expired: true });
   await page.goto('/');
   await expect(page).toHaveURL('/sign-in');
-  expect(await page.evaluate(() => sessionStorage.getItem('lytro.operator.csrf'))).toBeNull();
+  expect(await page.evaluate(() => localStorage.getItem('lytro.operator.csrf'))).toBeNull();
 });
 
 test('every read carries the console language, not the browser one', async ({ page }) => {

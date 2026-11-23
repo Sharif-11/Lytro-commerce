@@ -22,6 +22,12 @@ const queryClient = createQueryClient();
 
 // The one auth-init check (a /me call) every protected screen waits on (session/tenant-session.ts).
 void tenantSession.init();
+// Another tab signed out: the cookie every tab shares has ended, so this one returns to sign-in too.
+tenantSession.whenSignedOutElsewhere(() => {
+  void router.navigate({ to: '/sign-in', search: { mode: 'password' } }).then(() => {
+    queryClient.clear();
+  });
+});
 
 // NTF-02, NTF-07: offline starts, pushes and the update prompt; vite-plugin-pwa makes the worker in a built app only.
 if (import.meta.env.PROD) serviceWorker.register();
