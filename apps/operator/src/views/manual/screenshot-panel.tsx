@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@lytronix/ui';
-import type { EvidenceFile } from '@/api/evidence';
+import type { EvidenceFailure, EvidenceFile } from '@/api/evidence';
 import { useEntryEvidence } from '@/api/manual-entries';
 import { Banner } from '@/components/ui/banner';
 import { Panel } from '@/components/ui/panel';
@@ -10,20 +10,21 @@ import type { ManualEntry } from '@/types/manual-entries';
 /**
  * ADM-17, D8-47: a payment's screenshot, read through the server as the panel opens (amended 2026-11-20: never an R2
  * link). A PDF, which an image can't show, is downloaded rather than opened in a tab: a `blob:` tab keeps the console's
- * own policy (`object-src 'none'`), which can stop the browser's PDF viewer. One the server no longer holds says so.
+ * own policy (`object-src 'none'`), which can stop the browser's PDF viewer. One the server no longer holds says so; one
+ * that only failed to come says that, not that it is gone.
  */
 export function ShotPanel({
   title,
   sub,
   file,
-  failed,
+  failure,
   note,
   onBack,
 }: {
   title: string;
   sub: string;
   file: EvidenceFile | undefined;
-  failed: boolean;
+  failure: EvidenceFailure | null;
   /** A word under the picture, such as the queue's warning that it is only the seller's word. */
   note?: ReactNode;
   onBack: () => void;
@@ -31,9 +32,9 @@ export function ShotPanel({
   const { t } = useTranslation();
   return (
     <Panel open title={title} sub={sub} onClose={onBack}>
-      {failed ? (
+      {failure ? (
         <Banner tone="info" icon="info">
-          {t('manual.gone')}
+          {t(failure === 'removed' ? 'manual.gone' : 'manual.unreadable')}
         </Banner>
       ) : !file ? (
         <span className="skel mx-auto h-[320px]! w-[220px]" aria-busy="true" />
@@ -75,7 +76,7 @@ export function EntryShotPanel({
       title={t('manual.shotTitle', { trx: entry.transactionId ?? '' })}
       sub={t('manual.copyNote')}
       file={evidence.file}
-      failed={evidence.failed}
+      failure={evidence.failure}
       onBack={onBack}
     />
   );

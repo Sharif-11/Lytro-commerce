@@ -17,24 +17,30 @@ export function IntentChips({ intent }: { intent: SignUpIntent }): React.JSX.Ele
 
   const plan = plans.data?.find((item) => item.id === intent.planId) ?? null;
   const term = terms.data?.find((item) => item.id === intent.termId) ?? null;
+  // A chip grows to a second line rather than spilling out: a 30-letter address's link is wider than a 360-pixel
+  // phone. On one line it is the sketch's 32-pixel pill.
   const chip =
-    'inline-flex h-8 items-center gap-1.5 rounded-full border border-brand-200 bg-primary-soft px-3.5 text-[14px] font-medium text-brand-900';
+    'inline-flex min-h-8 max-w-full items-center gap-1.5 rounded-[16px] border border-brand-200 bg-primary-soft px-3.5 py-1 text-[14px] font-medium text-brand-900';
 
   return (
     <div className="flex flex-wrap gap-2">
       {intent.shop ? (
         <span className={chip}>
-          <Icon name="globe" size={16} />
-          {t('yourLink', { host: appConfig.shopHost(intent.shop) })}
+          <Icon name="globe" size={16} className="shrink-0" />
+          <span className="min-w-0 [overflow-wrap:anywhere]">
+            {t('yourLink', { host: appConfig.shopHost(intent.shop) })}
+          </span>
         </span>
       ) : null}
       {plan ? (
         <span className={chip}>
-          {t('picked', {
-            plan: term
-              ? `${plan.name} · ${i18n.language === 'bn' ? term.labelBn : term.labelEn}`
-              : plan.name,
-          })}
+          <span className="min-w-0 [overflow-wrap:anywhere]">
+            {t('picked', {
+              plan: term
+                ? `${plan.name} · ${i18n.language === 'bn' ? term.labelBn : term.labelEn}`
+                : plan.name,
+            })}
+          </span>
         </span>
       ) : null}
     </div>

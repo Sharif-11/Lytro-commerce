@@ -307,7 +307,8 @@ the archive's key Object Read & Write on its own bucket, or put the right key in
 
 ### 10.2 The monthly drill: restore the latest dump and count it (DAT-22, DAT-29, BKP-02)
 
-On the owner's computer, with Docker:
+On the owner's computer, with Docker (in PowerShell, a pasted command may wait at a `>>` prompt: press Enter once
+more; 10.3 too):
 1. Fill a copy of `deploy/restore/restore.env.example` from the offline copies, kept **outside every repository**.
 2. Read the image's name from the server: `ssh lytro@<server> cat /opt/lytro/state/release.env`, then
    `<REGISTRY>/lytro-database:<DATABASE_TAG>` (REGISTRY is in `/opt/lytro/settings.env`).
@@ -595,7 +596,7 @@ checked with Cloudflare (deploy/README.md, "The bot check on code SMS").
   stopped calling `turnstile`): nothing to do. Each code request goes on under the old 20 an hour per address until
   Cloudflare answers again; the circuit tries once a minute. Sellers behind a busy mobile address may meet that limit.
 - **The widget itself won't load** (sellers say the code button waits, then asks them to reload; the log says
-  `refused (no token)`): remove the `TURNSTILE_SECRET_KEY` line from `/opt/lytro/env/server.env` and run
-  `docker compose up -d api` from `/opt/lytro`. The check is off and the strict limits are back. Put the line back
-  once Cloudflare's status page is green.
+  `refused (no token)`): remove the `TURNSTILE_SECRET_KEY` line from `/opt/lytro/env/server.env` and remake the
+  API's containers (deploy/README.md, "Day to day", after changing an API setting). The check is off and the strict
+  limits are back. Put the line back once Cloudflare's status page is green.
 - **`couldn't say (invalid-input-secret)`:** the secret is wrong. Copy it again from Cloudflare → Turnstile.

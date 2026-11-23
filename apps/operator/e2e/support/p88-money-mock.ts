@@ -65,8 +65,10 @@ export interface MoneyMockState {
   priceNow: string | null;
   /** A reversal is refused: the shop's plan has moved on since the entry (D8-48). */
   planMovedOn: boolean;
-  /** The screenshots the server no longer holds. */
+  /** The screenshots the server no longer holds, removed after two years (D8-47). */
   shotsGone: string[];
+  /** The screenshots that don't come this time, which says nothing about whether they are kept. */
+  shotsUnreadable: string[];
 }
 
 const SHOPS = new Map(drawnShops().map((shop) => [shop.id, shop]));
@@ -315,6 +317,7 @@ export function moneyDefaults(): MoneyMockState {
     priceNow: null,
     planMovedOn: false,
     shotsGone: [],
+    shotsUnreadable: [],
   };
 }
 
@@ -347,6 +350,7 @@ interface MoneyContext {
   priceNow: string | null;
   planMovedOn: boolean;
   shotsGone: string[];
+  shotsUnreadable: string[];
   shops: { id: string; planId: string | null }[];
   prices: { planId: string; billingTermId: string; price: string }[];
   terms: Record<string, unknown>[];
@@ -521,6 +525,9 @@ export function moneyAnswer(
   const shot = /^\/operator\/(?:manual-entries|payment-queue)\/([^/]+)\/evidence$/.exec(path);
   if (shot) {
     if (state.shotsGone.includes(shot[1] ?? '')) {
+      return { refused: [409, 'conflict', 'This screenshot was removed after two years.'] };
+    }
+    if (state.shotsUnreadable.includes(shot[1] ?? '')) {
       return { refused: [404, 'not_found', 'Evidence not found.'] };
     }
     return { file: { contentType: 'image/svg+xml', body: SHOT_SVG } };

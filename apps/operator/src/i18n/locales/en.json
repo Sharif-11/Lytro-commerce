@@ -186,8 +186,7 @@
     "shotNote": "A screenshot is the seller's word, not the money. Match the TrxID against the statement.",
     "shotTitle": "Screenshot · {{trx}}",
     "copyNote": "Shown from Lytro's server; your browser keeps no copy.",
-    "shotOpen": "Open",
-    "shotGone": "The screenshot can't be read now."
+    "shotOpen": "Open"
   },
   "manual": {
     "lead": "Payments that reached Lytro outside the normal flow, recorded by hand. An entry is never changed: a reversal corrects it.",
@@ -266,6 +265,7 @@
     "openShot": "Open the screenshot",
     "copyNote": "Shown from Lytro's server; your browser keeps no copy.",
     "gone": "This screenshot was removed after two years.",
+    "unreadable": "The screenshot can't be read now.",
     "reversedBy": "Reversed {{d}} by {{who}}: {{r}}",
     "reverse": "Reverse",
     "shotTitle": "Screenshot · {{trx}}",
