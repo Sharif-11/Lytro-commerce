@@ -383,6 +383,8 @@ export enum AuditAction {
   // PYG-27 (PAYG-FAIR-USE-PLAN PF-31): a pay-as-you-go order opened a step -- its phone shown or its confirm -- by whom,
   // and what it was charged.
   OrderUnlocked = 'order_unlocked',
+  // PYG-25 (PF-13): a trial told, on day 25 or day 29, that its storefront will pause on pay-as-you-go.
+  TrialPauseWarned = 'trial_pause_warned',
   // Phase 3 Slice 13: the shop's own domain added, verified, its record found missing (the shop back on its subdomain),
   // and removed (TEN-09 to TEN-14).
   DomainAdded = 'domain_added',
@@ -643,6 +645,9 @@ export enum QueueName {
   RawMessagePurgeTick = 'raw_message_purge_tick',
   // DAT-55 (Phase 9 Slice 9.6): each morning, whether paying shops or revenue say it's time for a second server.
   CapacityTick = 'capacity_tick',
+  // PYG-26 (PAYG-FAIR-USE-PLAN PF-14): each night, a pay-as-you-go shop's API requests past the free allowance charged,
+  // and the shops that paid since marked activated (PFQ-9).
+  ApiChargeTick = 'api_charge_tick',
   // D9-32 (Phase 9 Slice 9.10): shop pages Cloudflare keeps to drop, queued in the transaction that changed them, sent in
   // batches within Cloudflare's purge rate.
   EdgePurge = 'edge_purge',

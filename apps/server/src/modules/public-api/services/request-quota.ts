@@ -61,6 +61,8 @@ interface Pending {
   /** RTE-08: orders and payment sessions the shop's per-minute windows refused. */
   refusedOrders: number;
   refusedSessions: number;
+  /** PYG-26 (PF-37): requests answered with success, which alone pay-as-you-go is charged for. */
+  billable: number;
   /** The cycle's limit when last counted, for the warnings at the next flush. */
   limit: number | null;
   /** PLN-15: whether the shop had auto-buy of request packs on when last counted. */
@@ -71,6 +73,9 @@ interface Pending {
 interface StoredCycle {
   requests: number;
   packs: CyclePacks;
+  /** PYG-26: its successful answers, and the whole 1,000s already charged. */
+  billable: number;
+  billedBlocks: number;
 }
 
 /** The cycle a shop's counts belong to. */
@@ -135,7 +140,7 @@ export class RequestQuota implements OnModuleInit, OnModuleDestroy, BeforeApplic
     const key = cycleKey(shop.row.id, cycleStart);
     const [stored, grace] =
       limit === null
-        ? [{ requests: 0, packs: NO_PACKS }, 0]
+        ? [{ requests: 0, packs: NO_PACKS, billable: 0, billedBlocks: 0 }, 0]
         : await Promise.all([
             this.storedCycle(shop.row.id, cycleStart, now),
             this.settings.gracePercent(),
@@ -153,6 +158,31 @@ export class RequestQuota implements OnModuleInit, OnModuleDestroy, BeforeApplic
     });
     this.countHour(shop.row.id, now);
     return true;
+  }
+
+  /**
+   * PYG-26 (PF-37): one of the shop's own website's requests answered with success -- 2xx or 304 -- counted for the
+   * pay-as-you-go charge. Refused, limited or failed requests are never counted.
+   */
+  answered(shop: ApiShop, now: Date): void {
+    const cycleStart = usageCycleStart(shop.row, now);
+    const key = cycleKey(shop.row.id, cycleStart);
+    const pending = this.pendingOf(key, shop.row.id, cycleStart);
+    this.pending.set(key, { ...pending, billable: pending.billable + 1 });
+  }
+
+  /**
+   * PYG-26 (PF-14): the cycle's successful answers -- stored, and not yet stored by this server -- and the whole 1,000s
+   * already charged, for the live check against the cap and the balance.
+   */
+  async chargeState(
+    tenantId: string,
+    cycleStart: Date,
+    now: Date,
+  ): Promise<{ billable: number; billedBlocks: number }> {
+    const stored = await this.storedCycle(tenantId, cycleStart, now);
+    const pending = this.pending.get(cycleKey(tenantId, cycleStart))?.billable ?? 0;
+    return { billable: stored.billable + pending, billedBlocks: stored.billedBlocks };
   }
 
   /** LIM-02: the shop's requests in the cycle: those stored, and those this server has not stored yet. */
@@ -308,6 +338,7 @@ export class RequestQuota implements OnModuleInit, OnModuleDestroy, BeforeApplic
         refusedVisitors: entry.refusedVisitors,
         refusedOrders: entry.refusedOrders,
         refusedSessions: entry.refusedSessions,
+        billable: entry.billable,
       };
       const limit = entry.limit;
       try {
@@ -320,7 +351,8 @@ export class RequestQuota implements OnModuleInit, OnModuleDestroy, BeforeApplic
             flushing,
             dhakaDate(now),
           );
-          if (limit === null) return { requests: row.requests, packs: NO_PACKS };
+          const charges = { billable: row.billable, billedBlocks: row.billedBlocks };
+          if (limit === null) return { requests: row.requests, packs: NO_PACKS, ...charges };
           const packs = await this.cyclePacksIn(tx, entry.tenantId, row);
           // RTE-11: what the cycle has taken from the packs follows its use past the limit, as far as they reach.
           const taken = packTaken(row.requests, limit, packs);
@@ -380,7 +412,7 @@ export class RequestQuota implements OnModuleInit, OnModuleDestroy, BeforeApplic
             await this.store.setFastSpendAlerted(tx, entry.tenantId, entry.cycleStart, now);
             await this.notices.queue(tx, { ...notice, limit, level: 'fast_spend', used: hour });
           }
-          return { requests: row.requests, packs };
+          return { requests: row.requests, packs, ...charges };
         });
         this.settle(key, flushing, stored);
       } catch (error) {
@@ -404,8 +436,10 @@ export class RequestQuota implements OnModuleInit, OnModuleDestroy, BeforeApplic
         refusedVisitors: pending.refusedVisitors - flushed.refusedVisitors,
         refusedOrders: pending.refusedOrders - flushed.refusedOrders,
         refusedSessions: pending.refusedSessions - flushed.refusedSessions,
+        billable: pending.billable - (flushed.billable ?? 0),
       };
       if (
+        left.billable > 0 ||
         left.count > 0 ||
         left.refused > 0 ||
         left.refusedVisitors > 0 ||
@@ -430,6 +464,7 @@ export class RequestQuota implements OnModuleInit, OnModuleDestroy, BeforeApplic
         refusedVisitors: 0,
         refusedOrders: 0,
         refusedSessions: 0,
+        billable: 0,
         limit: null,
         autoBuy: false,
       }
@@ -488,7 +523,12 @@ export class RequestQuota implements OnModuleInit, OnModuleDestroy, BeforeApplic
     if (cached !== undefined) return cached;
     const { packs } = await this.packsOf(tenantId, cycleStart);
     const row = await this.store.find(tenantId, cycleStart);
-    const stored = { requests: row?.requests ?? 0, packs };
+    const stored = {
+      requests: row?.requests ?? 0,
+      packs,
+      billable: row?.billable ?? 0,
+      billedBlocks: row?.billedBlocks ?? 0,
+    };
     this.stored.set(key, stored, now.getTime());
     return stored;
   }

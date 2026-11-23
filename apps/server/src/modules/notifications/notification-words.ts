@@ -41,6 +41,8 @@ export const NOTIFICATION_LINKS = {
   addons: '/addons',
   activity: '/activity',
   usage: '/usage',
+  // PF-36: the API page, with its spending and cap.
+  apiKeys: '/settings/api-keys',
   balance: '/balance',
   account: '/account',
   // NTC-06 (Slice 7.4): a notice from Lytro, on the shop's board.

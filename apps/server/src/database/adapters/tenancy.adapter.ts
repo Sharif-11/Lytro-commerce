@@ -169,6 +169,26 @@ export class DrizzleTenantStore implements TenantStore {
     return this.tenants.markPaidShopsActivated(tx, minTopUp, at);
   }
 
+  findTrialsToWarn(
+    tx: Transaction,
+    now: Date,
+    horizon: Date,
+  ): Promise<{ id: string; periodEnd: Date }[]> {
+    return this.tenants.findTrialsToWarn(tx, now, horizon);
+  }
+
+  listPayAsYouGo(tx: Transaction): Promise<
+    {
+      id: string;
+      state: TenantState;
+      periodStart: Date | null;
+      createdAt: Date;
+      apiMonthlyCap: string;
+    }[]
+  > {
+    return this.tenants.listPayAsYouGo(tx);
+  }
+
   setApiMonthlyCap(tx: Transaction, tenantId: string, cap: string): Promise<void> {
     return this.tenants.setApiMonthlyCap(tx, tenantId, cap);
   }

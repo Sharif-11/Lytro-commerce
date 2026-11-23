@@ -506,6 +506,34 @@ export class TenantRepository {
     return rows.rows.map((row) => row.id);
   }
 
+  /** PYG-26 (PF-14): every live pay-as-you-go shop, with what its API cycle and cap are worked out from. */
+  async listPayAsYouGo(tx: Executor): Promise<
+    {
+      id: string;
+      state: TenantState;
+      periodStart: Date | null;
+      createdAt: Date;
+      apiMonthlyCap: string;
+    }[]
+  > {
+    return tx
+      .select({
+        id: tenants.id,
+        state: tenants.state,
+        periodStart: tenants.periodStart,
+        createdAt: tenants.createdAt,
+        apiMonthlyCap: tenants.apiMonthlyCap,
+      })
+      .from(tenants)
+      .where(
+        and(
+          eq(tenants.state, TenantState.PayAsYouGo),
+          isNull(tenants.deletedAt),
+          isNull(tenants.suspendedAt),
+        ),
+      );
+  }
+
   /** PYG-26 (PF-36): the most the shop's own website is charged for API requests in a cycle. */
   async setApiMonthlyCap(tx: Executor, tenantId: string, cap: string): Promise<void> {
     await tx.update(tenants).set({ apiMonthlyCap: cap }).where(eq(tenants.id, tenantId));
@@ -620,6 +648,31 @@ export class TenantRepository {
   }
 
   /** TRL-07: trials whose period has ended with no purchase -- the trial-end job's own candidate list. */
+  /**
+   * PYG-25 (PF-13): the trials ending before `horizon` whose storefront would pause on pay-as-you-go -- never activated by
+   * a payment -- for the day-25 and day-29 warnings.
+   */
+  async findTrialsToWarn(
+    tx: Executor,
+    now: Date,
+    horizon: Date,
+  ): Promise<{ id: string; periodEnd: Date }[]> {
+    const rows = await tx
+      .select({ id: tenants.id, periodEnd: tenants.periodEnd })
+      .from(tenants)
+      .where(
+        and(
+          eq(tenants.state, TenantState.Trial),
+          isNull(tenants.storefrontActivatedAt),
+          gt(tenants.periodEnd, now),
+          lte(tenants.periodEnd, horizon),
+        ),
+      );
+    return rows.flatMap((one) =>
+      one.periodEnd === null ? [] : [{ id: one.id, periodEnd: one.periodEnd }],
+    );
+  }
+
   async findExpiredTrialIds(tx: Executor, now: Date): Promise<string[]> {
     const rows = await tx
       .select({ id: tenants.id })

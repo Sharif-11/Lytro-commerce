@@ -11,10 +11,17 @@ import type { CachedTenant } from '../../tenancy/types/cached-tenant';
 import { ApiKeyAuthenticator } from '../services/api-key-authenticator';
 import { looksLikeKey } from '../services/api-key-value';
 import { allowOrigin } from '../services/cors';
+import { ApiCharges } from '../services/api-charges';
 import { RequestQuota } from '../services/request-quota';
 import { VisitorLimit } from '../services/visitor-limit';
 import { API_CLOCK } from '../tokens';
 import type { ApiShop, AuthenticatedKey } from '../types/public-api';
+
+/** What the response shows of itself once it has gone out (Express's, under the minimal HttpResponse). */
+interface AnsweredResponse {
+  statusCode: number;
+  once(event: 'finish', listener: () => void): unknown;
+}
 
 /** A public API request once its key is accepted: the shop it acts for (TEN-02, API-10) and the key. */
 export interface PublicApiRequest extends HttpRequest {
@@ -46,6 +53,7 @@ export class PublicKeyGuard implements CanActivate {
     @Inject(API_CLOCK) private readonly clock: () => Date,
     @Inject(Reflector) private readonly reflector: Reflector,
     @Inject(FairUseSwitch) private readonly fairUse: FairUseSwitch,
+    @Inject(ApiCharges) private readonly charges: ApiCharges,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -88,9 +96,22 @@ export class PublicKeyGuard implements CanActivate {
     await this.visitors.admit(shop, request, response, now);
     if (key.purpose !== ApiKeyPurpose.Storefront) {
       const takesOrders = this.reflector.get<boolean>(TAKES_ORDERS, context.getHandler());
-      if (!(await this.quota.take(shop, now, takesOrders))) {
+      if (await this.charges.applies(shop.row.state)) {
+        // PYG-26 (PF-14): on pay-as-you-go with fair use on, the free allowance and then the per-1,000 charge stand in
+        // for the plan's limit: past the cap or the balance, the API stops -- placing an order still served (QTA-07).
+        if (!takesOrders && !(await this.charges.admits(shop, now))) {
+          throw new ApiError('quota_exceeded', 'ApiCapReached', {});
+        }
+        await this.quota.take(shop, now, true);
+      } else if (!(await this.quota.take(shop, now, takesOrders))) {
         throw new ApiError('quota_exceeded', 'RequestsUsedUp', {});
       }
+      // PF-37: only an answer that succeeded is charged; it is counted as it goes out.
+      const raw = response as HttpResponse & Partial<AnsweredResponse>;
+      raw.once?.('finish', () => {
+        const status = raw.statusCode ?? 0;
+        if ((status >= 200 && status < 300) || status === 304) this.quota.answered(shop, now);
+      });
     }
 
     request.tenant = {

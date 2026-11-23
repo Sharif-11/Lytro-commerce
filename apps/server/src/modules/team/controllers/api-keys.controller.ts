@@ -6,6 +6,7 @@ import {
   Inject,
   Param,
   Patch,
+  Put,
   Post,
   Req,
   UseGuards,
@@ -17,11 +18,14 @@ import { Dashboard } from '../../../common/decorators/dashboard';
 import { RequirePermission } from '../../../common/decorators/require-permission';
 import { ResponseMessage } from '../../../common/decorators/response-message';
 import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
+import { ApiCharges, type ApiChargeSummary } from '../../public-api/services/api-charges';
 import { ApiKeyService } from '../../public-api/services/api-key.service';
 import type { ApiKeyView, CreatedApiKeyView } from '../../public-api/types/public-api';
 import { DashboardGuard, type DashboardRequest } from '../../identity/guards/dashboard.guard';
 import { SessionGuard } from '../../identity/guards/session.guard';
 import {
+  ApiCapDto,
+  ApiChargeSummaryDto,
   ApiKeyListDto,
   ApiKeyViewDto,
   CreateApiKeyDto,
@@ -40,7 +44,38 @@ export class ApiKeysController {
   constructor(
     @Inject(ApiKeyService) private readonly keys: ApiKeyService,
     @Inject(CatalogueRequest) private readonly request: CatalogueRequest,
+    @Inject(ApiCharges) private readonly charges: ApiCharges,
   ) {}
+
+  @Get('charges')
+  @RequirePermission(Permission.KeysManage)
+  @ResponseMessage('UsageRetrieved')
+  @ApiOperation({
+    summary:
+      "On pay-as-you-go with fair use on: this cycle's successful requests, the free ones, what was charged day by day and the cap (PYG-26, PF-36)",
+  })
+  @ZodResponse({ type: ApiChargeSummaryDto })
+  chargeSummary(@Req() request: DashboardRequest): Promise<ApiChargeSummary> {
+    return this.charges.summaryFor(this.request.tenantIdOf(request), new Date());
+  }
+
+  @Put('cap')
+  @RequirePermission(Permission.KeysManage)
+  @ResponseMessage('ApiCapSaved')
+  @ApiOperation({
+    summary:
+      "The most the shop's own website may be charged for API requests in a cycle: 0 to 5,000 TK, 0 stopping at the free allowance (PYG-26, PF-36, PFQ-10)",
+  })
+  @ApiBody({ type: ApiCapDto })
+  @ZodResponse({ type: ApiChargeSummaryDto })
+  async setCap(
+    @Body(new ZodValidationPipe(ApiCapDto.schema)) body: ApiCapDto,
+    @Req() request: DashboardRequest,
+  ): Promise<ApiChargeSummary> {
+    const tenantId = this.request.tenantIdOf(request);
+    await this.charges.setCap(tenantId, body.cap.toFixed(2));
+    return this.charges.summaryFor(tenantId, new Date());
+  }
 
   @Get()
   @RequirePermission(Permission.KeysManage)

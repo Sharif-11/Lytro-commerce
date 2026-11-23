@@ -112,6 +112,28 @@ export class TenantService {
     return this.store.markPaidShopsActivated(tx, minTopUp, at);
   }
 
+  /** PYG-25 (PF-13): the trials ending before the horizon that would pause on pay-as-you-go. */
+  findTrialsToWarn(
+    tx: Transaction,
+    now: Date,
+    horizon: Date,
+  ): Promise<{ id: string; periodEnd: Date }[]> {
+    return this.store.findTrialsToWarn(tx, now, horizon);
+  }
+
+  /** PYG-26 (PF-14): every live pay-as-you-go shop, for the day's API charge. */
+  listPayAsYouGo(tx: Transaction): Promise<
+    {
+      id: string;
+      state: TenantState;
+      periodStart: Date | null;
+      createdAt: Date;
+      apiMonthlyCap: string;
+    }[]
+  > {
+    return this.store.listPayAsYouGo(tx);
+  }
+
   /** PYG-26 (PF-36): the shop's API spending cap a cycle. */
   setApiMonthlyCap(tx: Transaction, tenantId: string, cap: string): Promise<void> {
     return this.store.setApiMonthlyCap(tx, tenantId, cap);
