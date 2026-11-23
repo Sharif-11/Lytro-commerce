@@ -102,6 +102,21 @@ export class TenantService {
     return this.store.run(work);
   }
 
+  /** PYG-25 (PF-13): marks the storefront activated, once; true when this call marked it. */
+  markStorefrontActivated(tx: Transaction, tenantId: string, at: Date): Promise<boolean> {
+    return this.store.markStorefrontActivated(tx, tenantId, at);
+  }
+
+  /** PYG-25 (PF-13, PFQ-9): marks activated every shop that already paid; the ids marked. */
+  markPaidShopsActivated(tx: Transaction, minTopUp: number, at: Date): Promise<string[]> {
+    return this.store.markPaidShopsActivated(tx, minTopUp, at);
+  }
+
+  /** PYG-26 (PF-36): the shop's API spending cap a cycle. */
+  setApiMonthlyCap(tx: Transaction, tenantId: string, cap: string): Promise<void> {
+    return this.store.setApiMonthlyCap(tx, tenantId, cap);
+  }
+
   /** PLN-17/TRL-07: activates a plan assignment with a normal snapshot; `state` is the caller's to decide. */
   applyPlanAssignment(
     tx: Transaction,

@@ -20,6 +20,7 @@ import { CatalogueActivity, type ResolvedActor } from '../../catalogue/services/
 import { SmsEventQueue } from '../../sms-events/services/sms-event-queue';
 import type { OrderStore } from '../ports/order-store';
 import { ORDER_STORE } from '../tokens';
+import { OrderAccessSteps } from './order-access-steps';
 import type { OrderPaymentRecord, OrderRecord } from '../types/orders';
 
 /**
@@ -90,6 +91,7 @@ export class PaymentRecorder {
     @Inject(ORDER_STORE) private readonly store: OrderStore,
     @Inject(CatalogueActivity) private readonly activity: CatalogueActivity,
     @Inject(SmsEventQueue) private readonly smsEvents: SmsEventQueue,
+    @Inject(OrderAccessSteps) private readonly access: OrderAccessSteps,
   ) {}
 
   /**
@@ -139,7 +141,10 @@ export class PaymentRecorder {
       throw error;
     }
     this.confirmByPayment(order, entry, patch, history);
-    const updated = await this.store.updateOrder(tx, tenantId, order.id, patch);
+    let updated = await this.store.updateOrder(tx, tenantId, order.id, patch);
+    // PFQ-3 (PAYG-FAIR-USE-PLAN): a verified payment on an order the shop hasn't opened opens it fully -- both steps
+    // charged -- when the balance covers them; else it stays as it was, the money recorded either way.
+    updated = await this.access.openPaidWithin(tx, tenantId, updated, who, new Date());
     // Agreed 2026-11-01 (Slice 5.4 read): paid in full another way, the order's page awaiting money closes, so the
     // shopper cannot pay twice; one where the shopper typed an ID is left for staff.
     if (updated.paymentStatus === OrderPaymentStatus.Paid) {

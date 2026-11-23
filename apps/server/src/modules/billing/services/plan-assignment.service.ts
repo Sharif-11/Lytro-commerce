@@ -11,6 +11,7 @@ import {
 } from '@lytronix/validators';
 import { ApiError, FieldsError } from '../../../common/api-error';
 import { AuditService } from '../../audit/services/audit.service';
+import { PlanStarted } from './plan-started';
 import { PlatformAuditService } from '../../audit/services/platform-audit.service';
 import { TenantService } from '../../tenancy/services/tenant.service';
 import type { PlanAssignmentsStore } from '../ports/plan-assignments-store';
@@ -40,6 +41,7 @@ export class PlanAssignmentService {
     @Inject(TenantService) private readonly tenants: TenantService,
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(PlatformAuditService) private readonly platformAudit: PlatformAuditService,
+    @Inject(PlanStarted) private readonly planStarted: PlanStarted,
   ) {}
 
   async assign(input: AssignPlanInput): Promise<PlanAssignmentRecord> {
@@ -68,6 +70,8 @@ export class PlanAssignmentService {
         periodEnd: input.expiry,
         state: TenantState.Active,
       });
+      // PF-33: a plan the operator gives opens the shop's locked orders too; it pays nothing, so it activates nothing.
+      await this.planStarted.within(tx, input.tenantId, false, new Date());
       await this.audit.record(tx, {
         tenantId: input.tenantId,
         actorType: ActorType.PlatformSupport,

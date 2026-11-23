@@ -3,6 +3,8 @@
 -- rates and settings. Single-step add: nothing is moved or dropped. The previous release never reads the new columns,
 -- and nothing writes a new value (a locked order, an order_unlock or api_requests entry) until the operator turns the
 -- switch on, so a rollback with the switch off reads only what it always did.
+-- reference-data: storefront_activated_at is filled once for the shops that already paid a plan or a top-up of 10 TK
+-- or more (PF-13, PFQ-9), so the switch, once on, pauses only those that never paid; the server marks the rest as they pay.
 CREATE TYPE "tenant"."order_access" AS ENUM('open', 'locked', 'phone', 'confirmed');--> statement-breakpoint
 ALTER TYPE "tenant"."ledger_entry_type" ADD VALUE IF NOT EXISTS 'order_unlock';--> statement-breakpoint
 ALTER TYPE "tenant"."ledger_entry_type" ADD VALUE IF NOT EXISTS 'api_requests';--> statement-breakpoint
@@ -26,6 +28,17 @@ INSERT INTO control.rates (key, value) VALUES
   ('payg_booking_fee', 10.00),
   ('payg_api_per_thousand', 1.00)
 ON CONFLICT (key) DO NOTHING;
+--> statement-breakpoint
+-- PF-13, PFQ-9: every shop that already paid -- a plan bought, renewed or upgraded, or a top-up of 10 TK or more --
+-- starts activated. Production has a handful of shops; the server marks later payments as they are credited.
+UPDATE control.tenants t SET storefront_activated_at = now()
+WHERE t.storefront_activated_at IS NULL AND EXISTS (
+  SELECT 1 FROM control.plan_payments p
+  WHERE p.tenant_id = t.id AND p.status = 'verified' AND (
+    p.kind IN ('purchase', 'renewal', 'upgrade')
+    OR (p.kind = 'top_up' AND coalesce(p.amount_arrived, p.amount) >= 10)
+  )
+);
 --> statement-breakpoint
 -- PYG-30, PF-13, PF-14: the switch (off), the activation top-up (10 TK) and the free requests a cycle (10,000).
 INSERT INTO control.platform_settings (key, value, description) VALUES

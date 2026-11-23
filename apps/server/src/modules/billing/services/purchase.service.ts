@@ -26,6 +26,7 @@ import { AddonRenewalService, addonsTotal } from './addon-renewal.service';
 import { assertAmountSeen } from './amount-seen';
 import { BillingTermsService } from './billing-terms.service';
 import { DowngradeService } from './downgrade.service';
+import { PlanStarted } from './plan-started';
 import { PlanInvoicingService } from './plan-invoicing.service';
 import { PlansService } from './plans.service';
 
@@ -96,6 +97,7 @@ export class PurchaseService {
     @Inject(DowngradeService) private readonly downgrade: DowngradeService,
     @Inject(AddonRenewalService) private readonly renewals: AddonRenewalService,
     @Inject(CLOCK) private readonly clock: () => Date,
+    @Inject(PlanStarted) private readonly planStarted: PlanStarted,
   ) {}
 
   /**
@@ -259,6 +261,8 @@ export class PurchaseService {
       state: TenantState.Active,
       billingTermId: term.id, // BIL-17: the term auto-renewal will reuse at the next period end.
     });
+    // PF-13, PF-33: a plan paid for opens the shop's locked orders and its storefront for good.
+    await this.planStarted.within(tx, payment.tenantId, true, now);
     // LIF-15: a purchase/renewal at any time before deletion restores the tenant exactly as it was. An
     // operator's own suspension (LIF-24) is deliberately not cleared here -- that is an operator-only
     // action (`restore`), not something a tenant can buy its way out of. Known simplification: `frozen` is

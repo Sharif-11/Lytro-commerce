@@ -1,4 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import { StorefrontActivation } from '../../balance/services/storefront-activation';
 import { EdgePurges } from '../../shared/edge-cache/services/edge-purges';
 import { CourierConnections } from '../../couriers/services/courier-connections';
 import { AddressReads } from '../../address-reads/services/address-reads';
@@ -152,6 +153,7 @@ export class LifecycleService {
     @Inject(PlatformSettingsService) private readonly settings: PlatformSettingsService,
     @Inject(CLOCK) private readonly clock: () => Date,
     @Inject(EdgePurges) private readonly edge: EdgePurges,
+    @Inject(StorefrontActivation) private readonly activation: StorefrontActivation,
   ) {}
 
   /**
@@ -993,6 +995,13 @@ export class LifecycleService {
       await this.tenants.clearSuspension(tx, tenantId);
       if (archivedBySuspension) {
         await this.tenants.returnToPayAsYouGo(tx, tenantId, now);
+        // PF-13, PF-35: restored to pay-as-you-go, a shop that never paid has its storefront paused.
+        const restored = await this.tenants.findBillingInfo(tx, tenantId);
+        await this.activation.becamePayAsYouGoWithin(
+          tx,
+          tenantId,
+          restored?.storefrontActivatedAt ?? null,
+        );
         await this.audit.record(tx, {
           tenantId,
           actorType: ActorType.PlatformSupport,

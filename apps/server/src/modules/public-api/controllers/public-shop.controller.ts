@@ -17,7 +17,9 @@ import { imageViewSchema } from '../../../common/dto/media-views.dto';
 import { publicStorefrontSchema } from '../../../common/dto/storefront.dto';
 import type { HttpResponse } from '../../../common/http';
 import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
-import { PublicApiRoute } from '../../../common/decorators/public-api';
+import { PublicApiRoute, ServedWhilePaused } from '../../../common/decorators/public-api';
+import { contactHidden, storefrontPaused } from '../../fair-use/services/fair-use-rules';
+import { FairUseSwitch } from '../../fair-use/services/fair-use-switch';
 import { ResponseMessage } from '../../../common/decorators/response-message';
 import { BrandService } from '../../brand/services/brand.service';
 import { DeliveryZoneService } from '../../delivery/services/delivery-zone.service';
@@ -34,6 +36,8 @@ export const PublicApi = (): ClassDecorator & MethodDecorator =>
 
 const publicShopViewSchema = z.object({
   name: z.string(),
+  // PYG-25 (PF-13, PF-35): a pay-as-you-go shop's storefront paused until it activates.
+  paused: z.boolean(),
   slug: z.string(),
   metaPixelId: z.string().nullable(),
   // BRN-07: the shop's own identity as tokens, for the storefront and the shop's own site; null for Lytro's default.
@@ -87,9 +91,11 @@ export class PublicShopController {
     @Inject(TenantService) private readonly tenants: TenantService,
     @Inject(DeliveryZoneService) private readonly zones: DeliveryZoneService,
     @Inject(StorefrontDesignService) private readonly designs: StorefrontDesignService,
+    @Inject(FairUseSwitch) private readonly fairUse: FairUseSwitch,
   ) {}
 
   @Get()
+  @ServedWhilePaused()
   @ResponseMessage('ShopRetrieved')
   @ApiOperation({
     summary:
@@ -112,8 +118,14 @@ export class PublicShopController {
       this.tenants.findContactDetails(tx, tenantId),
     );
     const delivery = await this.zones.settings(tenantId);
+    const fairUseOn = await this.fairUse.isOn();
+    // PYG-29 (PF-15, PF-40, PFQ-4): a pay-as-you-go storefront shows no direct contact -- its address and Facebook page
+    // stay -- so the shop can't be used as a catalogue only.
+    const hidden = contactHidden(fairUseOn, shop.row.state);
     return {
       name: shop.row.shopName,
+      // PYG-25 (PF-13, PF-35): its storefront shows "শিগগিরই আবার চালু হচ্ছে" until it activates.
+      paused: storefrontPaused(fairUseOn, shop.row),
       slug: shop.row.slug,
       metaPixelId: await this.adTracking.pixelOf(tenantId),
       brand: await this.brand.live(tenantId),
@@ -122,11 +134,11 @@ export class PublicShopController {
       design,
       sale: await this.designs.sale(tenantId),
       contact: {
-        phone: contact?.contactPhone ?? null,
-        email: contact?.contactEmail ?? null,
+        phone: hidden ? null : (contact?.contactPhone ?? null),
+        email: hidden ? null : (contact?.contactEmail ?? null),
         address: contact?.businessAddress ?? null,
-        whatsapp: contact?.whatsapp ?? null,
-        messenger: contact?.messenger ?? null,
+        whatsapp: hidden ? null : (contact?.whatsapp ?? null),
+        messenger: hidden ? null : (contact?.messenger ?? null),
         facebookPage: contact?.facebookPage ?? null,
       },
       deliveryZones: delivery.zones.map((zone) => ({

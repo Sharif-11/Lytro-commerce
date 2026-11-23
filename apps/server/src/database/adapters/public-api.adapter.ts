@@ -148,6 +148,26 @@ export class DrizzleApiUsageStore implements ApiUsageStore {
     return this.usage.setWarned(tx, tenantId, cycleStart, percent);
   }
 
+  recordCharge(
+    tx: Transaction,
+    tenantId: string,
+    cycleStart: Date,
+    day: string,
+    blocks: number,
+    amount: string,
+  ): Promise<void> {
+    return this.usage.recordCharge(tx, tenantId, cycleStart, day, blocks, amount);
+  }
+
+  setChargeWarned(
+    tx: Transaction,
+    tenantId: string,
+    cycleStart: Date,
+    level: number,
+  ): Promise<void> {
+    return this.usage.setChargeWarned(tx, tenantId, cycleStart, level);
+  }
+
   setFastSpendAlerted(
     tx: Transaction,
     tenantId: string,

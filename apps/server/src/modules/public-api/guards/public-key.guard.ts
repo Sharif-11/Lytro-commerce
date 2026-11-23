@@ -2,7 +2,9 @@ import { CanActivate, ExecutionContext, Inject, Injectable } from '@nestjs/commo
 import { Reflector } from '@nestjs/core';
 import { ApiKeyPurpose } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
-import { TAKES_ORDERS } from '../../../common/decorators/public-api';
+import { SERVED_WHILE_PAUSED, TAKES_ORDERS } from '../../../common/decorators/public-api';
+import { storefrontPaused } from '../../fair-use/services/fair-use-rules';
+import { FairUseSwitch } from '../../fair-use/services/fair-use-switch';
 import { headerValue, type HttpRequest, type HttpResponse } from '../../../common/http';
 import { CLOSED_STATES } from '../../tenancy/services/tenant-resolver.service';
 import type { CachedTenant } from '../../tenancy/types/cached-tenant';
@@ -43,6 +45,7 @@ export class PublicKeyGuard implements CanActivate {
     @Inject(RequestQuota) private readonly quota: RequestQuota,
     @Inject(API_CLOCK) private readonly clock: () => Date,
     @Inject(Reflector) private readonly reflector: Reflector,
+    @Inject(FairUseSwitch) private readonly fairUse: FairUseSwitch,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -72,6 +75,14 @@ export class PublicKeyGuard implements CanActivate {
     if (!shop) throw new ApiError('unauthenticated', 'ApiKeyInvalid', {});
     if (CLOSED_STATES.has(shop.row.state) || shop.row.suspendedAt !== null) {
       throw new ApiError('tenant_offline', 'ShopUnavailable', {});
+    }
+    // PYG-25 (PF-13, PFQ-2): a pay-as-you-go shop that never paid answers only the shop itself and tracking, through
+    // its storefront's key and its own alike, until its first top-up of the activation amount.
+    if (
+      storefrontPaused(await this.fairUse.isOn(), shop.row) &&
+      !this.reflector.get<boolean>(SERVED_WHILE_PAUSED, context.getHandler())
+    ) {
+      throw new ApiError('tenant_offline', 'StorefrontPaused', { paused: true });
     }
 
     await this.visitors.admit(shop, request, response, now);

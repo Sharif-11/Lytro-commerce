@@ -62,6 +62,22 @@ export interface ApiUsageStore {
   /** The cycle's days in order; together they total its requests. */
   listDays(tenantId: string, cycleStart: Date): Promise<ApiUsageDay[]>;
   setWarned(tx: Transaction, tenantId: string, cycleStart: Date, percent: number): Promise<void>;
+  /** PYG-26 (PF-14): a day's charge for whole 1,000s, added to the cycle's and the day's figures. */
+  recordCharge(
+    tx: Transaction,
+    tenantId: string,
+    cycleStart: Date,
+    day: string,
+    blocks: number,
+    amount: string,
+  ): Promise<void>;
+  /** PYG-26 (PF-36): the furthest charge warning sent for the cycle. */
+  setChargeWarned(
+    tx: Transaction,
+    tenantId: string,
+    cycleStart: Date,
+    level: number,
+  ): Promise<void>;
   setFastSpendAlerted(tx: Transaction, tenantId: string, cycleStart: Date, at: Date): Promise<void>;
   /** RTE-11: changes the cycle's warning or pack figures. */
   updateCycle(

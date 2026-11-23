@@ -13,7 +13,7 @@ import {
 } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
 import { ClientIp } from '../../../common/client-ip';
-import { TakesOrders } from '../../../common/decorators/public-api';
+import { ServedWhilePaused, TakesOrders } from '../../../common/decorators/public-api';
 import { ResponseMessage } from '../../../common/decorators/response-message';
 import { headerValue, type HttpResponse } from '../../../common/http';
 import { apiKeyCaller, requestHashOf } from '../../../common/idempotency/idempotency.service';
@@ -168,6 +168,7 @@ export class PublicOrdersController {
   }
 
   @Get('track/:trackingId')
+  @ServedWhilePaused()
   @ResponseMessage('OrderTracked')
   @ApiOperation({
     summary:
