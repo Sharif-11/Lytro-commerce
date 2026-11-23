@@ -32,7 +32,7 @@ export function PaygFairUseReportView(): React.JSX.Element {
     {
       key: 'shop',
       label: t('payg.shop'),
-      width: 'minmax(200px,2fr)',
+      width: 'minmax(170px,2fr)',
       main: true,
       cell: (row) => (
         <span className="flex min-w-0 flex-col">
@@ -51,28 +51,28 @@ export function PaygFairUseReportView(): React.JSX.Element {
     {
       key: 'in',
       label: t('payg.received'),
-      width: 'minmax(80px,1fr)',
+      width: 'minmax(64px,1fr)',
       right: true,
       cell: (row) => count(row.received),
     },
     {
       key: 'opened',
       label: t('payg.opened'),
-      width: 'minmax(90px,1fr)',
+      width: 'minmax(64px,1fr)',
       right: true,
       cell: (row) => count(row.opened),
     },
     {
       key: 'confirmed',
       label: t('payg.confirmed'),
-      width: 'minmax(100px,1fr)',
+      width: 'minmax(64px,1fr)',
       right: true,
       cell: (row) => count(row.confirmed),
     },
     {
       key: 'rate',
       label: t('payg.openRate'),
-      width: 'minmax(80px,1fr)',
+      width: 'minmax(64px,1fr)',
       right: true,
       cell: (row) =>
         row.openRate === null ? (
@@ -86,35 +86,35 @@ export function PaygFairUseReportView(): React.JSX.Element {
     {
       key: 'api',
       label: t('payg.apiRequests'),
-      width: 'minmax(100px,1fr)',
+      width: 'minmax(64px,1fr)',
       right: true,
       cell: (row) => count(row.apiRequests),
     },
     {
       key: 'apiCharged',
       label: t('payg.apiCharged'),
-      width: 'minmax(90px,1fr)',
+      width: 'minmax(64px,1fr)',
       right: true,
       cell: (row) => taka(row.apiCharged),
     },
     {
       key: 'fees',
       label: t('payg.fees'),
-      width: 'minmax(90px,1fr)',
+      width: 'minmax(64px,1fr)',
       right: true,
       cell: (row) => taka(row.feesEarned),
     },
     {
       key: 'balance',
       label: t('payg.balance'),
-      width: 'minmax(80px,1fr)',
+      width: 'minmax(64px,1fr)',
       right: true,
       cell: (row) => taka(row.balance),
     },
     {
       key: 'storefront',
       label: t('payg.storefront'),
-      width: 'minmax(90px,1fr)',
+      width: 'minmax(64px,1fr)',
       cell: (row) =>
         row.storefrontActive ? (
           <StatusChip tone="ok">{t('payg.active')}</StatusChip>

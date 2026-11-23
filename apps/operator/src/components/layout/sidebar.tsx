@@ -6,7 +6,7 @@ import { ConsoleIcon } from '@/components/ui/console-icon';
 import { SoonTag } from '@/components/ui/console-page';
 import { CountBadge } from './count-badge';
 import { ConsoleWordmark, Eyebrow, OperatorTile } from './lockup';
-import { navGroups, type NavItem } from './nav-items';
+import { hasNestedItem, navGroups, type NavItem } from './nav-items';
 
 const ITEM =
   'relative flex h-[38px] w-full items-center gap-2.5 rounded-lg px-2.5 text-[14px] text-neutral-700 hover:bg-neutral-50';
@@ -25,6 +25,8 @@ function SidebarLink({
     <Link
       to={item.to}
       className={`${ITEM} font-medium`}
+      // Reports holds PAYG fair use under its path: Reports is where you are only on its own page.
+      activeOptions={{ exact: hasNestedItem(item.to) }}
       activeProps={{
         className:
           'bg-brand-50! font-semibold! text-brand-800! before:absolute before:top-2 before:bottom-2 before:-left-2.5 before:w-[3px] before:rounded-r-[3px] before:bg-primary',

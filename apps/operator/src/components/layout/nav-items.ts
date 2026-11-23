@@ -118,11 +118,18 @@ export const phoneTabs: NavItem[] = [
 
 const ACCOUNT = '/account';
 
-/** What the phone's band names on this page; Today, the home of the console, shows the wordmark instead. */
+/** Whether another destination sits under this one's path, as PAYG fair use does under Reports. */
+export function hasNestedItem(to: string): boolean {
+  return navGroups.some((group) => group.items.some((each) => each.to.startsWith(`${to}/`)));
+}
+
+/** What the phone's band names on this page; Today, the home of the console, shows the wordmark instead. The longest
+    destination the path is under names it, so a page under Reports' path names itself. */
 export function bandTitleKey(pathname: string): string | null {
   if (pathname === ACCOUNT) return 'nav.account';
   const item = navGroups
     .flatMap((group) => group.items)
-    .find(({ to }) => to !== '/' && (pathname === to || pathname.startsWith(`${to}/`)));
+    .filter(({ to }) => to !== '/' && (pathname === to || pathname.startsWith(`${to}/`)))
+    .sort((a, b) => b.to.length - a.to.length)[0];
   return item?.labelKey ?? null;
 }
