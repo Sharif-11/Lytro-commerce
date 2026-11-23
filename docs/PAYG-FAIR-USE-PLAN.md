@@ -1,7 +1,8 @@
 # Pay-as-you-go fair use -- plan
 
-**Status:** draft for the owner's review (2026-11-23). Nothing is built. The owner's decisions are in section 1. My calls
-in the sketch (section 2) and the open sub-questions (section 7) wait for the owner's answers.
+**Status:** APPROVED by the owner 2026-11-23 ("ok"), with one change: the top-up sheet's quick amounts are ৳10, ৳20,
+৳50 and ৳100 (PF-41). My calls in the sketch (section 2) and my recommendations for the sub-questions (section 7) are
+taken. Nothing is built yet; section 6 is the order of work.
 
 **Sketch:** `docs/brand/lytro-payg.html` (`pf-*` screens), with screenshots in
 `C:/Users/Dell/Desktop/Lytro screenshots/payg-sketch/`.
@@ -251,7 +252,13 @@ turns it on after the UI pass is live.
 
 Then a notice-board post to PAYG shops seven days before the switch goes on (RAT-09, PFQ-8), and the switch.
 
-## 7. Open sub-questions (my recommendation first; none decided)
+## 7. Sub-questions (the recommendations were taken with the sketch, 2026-11-23)
+
+**PF-41 (the owner, 2026-11-23): the top-up sheet offers ৳10, ৳20, ৳50 and ৳100,** as the dashboard's balance
+top-up already does (`QUICK_TOP_UPS`, opening on ৳50); the activation prompt opens it on ৳10. **Before the switch goes
+on,** the platform's smallest top-up (`top_up_min_amount`, BAL-04) must be ৳10 or less: it is ৳100 on production
+(seeded by migration 0029, read 2026-11-23), which hides ৳10 to ৳50 and makes the ৳10 activation impossible. The
+operator lowers it in the console's Settings.
 
 | # | Question | My recommendation |
 | --- | --- | --- |
