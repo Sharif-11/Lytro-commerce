@@ -70,6 +70,8 @@ export function settingWords(key: string, value: unknown, t: TFunction): string 
       return taka(Number(value));
     case 'choice':
       return t(`settings.orderLimit.${plain}`, { defaultValue: plain });
+    case 'fairUse':
+      return t(`settings.fairUse.${plain}`, { defaultValue: plain });
     case 'ai':
       return t(`settings.aiProviders.${plain}`, { defaultValue: plain });
     case 'hour':
@@ -91,6 +93,7 @@ export function settingWords(key: string, value: unknown, t: TFunction): string 
     case 'mb':
     case 'seconds':
     case 'hours':
+    case 'requests':
       return `${plain} ${t(`settings.units.${unit}`)}`;
     default:
       return plain;

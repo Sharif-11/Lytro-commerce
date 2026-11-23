@@ -3,7 +3,8 @@ import type { ReactNode } from 'react';
 import { type PublicShop, ShopBusy } from '@/lib/api/storefront-api';
 import { EDGE_MARK_NAME, edgeMarkContent } from '@/lib/edge/edge-cache';
 import type { Words } from '@/lib/i18n/words';
-import { loadBusyFace } from '@/lib/storefront';
+import { loadBusyFace, ShopPaused } from '@/lib/storefront';
+import { PausedPage } from './paused-page';
 import { ReloadButton } from './reload-button';
 import { ReloadCountdown } from './reload-countdown';
 import { BarePage, Logo } from './shell';
@@ -55,6 +56,9 @@ export function withBusyPage<P>(
     try {
       return await render(props);
     } catch (error) {
+      if (error instanceof ShopPaused) {
+        return <PausedPage page={error.page} seconds={error.retryAfter} />;
+      }
       if (!(error instanceof ShopBusy)) throw error;
       const { words, shop } = await loadBusyFace();
       return <BusyPage words={words} shop={shop} seconds={error.retryAfter} />;

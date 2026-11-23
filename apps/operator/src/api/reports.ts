@@ -31,6 +31,39 @@ export function useRevenueReport(period: ReportPeriod, bucket: SalesBucket, enab
   });
 }
 
+/** PAYG-FAIR-USE-PLAN PF-38: one pay-as-you-go shop's last 30 days. */
+export interface PaygFairUseRow {
+  tenantId: string;
+  shopName: string;
+  slug: string;
+  received: number;
+  opened: number;
+  confirmed: number;
+  /** Opened as a whole percent of received; null with none received. */
+  openRate: number | null;
+  apiRequests: number;
+  apiCharged: string;
+  feesEarned: string;
+  balance: string;
+  storefrontActive: boolean;
+  watch: boolean;
+}
+
+export interface PaygFairUseReport {
+  fairUseOn: boolean;
+  from: string;
+  to: string;
+  rows: PaygFairUseRow[];
+}
+
+/** PF-16, PF-38: GET /operator/reports/payg-fair-use, sorted by orders received. */
+export function usePaygFairUseReport() {
+  return useQuery({
+    queryKey: ['operator', 'reports', 'payg-fair-use'],
+    queryFn: () => operatorSession.client.get<PaygFairUseReport>('/operator/reports/payg-fair-use'),
+  });
+}
+
 /** D8-41: shops by state and plan now, and those that opened, first paid and lapsed in the period. */
 export function useShopsReport(period: ReportPeriod, bucket: SalesBucket, enabled = true) {
   return useQuery({

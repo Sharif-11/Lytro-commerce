@@ -110,6 +110,9 @@ export interface PublicShop {
   sale?: { products: number; bestDiscount: number };
   /** BL-10, RAT-14: what each kilo past the first adds to a zone's charge ("0.00" for nothing). */
   extraDeliveryChargePerKg?: string;
+  /** PYG-23 (PAYG-FAIR-USE-PLAN PF-13): a pay-as-you-go storefront waiting for its first top-up; absent from an older
+      server's answer. */
+  paused?: boolean;
 }
 
 /** SB-16: a category or product a design's button or row names, that shoppers can reach. */

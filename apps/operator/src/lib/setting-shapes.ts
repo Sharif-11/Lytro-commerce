@@ -29,7 +29,10 @@ export type SettingUnit =
   // Slice 9.9 (D9-7): Lytro's VAT registration -- its BIN, its rate as text ("15"), and the name and address it prints.
   | 'vatBin'
   | 'vatRate'
-  | 'vatText';
+  | 'vatText'
+  // PAYG-FAIR-USE-PLAN (PYG-30): fair use's switch, off or on, and the API's free successful requests a cycle.
+  | 'fairUse'
+  | 'requests';
 
 export interface SettingShape {
   key: string;
@@ -58,6 +61,10 @@ export const SETTING_SHAPES: readonly SettingShape[] = [
   { key: TrialDays, group: 1, unit: 'days' },
   { key: TopUpMinAmount, group: 1, unit: 'taka' },
   { key: TopUpMaxAmount, group: 1, unit: 'taka' },
+  // PAYG-FAIR-USE-PLAN (PYG-30, PF-13, PF-14): the switch, the activation top-up and the API's free requests.
+  { key: PlatformSettingKey.PaygFairUse, group: 1, unit: 'fairUse' },
+  { key: PlatformSettingKey.PaygActivationTopUp, group: 1, unit: 'taka' },
+  { key: PlatformSettingKey.PaygApiFreeRequests, group: 1, unit: 'requests' },
   { key: GraceDays, group: 2, unit: 'days' },
   { key: ReadOnlyDays, group: 2, unit: 'days' },
   { key: LockedDays, group: 2, unit: 'days' },

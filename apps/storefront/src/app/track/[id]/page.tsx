@@ -4,7 +4,7 @@ import { withBusyMetadata, withBusyPage } from '@/components/busy-page';
 import { loadTrackFrame, TrackFrame } from '@/components/order/track-frame';
 import { TrackingRefused, TrackingView } from '@/components/order/tracking-view';
 import { OfflinePage } from '@/components/pages';
-import { loadShopPage, storefrontApi } from '@/lib/storefront';
+import { loadShopPageWhilePaused as loadShopPage, storefrontApi } from '@/lib/storefront';
 
 // ORD-17, SFT-08: an order at a stable address for its tracking ID. Read fresh on every request and kept by no shared
 // cache; it never holds the customer's address or phone.

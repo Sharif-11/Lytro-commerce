@@ -19,6 +19,7 @@ export type ConsolePath =
   | '/catalogue/attributes'
   | '/catalogue/option-sets'
   | '/reports'
+  | '/reports/payg-fair-use'
   | '/money-check'
   | '/audit'
   | '/inbox'
@@ -84,6 +85,8 @@ export const navGroups: NavGroup[] = [
       // Slice 9.9 (D9-16, DAT-52): the daily money check's differences, first of what happened.
       { to: '/money-check', labelKey: 'nav.moneyCheck', icon: 'receipt', count: 'moneyCheck' },
       { to: '/reports', labelKey: 'nav.reports', icon: 'chart' },
+      // PAYG-FAIR-USE-PLAN PF-16, PF-38: pay-as-you-go shops' orders against those opened.
+      { to: '/reports/payg-fair-use', labelKey: 'nav.paygFairUse', icon: 'eye' },
       { to: '/audit', labelKey: 'nav.audit', icon: 'history' },
       { to: '/media-costs', labelKey: 'nav.mediaCosts', icon: 'cloud' },
     ],

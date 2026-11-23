@@ -421,3 +421,10 @@ h1.pt{font-family:var(--font-display);font-size:24px;font-weight:700;letter-spac
 .sover .spanel{display:flex;flex-direction:column;overflow:auto}
 .buy .dbtns{display:none}
 @container (min-width: 1024px){ .buy .dbtns{display:flex} }
+/* PYG-23 (the PAYG sketch's `pf-paused`): a pay-as-you-go storefront waiting for its first top-up. */
+.paused-page{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px;padding:32px 28px}
+.paused-page .ic{width:76px;height:76px;border-radius:22px;background:var(--n100);color:var(--text);display:flex;align-items:center;justify-content:center}
+.paused-page .ic svg.i{width:38px;height:38px}
+.paused-page h1{font-family:var(--font-display);font-size:24px;font-weight:700;line-height:1.35}
+.paused-page p{font-size:16px;color:var(--muted);max-width:290px;line-height:1.6}
+.paused-page .pw{color:var(--subtle);margin-top:24px;display:flex;align-items:center;gap:6px}

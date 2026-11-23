@@ -6,7 +6,10 @@ import { ShopShell } from '../shop-shell';
 /** The storefront's frame for tracking, or null while the storefront is off; read by the page itself, so a server too
     busy for it shows the busy page (Slice 9.10). */
 export function loadTrackFrame(page: OpenShopPage): Promise<PageFrame | null> {
-  return page.shop.storefrontEnabled ? loadFrame(page) : Promise.resolve(null);
+  // PYG-23: while the storefront is paused, tracking shows in the landing page's frame: the shop's categories aren't served.
+  return page.shop.storefrontEnabled && page.info.paused !== true
+    ? loadFrame(page)
+    : Promise.resolve(null);
 }
 
 /** ORD-17, LND-11, LND-02: tracking in the storefront's frame, or, while the storefront is off, the landing page's: a

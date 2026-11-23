@@ -3,9 +3,10 @@ import { Link, useNavigate, useSearch } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { errorMessage } from '@lytronix/api-client';
 import { Button } from '@lytronix/ui';
-import { NoticeTemplate, RateKey } from '@lytronix/validators';
+import { NoticeTemplate, PaygFairUseMode, PlatformSettingKey, RateKey } from '@lytronix/validators';
 import { useNoticeTemplate } from '@/api/notices';
 import { useRateHistory, useRates, useUpdateRate } from '@/api/rates';
+import { useSettings } from '@/api/settings';
 import { ConsoleIcon } from '@/components/ui/console-icon';
 import { ConsolePage, PageTitle } from '@/components/ui/console-page';
 import { InlineForm } from '@/components/ui/inline-form';
@@ -25,6 +26,11 @@ const PLACE: Record<RateKey, number> = {
   [RateKey.AiReply]: 1,
   [RateKey.FraudCheck]: 2,
   [RateKey.AiExtraction]: 3,
+  // PAYG-FAIR-USE-PLAN PF-39: the four fair-use rates before the order fee they replace.
+  [RateKey.PaygUnlockPhone]: 3.1,
+  [RateKey.PaygUnlockConfirm]: 3.2,
+  [RateKey.PaygBookingFee]: 3.3,
+  [RateKey.PaygApiPerThousand]: 3.4,
   [RateKey.PaygOrderFeeMin]: 4,
   [RateKey.PaygOrderFeePct]: 5,
   [RateKey.PaygProductFee]: 6,
@@ -32,6 +38,13 @@ const PLACE: Record<RateKey, number> = {
   [RateKey.ListenerVerificationPct]: 8,
   [RateKey.GatewayVerificationPct]: 9,
 };
+// PF-39: with fair use on, the 1.5% / ৳20 order fee is retired: its rows stay, struck, for their history only.
+const RETIRED_WITH_FAIR_USE: readonly RateKey[] = [
+  RateKey.PaygOrderFeeMin,
+  RateKey.PaygOrderFeePct,
+];
+const FAIR_USE_KEY: string = PlatformSettingKey.PaygFairUse;
+const FAIR_USE_ON: string = PaygFairUseMode.On;
 // A phone gives the name its own line, beside the icon: on one line with the value and buttons, it had no room.
 const ROW_WORDS = 'basis-[calc(100%-52px)] sm:basis-0';
 
@@ -202,6 +215,10 @@ export function Rates(): React.JSX.Element {
   const [showing, setShowing] = useState<RateKey | null>(opened);
   const [offering, setOffering] = useState<{ key: RateKey; rateChangeId: number } | null>(null);
   const rows = [...(rates.data ?? [])].sort((a, b) => PLACE[a.key] - PLACE[b.key]);
+  const settings = useSettings();
+  const fairUseOn =
+    settings.data?.some((each) => each.key === FAIR_USE_KEY && each.value === FAIR_USE_ON) === true;
+  const retired = (key: RateKey): boolean => fairUseOn && RETIRED_WITH_FAIR_USE.includes(key);
   return (
     <ConsolePage>
       <PageTitle title={t('nav.rates')} lead={t('rates.lead')} />
@@ -229,9 +246,13 @@ export function Rates(): React.JSX.Element {
                   wrap
                   className={ROW_WORDS}
                   title={t(`rateNames.${rate.key}`, { defaultValue: rate.key })}
-                  detail={`${t(`rates.units.${RATE_UNITS[rate.key]}`)} · ${t('rates.since', {
-                    d: formatDay(rate.effectiveFrom),
-                  })}`}
+                  detail={
+                    retired(rate.key)
+                      ? t('rates.retired')
+                      : `${t(`rates.units.${RATE_UNITS[rate.key]}`)} · ${t('rates.since', {
+                          d: formatDay(rate.effectiveFrom),
+                        })}`
+                  }
                 />
                 {editing === rate.key ? (
                   <RateEditor
@@ -248,23 +269,29 @@ export function Rates(): React.JSX.Element {
                 ) : (
                   <>
                     <span className={`${LARGE_VALUE} ml-[52px] min-w-20 sm:ml-0 sm:text-right`}>
-                      {rateWords(rate.key, rate.value)}
+                      {retired(rate.key) ? (
+                        <s>{rateWords(rate.key, rate.value)}</s>
+                      ) : (
+                        rateWords(rate.key, rate.value)
+                      )}
                     </span>
                     <span className="ml-auto flex gap-1 sm:ml-0">
-                      <Button
-                        type="button"
-                        tone="outline"
-                        small
-                        fit
-                        className={SMALL_BUTTON}
-                        aria-label={`${t('rates.change')}: ${t(`rateNames.${rate.key}`)}`}
-                        onClick={() => {
-                          setEditing(rate.key);
-                          setOffering(null);
-                        }}
-                      >
-                        {t('rates.change')}
-                      </Button>
+                      {retired(rate.key) ? null : (
+                        <Button
+                          type="button"
+                          tone="outline"
+                          small
+                          fit
+                          className={SMALL_BUTTON}
+                          aria-label={`${t('rates.change')}: ${t(`rateNames.${rate.key}`)}`}
+                          onClick={() => {
+                            setEditing(rate.key);
+                            setOffering(null);
+                          }}
+                        >
+                          {t('rates.change')}
+                        </Button>
+                      )}
                       <Button
                         type="button"
                         tone="ghost"

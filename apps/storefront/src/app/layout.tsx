@@ -23,6 +23,8 @@ export async function generateMetadata(): Promise<Metadata> {
   if (page.state !== 'open') return base;
   return {
     ...base,
+    // PYG-23: a paused storefront's page says noindex itself, with no index tag of the frame's beside it.
+    ...(page.info.paused === true ? { robots: null } : {}),
     icons: {
       icon: [{ url: iconPath(page.info, 'store-192.png'), sizes: '192x192', type: 'image/png' }],
       apple: [{ url: iconPath(page.info, 'store-apple-180.png'), sizes: '180x180' }],

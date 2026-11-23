@@ -341,6 +341,9 @@ export const COPY = {
   p910BusyBtn: ["আবার চেষ্টা করুন", "Try again"],
   p910DelivBusy: ["এখন দেখা যাচ্ছে না", "can't be shown right now"],
   p910DelivAgain: ["আবার চাপুন", "Try again"],
+  // PYG-23 (PAYG-FAIR-USE-PLAN, the sketch's `pf-paused`): a pay-as-you-go storefront waiting for its first top-up.
+  pfPausedH: ["শিগগিরই আবার চালু হচ্ছে", "Back soon"],
+  pfPausedP: ["{name} কিছুক্ষণের জন্য অর্ডার নিচ্ছে না। একটু পরে আবার দেখুন।", "{name} isn't taking orders for a little while. Please look again later."],
 } as const satisfies Record<string, readonly [string, string]>;
 
 export type CopyKey = keyof typeof COPY;

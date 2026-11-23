@@ -81,8 +81,23 @@ const loadContext = cache(async () => {
   return { shopper, context: await storefrontApi.context(shopper.host) };
 });
 
-/** The shop this request is for, read once per request however many parts of the page ask. */
-export const loadShopPage = cache(async (): Promise<ShopPage> => {
+/** PYG-23 (PF-35): how long a paused storefront asks to be left, in its 503's Retry-After. */
+const PAUSED_RETRY_SECONDS = 3600;
+
+/**
+ * PYG-23 (PAYG-FAIR-USE-PLAN PF-13, PFQ-2): a pay-as-you-go shop whose storefront waits for its first top-up. It is a wait
+ * like a busy server's, so whatever already answers a busy server -- the API routes' 503, the edge keeping nothing --
+ * answers it too; the pages show the paused page instead of the busy one.
+ */
+export class ShopPaused extends ShopBusy {
+  constructor(readonly page: OpenShopPage) {
+    super(503, PAUSED_RETRY_SECONDS, `${page.shop.slug}'s pages: its storefront is paused`);
+    this.name = 'ShopPaused';
+  }
+}
+
+/** The shop this request is for, paused or not, read once per request however many parts of the page ask. */
+const readShopPage = cache(async (): Promise<ShopPage> => {
   const { shopper, context } = await loadContext();
   const words = new Words(shopper.language);
   if (context.outcome === 'closed') return { state: 'closed', words };
@@ -98,11 +113,21 @@ export const loadShopPage = cache(async (): Promise<ShopPage> => {
   };
 });
 
+/** The shop this request is for; a paused storefront (PYG-23) throws ShopPaused, which its page shows. */
+export const loadShopPage = cache(async (): Promise<ShopPage> => {
+  const page = await readShopPage();
+  if (page.state === 'open' && page.info.paused === true) throw new ShopPaused(page);
+  return page;
+});
+
+/** PFQ-2: tracking an order already placed is served while the storefront is paused. */
+export const loadShopPageWhilePaused = readShopPage;
+
 /** The shop this request is for, or null when the server was too busy to give it (Slice 9.10): the root frame around a
     page then asks nothing more of it, and the page itself shows the busy page. */
 export async function loadShopPageUnlessBusy(): Promise<ShopPage | null> {
   try {
-    return await loadShopPage();
+    return await readShopPage();
   } catch (error) {
     if (error instanceof ShopBusy) return null;
     throw error;
