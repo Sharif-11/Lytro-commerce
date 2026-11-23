@@ -8,6 +8,11 @@ export interface PlacedOrderNotice {
   source: OrderSource;
   customerName: string | null;
   grandTotal: string;
+  /**
+   * ORD-20 as amended (PYG-23, PF-28): a locked order's notice names no one -- the district it goes to and what opening
+   * it costs; null for an order the shop can already see.
+   */
+  locked?: { district: { bn: string; en: string } | null; fee: string } | null;
 }
 
 /**

@@ -538,6 +538,8 @@ export const orderListQuerySchema = z.object({
   variantId: z.guid().optional(),
   // Slice 6.7 (read agreed 2026-11-06): only the orders whose parcel a courier reported something staff should look at.
   attention: z.literal('any').optional(),
+  // PYG-22 (PF-25): only the pay-as-you-go orders still locked, the list's লক করা chip.
+  access: z.literal('locked').optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(LIST_PAGE_SIZE_MAX).default(ORDER_PAGE_SIZE),
 });

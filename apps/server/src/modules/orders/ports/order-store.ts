@@ -212,6 +212,13 @@ export interface OrderStore {
   ): Promise<{ rows: OrderSummaryRow[]; total: number }>;
   /** ORD-09 (Slice 4.8a): the couriers the shop has shipped with, the most recently used first. */
   recentCouriers(tx: Transaction, tenantId: string, limit: number): Promise<string[]>;
+  /** PYG-22 (PF-25): how many orders are still locked. */
+  countLocked(tx: Transaction, tenantId: string): Promise<number>;
+  /** PYG-24 (PF-33): every order not yet opened, opened free; their ids and phones. */
+  openAll(
+    tx: Transaction,
+    tenantId: string,
+  ): Promise<{ id: string; customerPhone: string | null; customerId: string | null }[]>;
   /** Slice 4.8b: Home's order figures. */
   homeCounts(
     tx: Transaction,

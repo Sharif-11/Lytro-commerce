@@ -23,6 +23,7 @@ import { PaymentMethodsModule } from '../payment-methods/payment-methods.module'
 import { PaymentSessionsModule } from '../payment-sessions/payment-sessions.module';
 import { DomainsModule } from '../domains/domains.module';
 import { CatalogueModule } from '../catalogue/catalogue.module';
+import { FairUseModule } from '../fair-use/fair-use.module';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
 import { ShoppersModule } from '../shoppers/shoppers.module';
 import { TenancyModule } from '../tenancy/tenancy.module';
@@ -99,6 +100,8 @@ import {
     TenancyModule,
     CatalogueModule,
     PlatformSettingsModule,
+    // PAYG-FAIR-USE-PLAN: locked orders, the paused storefront and the API charge.
+    FairUseModule,
     UsageWarningsModule,
     BrandModule,
     StorefrontDesignModule,

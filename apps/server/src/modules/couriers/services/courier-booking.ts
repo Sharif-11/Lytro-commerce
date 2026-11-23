@@ -307,7 +307,13 @@ export class CourierBooking {
     who: ResolvedActor,
   ): Promise<Claim> {
     return this.store.run(shop.id, async (tx) => {
-      const order = await this.fulfilment.lockForBooking(tx, shop.id, orderId);
+      // PYG-22, PF-23: booking a pay-as-you-go order at step 1 confirms it (৳3); a locked one can't be booked yet.
+      const order = await this.fulfilment.openForBookingWithin(
+        tx,
+        shop.id,
+        await this.fulfilment.lockForBooking(tx, shop.id, orderId),
+        who,
+      );
       const connection = await this.connections.chosenWithin(tx, shop.id, input.courierKey);
       const { adapter } = connection;
       const booking = await this.bookingOf(tx, shop.id, order, input, connection);

@@ -60,8 +60,28 @@ export function orderPlacedText(input: {
   customerName: string | null;
   grandTotal: string;
   source: OrderSource;
+  locked?: { district: { bn: string; en: string } | null; fee: string } | null;
 }): NotificationText {
   const source = SOURCES[input.source];
+  // PF-28: a locked order -- its amount, district and source, and what opening it costs; no name.
+  if (input.locked) {
+    const fee = Number(input.locked.fee).toLocaleString('en-US', { maximumFractionDigits: 2 });
+    const where = input.locked.district;
+    return {
+      bn: {
+        title: `নতুন অর্ডার ${input.orderNumber}`,
+        body: [`৳${input.grandTotal}`, where?.bn, source.bn, `খুলতে ৳${fee}`]
+          .filter(Boolean)
+          .join(' · '),
+      },
+      en: {
+        title: `New order ${input.orderNumber}`,
+        body: [`${input.grandTotal} TK`, where?.en, source.en, `${fee} TK to open`]
+          .filter(Boolean)
+          .join(' · '),
+      },
+    };
+  }
   return {
     bn: {
       title: `নতুন অর্ডার ${input.orderNumber}`,

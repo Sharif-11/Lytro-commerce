@@ -115,6 +115,13 @@ export const tenants = control.table(
     // PLN-15, RTE-11: buy a request pack from the balance at 100% of the cycle's allowance; off by default. (The
     // bandwidth switch beside it, auto_buy_bandwidth, was let go with D9-31 and is dropped by a later contract step.)
     autoBuyRequests: boolean('auto_buy_requests').notNull().default(false),
+    // PYG-25 (PAYG-FAIR-USE-PLAN PF-13): when the shop first paid a plan or topped up the activation amount. With fair
+    // use on, a pay-as-you-go shop without it has its storefront, landing pages and public key paused.
+    storefrontActivatedAt: timestamp('storefront_activated_at', { withTimezone: true }),
+    // PYG-26 (PF-14, PF-36): the most a pay-as-you-go shop's own website is charged for API requests in a cycle.
+    apiMonthlyCap: numeric('api_monthly_cap', { precision: 12, scale: 2 })
+      .notNull()
+      .default('200.00'),
     // DWN-11: a downgrade that shortens activity-log retention doesn't take effect until 14 days after the
     // owner was notified -- until then the purge job must still honor the longer, pre-downgrade retention.
     // `retentionFloorUntil` non-null (and in the future) is itself the proof a notice already went out, so

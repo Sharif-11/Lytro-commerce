@@ -17,6 +17,7 @@ import {
   refundPaymentSchema,
   OrderHistoryField,
   OrderPaymentStatus,
+  OrderAccess,
   OrderSource,
   OrderStatus,
   overrideOrderSchema,
@@ -164,6 +165,8 @@ const orderViewSchema = z.object({
   orderNumber: z.string(),
   trackingId: z.string(),
   source: z.enum(OrderSource),
+  access: z.enum(OrderAccess),
+  district: z.object({ id: z.number(), nameEn: z.string(), nameBn: z.string() }).nullable(),
   status: z.enum(OrderStatus),
   paymentStatus: z.enum(OrderPaymentStatus),
   fulfillmentStatus: z.enum(FulfillmentStatus),
@@ -422,10 +425,11 @@ const orderPageSchema = z.object({
       cancelReason: z.enum(CancelReason).nullable(),
       holdUntil: coercedDateField().nullable(),
       createdAt: coercedDateField(),
-      // Slice 4.8a: where it goes, and the calls that went unanswered.
+      access: z.enum(OrderAccess),
+      // Slice 4.8a: where it goes, and the calls that went unanswered. A locked order names its zilla alone (PF-21).
       area: z
         .object({
-          thana: z.object({ id: z.number(), nameEn: z.string(), nameBn: z.string() }),
+          thana: z.object({ id: z.number(), nameEn: z.string(), nameBn: z.string() }).nullable(),
           zilla: z.object({ id: z.number(), nameEn: z.string(), nameBn: z.string() }),
         })
         .nullable(),
@@ -441,6 +445,7 @@ const orderPageSchema = z.object({
       attention: z.enum(ParcelAttention).nullable(),
     }),
   ),
+  locked: z.number(),
   page: z.number(),
   limit: z.number(),
   total: z.number(),

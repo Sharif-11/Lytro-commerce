@@ -122,6 +122,69 @@ export class PayAsYouGoBillingService {
     });
   }
 
+  /**
+   * PYG-02 as amended (PAYG-FAIR-USE-PLAN PF-2 to PF-4, PF-24): one step of opening a pay-as-you-go order from Lytro,
+   * charged from the balance in the caller's transaction at the rate as it stands (RAT-04): its phone shown (RAT-17,
+   * ৳7) or its confirm (RAT-18, ৳3). Short of balance, or with the balance frozen, the step is refused and nothing is
+   * charged (PYG-03 amended); null when the operator set the rate to nothing.
+   */
+  async chargeUnlock(
+    tx: Transaction,
+    tenantId: string,
+    orderId: string,
+    step: 'phone' | 'confirm',
+  ): Promise<LedgerEntry | null> {
+    const key = step === 'phone' ? RateKey.PaygUnlockPhone : RateKey.PaygUnlockConfirm;
+    const rate = await this.rates.current(key);
+    if (!rate) throw new Error(`${key} rate is not seeded`);
+    const paisa = rateToPaisa(rate.value);
+    if (paisa === 0n) return null;
+    return this.balance.charge(tx, {
+      tenantId,
+      type: LedgerEntryType.OrderUnlock,
+      amount: fromPaisa(paisa),
+      rateUsed: rate.value,
+      reference: { orderId, step, rate: rate.value },
+    });
+  }
+
+  /**
+   * PFQ-3 (PAYG-FAIR-USE-PLAN): whether the balance, less what is held, covers both of an order's steps still to charge,
+   * so a verified advance payment may open them together. Frozen covers nothing.
+   */
+  async coversUnlock(
+    tx: Transaction,
+    tenantId: string,
+    steps: ('phone' | 'confirm')[],
+  ): Promise<boolean> {
+    const rates = await Promise.all(
+      steps.map((step) =>
+        this.rates.current(step === 'phone' ? RateKey.PaygUnlockPhone : RateKey.PaygUnlockConfirm),
+      ),
+    );
+    const due = rates.reduce((sum, rate) => sum + rateToPaisa(rate?.value ?? '0'), 0n);
+    const held = await this.balance.heldWithin(tx, tenantId);
+    return !held.frozen && toPaisa(held.amount) >= due;
+  }
+
+  /**
+   * PYG-02 as amended (PF-11): a manual order's courier booked through Lytro, a flat ৳10 (RAT-19), checked against the
+   * balance before the courier is called, like the order fee it replaces. It is held and charged as an order fee whose
+   * minimum is the flat fee and whose percentage is nothing, so the daily reconciliation (DAT-52) works it out again
+   * unchanged. Null when the rate is nothing.
+   */
+  async holdBookingFee(tx: Transaction, tenantId: string): Promise<OrderFeeQuote | null> {
+    const rate = await this.rates.current(RateKey.PaygBookingFee);
+    if (!rate) throw new Error('payg booking fee rate is not seeded');
+    if (rateToPaisa(rate.value) === 0n) return null;
+    const held = await this.balance.heldWithin(tx, tenantId);
+    if (held.frozen) throw new ApiError('tenant_offline', 'BalanceFrozen', {});
+    if (toPaisa(held.amount) < rateToPaisa(rate.value)) {
+      throw new ApiError('quota_exceeded', 'InsufficientBalance', { balance: held.amount });
+    }
+    return { amount: fromPaisa(rateToPaisa(rate.value)), minimum: rate.value, percent: '0' };
+  }
+
   /** PYG-16: a flat fee, once per product, regardless of how many variants it has. */
   async chargeProductCreationFee(
     tx: Transaction,

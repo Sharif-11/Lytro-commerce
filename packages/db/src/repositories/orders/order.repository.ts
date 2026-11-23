@@ -11,6 +11,7 @@ import {
   inArray,
   isNotNull,
   lt,
+  ne,
   or,
   sql,
   type SQL,
@@ -19,6 +20,7 @@ import {
   CallOutcome,
   FulfilmentType,
   ORDER_STATUS_RULES,
+  OrderAccess,
   OrderStatus,
   ReservationStatus,
   type CancelReason,
@@ -70,6 +72,8 @@ export interface OrderListFilter {
   holdingVariantId: string | null;
   /** Slice 6.7: only the orders with a parcel a courier reported something on that staff haven't marked seen. */
   attention: boolean;
+  /** PYG-22 (PF-25): only the pay-as-you-go orders still locked. */
+  lockedOnly?: boolean;
 }
 
 /** Slice 6.7: an order's live parcel as its list row shows it. */
@@ -429,12 +433,15 @@ export class OrderRepository {
     }
     if (filter.from !== null) conditions.push(gte(orders.createdAt, filter.from));
     if (filter.before !== null) conditions.push(lt(orders.createdAt, filter.before));
+    if (filter.lockedOnly === true) conditions.push(eq(orders.access, OrderAccess.Locked));
     if (filter.search !== null) {
       const pattern = `%${escapeLike(filter.search)}%`;
+      // PYG-22 (PF-26): a locked order is found by its number only, so searching names and numbers reveals no one.
+      const reachable = ne(orders.access, OrderAccess.Locked);
       conditions.push(
         or(
-          ilike(orders.customerName, pattern),
-          ilike(orders.customerPhone, pattern),
+          and(reachable, ilike(orders.customerName, pattern)),
+          and(reachable, ilike(orders.customerPhone, pattern)),
           ilike(orders.orderNumber, pattern),
         ),
       );
@@ -490,6 +497,41 @@ export class OrderRepository {
       .orderBy(sql`max(${orders.shippedAt}) DESC NULLS LAST`)
       .limit(limit);
     return rows.flatMap((row) => (row.name === null ? [] : [row.name]));
+  }
+
+  /** PYG-22 (PF-25): how many of the shop's orders are still locked, for the order list's top line. */
+  async countLocked(tx: Transaction, tenantId: string): Promise<number> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const [row] = await tx
+      .select({ total: count() })
+      .from(orders)
+      .where(and(eq(orders.tenantId, tenantId), eq(orders.access, OrderAccess.Locked)));
+    return row?.total ?? 0;
+  }
+
+  /**
+   * PYG-24 (PF-33): a pay-as-you-go shop that bought a plan has every order it hasn't opened opened free; their ids and
+   * phones, so each one's customer is made as a phone shown would make it (PF-27).
+   */
+  async openAll(
+    tx: Transaction,
+    tenantId: string,
+  ): Promise<{ id: string; customerPhone: string | null; customerId: string | null }[]> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    return tx
+      .update(orders)
+      .set({ access: OrderAccess.Open, updatedAt: new Date() })
+      .where(
+        and(
+          eq(orders.tenantId, tenantId),
+          inArray(orders.access, [OrderAccess.Locked, OrderAccess.Phone]),
+        ),
+      )
+      .returning({
+        id: orders.id,
+        customerPhone: orders.customerPhone,
+        customerId: orders.customerId,
+      });
   }
 
   /**

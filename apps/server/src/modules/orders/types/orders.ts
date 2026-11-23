@@ -26,6 +26,7 @@ import type {
   FulfilmentType,
   OrderHistoryField,
   OrderPaymentStatus,
+  OrderAccess,
   OrderSource,
   OrderStatus,
   PaymentMethod,
@@ -271,6 +272,10 @@ export interface OrderView {
   orderNumber: string;
   trackingId: string;
   source: OrderSource;
+  /** PYG-22 (PF-1 to PF-3): how much of a pay-as-you-go order from Lytro the shop has opened; open for every other. */
+  access: OrderAccess;
+  /** PYG-22 (PF-21): the district it goes to, which even a locked order shows; null for one at the counter. */
+  district: { id: number; nameEn: string; nameBn: string } | null;
   /** ORD-41: worked out, never stored. */
   status: OrderStatus;
   paymentStatus: OrderPaymentStatus;
@@ -393,7 +398,10 @@ export interface OrderListItem {
   cancelReason: CancelReason | null;
   holdUntil: Date | null;
   createdAt: Date;
-  /** Slice 4.8a: where it goes, the thana and its zilla named; null for one at the counter. */
+  /** PYG-22: how much of it the shop has opened. */
+  access: OrderAccess;
+  /** Slice 4.8a: where it goes, the thana and its zilla named; null for one at the counter. A locked order names its
+   * zilla alone (PF-21). */
   area: OrderArea | null;
   /** ORD-51 (Slice 4.8a): how many calls went unanswered, as the order shows it. */
   unansweredCalls: number;
@@ -405,7 +413,8 @@ export interface OrderListItem {
 
 /** A thana and the zilla it is in, both named in each language. */
 export interface OrderArea {
-  thana: { id: number; nameEn: string; nameBn: string };
+  /** Null on a locked order, which names its zilla alone (PF-21). */
+  thana: { id: number; nameEn: string; nameBn: string } | null;
   zilla: { id: number; nameEn: string; nameBn: string };
 }
 
@@ -423,6 +432,8 @@ export interface OrderHomeView {
 /** API-17: one page of orders, with how many match in all. */
 export interface OrderPage {
   orders: OrderListItem[];
+  /** PYG-22 (PF-25): how many of the shop's orders are still locked, whatever the filter. */
+  locked: number;
   page: number;
   limit: number;
   total: number;

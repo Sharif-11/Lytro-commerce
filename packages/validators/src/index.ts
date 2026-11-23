@@ -59,6 +59,7 @@ export * from './api/billing/plan-create';
 export * from './api/billing/billing-term-create';
 export * from './api/billing/plan-price-set';
 export * from './api/billing/plan-assign';
+export * from './api/billing/payg-fair-use';
 export * from './api/billing/plan-limit-override-set';
 export * from './api/billing/purchase';
 export * from './api/billing/upgrade';
