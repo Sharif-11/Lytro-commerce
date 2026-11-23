@@ -75,6 +75,8 @@ export interface OrderFilter {
   holdingName?: string;
   /** LND-09: only the orders from here (Part 34's `o29-dates`). */
   source?: OrderSource;
+  /** PYG-22 (PF-25): only the pay-as-you-go orders still locked (the লক করা chip). */
+  locked?: boolean;
 }
 
 function query(filter: OrderFilter, extra: Record<string, string>): string {
@@ -88,6 +90,7 @@ function query(filter: OrderFilter, extra: Record<string, string>): string {
     ...(filter.holding ? { variantId: filter.holding } : {}),
     ...(filter.source ? { source: filter.source } : {}),
     ...(filter.tab === LOOK_TAB ? { attention: 'any' } : {}),
+    ...(filter.locked ? { access: 'locked' } : {}),
     ...extra,
   }).toString();
 }
@@ -192,6 +195,18 @@ export function useLogCall(id: string) {
   const changed = useOrderChanged(true);
   return useMutation({
     mutationFn: (body: CallBody) => tenantSession.client.post<Order>(`/orders/${id}/calls`, body),
+    onSuccess: changed,
+  });
+}
+
+/**
+ * POST /orders/:id/unlock-phone (PAYG-FAIR-USE-PLAN PF-2): a locked pay-as-you-go order's phone shown, ৳7 from the balance;
+ * a second tap charges nothing.
+ */
+export function useShowPhone(id: string) {
+  const changed = useOrderChanged(false);
+  return useMutation({
+    mutationFn: () => tenantSession.client.post<Order>(`/orders/${id}/unlock-phone`, {}),
     onSuccess: changed,
   });
 }

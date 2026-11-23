@@ -5,6 +5,7 @@ import { formatTaka } from '@lytronix/ui';
 import {
   CallOutcome,
   FulfillmentStatus,
+  OrderAccess,
   OrderHistoryField,
   OrderSource,
   OrderStatus,
@@ -17,7 +18,7 @@ import {
 } from '@lytronix/validators';
 import { useCourierAdapters, useCourierConnections, useSettleParcel } from '@/api/couriers';
 import { useLocations } from '@/api/delivery';
-import { useOrder } from '@/api/orders';
+import { useLogCall, useOrder, useShowPhone } from '@/api/orders';
 import { BalanceNote } from '@/components/balance-note';
 import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
@@ -55,6 +56,7 @@ import { takeBookedEdit } from './booked-edit';
 import { CourierCard, NotBookedCard } from './courier-card';
 import { ComponentChips, ItemChips } from './item-chips';
 import { TrackingCard } from './tracking-card';
+import { AccessCard, HiddenAddress, opening, useUnlockPrices } from './order-access';
 import { OrderSheets, type OrderSheet } from './order-actions';
 import { autoConfirmed, autoVerified, confirmedByPayment } from './order-auto';
 import { choicesOf, refundable, voidable } from './order-choices';
@@ -147,8 +149,61 @@ function OrderBody({ order }: { order: Order }): React.JSX.Element {
     can.call && (order.status === OrderStatus.Pending || order.status === OrderStatus.Hold);
   const spends = can.handOver || (!waitsOnCall && !can.settle && !can.retry && (book || can.ship));
   const feeShort = spends ? balanceGate.order(order) : null;
+  // PYG-22 (PAYG-FAIR-USE-PLAN PF-2, PF-3, PF-24): the steps that open a pay-as-you-go order from Lytro, each greyed out
+  // when the balance can't cover it (the sketch's `pf-step0`, `pf-step1` and `pf-empty`).
+  const showPhone = useShowPhone(order.id);
+  const confirm = useLogCall(order.id);
+  const prices = useUnlockPrices();
+  const phoneShort = can.showPhone ? balanceGate.unlock('phone') : null;
+  const confirmShort = can.confirmStep ? balanceGate.unlock('confirm') : null;
+  const opens = can.showPhone ? (
+    <div className="flex w-full gap-2 lg:w-auto">
+      <Button
+        tone="outline"
+        onClick={() => {
+          setOpen({ kind: 'cancel', fromCall: false, note: '' });
+        }}
+      >
+        {t('fair.cancelFree')}
+      </Button>
+      <Button
+        className="flex-1 lg:flex-none"
+        busy={showPhone.isPending}
+        disabled={phoneShort !== null}
+        onClick={() => {
+          showPhone.mutate();
+        }}
+      >
+        {t('fair.showPhone', { fee: prices.phone })}
+      </Button>
+    </div>
+  ) : can.confirmStep ? (
+    <div className="flex w-full gap-2 lg:w-auto">
+      <CallLink
+        order={order}
+        onCall={() => {
+          setOpen({ kind: 'call' });
+        }}
+        small
+      >
+        <Icon name="phone" />
+        {t('call')}
+      </CallLink>
+      <Button
+        className="flex-1 lg:flex-none"
+        busy={confirm.isPending}
+        disabled={confirmShort !== null}
+        onClick={() => {
+          confirm.mutate({ outcome: CallOutcome.Confirmed });
+        }}
+      >
+        <Icon name="check" />
+        {t('fair.confirm', { fee: prices.confirm })}
+      </Button>
+    </div>
+  ) : null;
 
-  const next = can.handOver ? (
+  const usual = can.handOver ? (
     <Button
       disabled={feeShort !== null}
       aria-describedby={feeShort ? 'order-fee-balance' : undefined}
@@ -247,6 +302,8 @@ function OrderBody({ order }: { order: Order }): React.JSX.Element {
     </Button>
   ) : null;
 
+  const next = opens ?? usual;
+
   return (
     <>
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -277,7 +334,13 @@ function OrderBody({ order }: { order: Order }): React.JSX.Element {
           ) : null}
         </div>
       </div>
-      <StateBanner order={order} />
+      {opening(order) ? null : <StateBanner order={order} />}
+      <AccessCard
+        order={order}
+        short={phoneShort === null ? null : { balance: formatTaka(phoneShort.have) }}
+      />
+      {showPhone.isError ? <ErrorBanner error={showPhone.error} /> : null}
+      {confirm.isError ? <ErrorBanner error={confirm.error} /> : null}
       <CourierBanner order={order} asks={asks} />
       {retry.isError ? <ErrorBanner error={retry.error} /> : null}
       {limit !== null ? (
@@ -451,6 +514,8 @@ function CustomerCard({
   const locations = useLocations();
   const counter = atCounter(order);
   const name = order.customerName ?? '';
+  // PYG-22: a locked order's phone comes masked, as it is shown.
+  const locked = order.access === OrderAccess.Locked;
   const zilla =
     order.location === null
       ? null
@@ -508,7 +573,7 @@ function CustomerCard({
           <span className="truncate text-[16px] font-medium">{name}</span>
           {order.customerPhone ? (
             <span className="num text-[14px] text-fg-muted">
-              {bangladeshiPhone.grouped(order.customerPhone)}
+              {locked ? order.customerPhone : bangladeshiPhone.grouped(order.customerPhone)}
             </span>
           ) : null}
         </span>
@@ -526,7 +591,24 @@ function CustomerCard({
         </p>
       ) : (
         <>
-          {where ? <p className="mt-1 mb-2.5 text-[14px] text-fg-muted">{where}</p> : null}
+          {opening(order) ? (
+            <>
+              <p className="mt-1 text-[14px] text-fg-muted">
+                {t('fair.district')}{' '}
+                <b className="text-fg">{order.district ? words.named(order.district) : ''}</b>
+                {locked
+                  ? order.deliveryZone
+                    ? ` · ${words.named({ nameEn: order.deliveryZone.name.en, nameBn: order.deliveryZone.name.bn })}`
+                    : ''
+                  : order.location
+                    ? ` · ${words.named(order.location)}`
+                    : ''}
+              </p>
+              <HiddenAddress order={order} />
+            </>
+          ) : where ? (
+            <p className="mt-1 mb-2.5 text-[14px] text-fg-muted">{where}</p>
+          ) : null}
           {order.shopperNote ? (
             <div className="border-t border-line pt-2">
               <div className="flex justify-between gap-3 py-2 text-[15px]">
@@ -539,7 +621,7 @@ function CustomerCard({
             // Part 37's `p37-order-fraud-*` (FRD-05): the automatic check where Part 29 kept its place.
             // 12 px under the address, or under the shopper's note, whose row keeps 8 px of its own below.
             <div className={`${order.shopperNote ? 'mt-1' : 'mt-3'} empty:hidden`}>
-              <OrderFraud orderId={order.id} phone={order.customerPhone} />
+              <OrderFraud orderId={order.id} phone={order.customerPhone} recheck={!locked} />
             </div>
           ) : null}
         </>

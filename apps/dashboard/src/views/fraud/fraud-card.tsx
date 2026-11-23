@@ -361,9 +361,12 @@ export function NewOrderFraud({ phone }: { phone: string }): React.JSX.Element |
 export function OrderFraud({
   orderId,
   phone,
+  recheck = true,
 }: {
   orderId: string;
   phone: string;
+  /** PAYG-FAIR-USE-PLAN PF-17, PF-21: a locked order shows its figures, free, but can't be checked again by its masked phone. */
+  recheck?: boolean;
 }): React.JSX.Element | null {
   const { t } = useTranslation('orders');
   const { viewer, tenant } = useShell();
@@ -373,7 +376,7 @@ export function OrderFraud({
   const lapsed = tenant.state === TenantState.ReadOnly;
   const found = result.data;
   if (!found || found.state === 'not_applicable') return null;
-  const again = lapsed ? (
+  const again = !recheck ? null : lapsed ? (
     <div className={meta}>{t('p37FrFrozen')}</div>
   ) : may ? (
     <>

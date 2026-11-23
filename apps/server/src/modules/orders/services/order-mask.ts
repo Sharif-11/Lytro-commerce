@@ -7,7 +7,7 @@ import type { OrderArea, OrderListItem, OrderView } from '../types/orders';
  *
  * - **Locked (step 0):** the name's first letter and the phone's first and last three digits; no address, thana or
  *   shopper's note (it often carries a number); a payment's sender number masked like the phone.
- * - **Phone (step 1):** the name, phone and note; the address and thana still held back until it is confirmed.
+ * - **Phone (step 1):** the name, phone, note and thana; the street address held back until it is confirmed.
  * - **Open or confirmed:** everything.
  */
 export class OrderMask {
@@ -22,7 +22,8 @@ export class OrderMask {
       customerName: locked ? maskedName(view.customerName) : view.customerName,
       customerPhone: locked ? this.phone(view.customerPhone) : view.customerPhone,
       deliveryAddress: null,
-      location: null,
+      // The thana shows from step 1, with the phone (the sketch's `pf-step1`); only the street waits for the confirm.
+      location: locked ? null : view.location,
       shopperNote: locked ? null : view.shopperNote,
       payments: locked
         ? view.payments.map((payment) => ({

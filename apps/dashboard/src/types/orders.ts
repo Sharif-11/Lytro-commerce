@@ -4,6 +4,7 @@ import type {
   CancelReason,
   FulfillmentStatus,
   FulfilmentType,
+  OrderAccess,
   OrderHistoryField,
   OrderPaymentStatus,
   OrderSource,
@@ -30,7 +31,8 @@ export interface OrderPerson {
 
 /** Where a delivery order goes, as GET /orders names it (Slice 4.8a). */
 export interface OrderArea {
-  thana: { id: number; nameEn: string; nameBn: string };
+  /** Null on a locked order, which names its zilla alone (PAYG-FAIR-USE-PLAN PF-21). */
+  thana: { id: number; nameEn: string; nameBn: string } | null;
   zilla: { id: number; nameEn: string; nameBn: string };
 }
 
@@ -55,6 +57,8 @@ export interface OrderSummary {
   cancelReason: CancelReason | null;
   holdUntil: string | null;
   createdAt: string;
+  /** PYG-22: how much of a pay-as-you-go order from Lytro the shop has opened; open for every other. */
+  access: OrderAccess;
   area: OrderArea | null;
   /** ORD-51: the calls that went unanswered. */
   unansweredCalls: number;
@@ -67,6 +71,8 @@ export interface OrderSummary {
 /** GET /orders: newest first, a page at a time. */
 export interface OrderPage {
   orders: OrderSummary[];
+  /** PYG-22 (PF-25): how many of the shop's orders are still locked, whatever the filter. */
+  locked: number;
   page: number;
   limit: number;
   total: number;
@@ -194,6 +200,10 @@ export interface Order {
   orderNumber: string;
   trackingId: string;
   source: OrderSource;
+  /** PYG-22: open, or locked / phone shown / confirmed for a pay-as-you-go order from Lytro. */
+  access: OrderAccess;
+  /** PYG-22 (PF-21): the district it goes to, which even a locked order shows; null at the counter. */
+  district: { id: number; nameEn: string; nameBn: string } | null;
   status: OrderStatus;
   paymentStatus: OrderPaymentStatus;
   fulfillmentStatus: FulfillmentStatus;

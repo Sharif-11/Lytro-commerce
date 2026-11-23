@@ -27,6 +27,7 @@ import { useShell } from '@/shell/shell-context';
 import { ShellPage } from '@/shell/shell-page';
 import { PrintSheet } from './labels';
 import { DatesSheet, OrderRows, OrderTabs } from './order-list';
+import { LockedLine } from './order-locked-line';
 import { OrderDetail } from './order-page';
 import { filterOf, searchOf, type OrdersSearch } from './order-search';
 
@@ -186,6 +187,13 @@ export function OrdersScreen({
       {filter.tab === LOOK_TAB ? (
         <p className="text-[14px] text-fg-muted">{t('crLookLead')}</p>
       ) : null}
+      <LockedLine
+        locked={list.data?.pages[0]?.locked ?? 0}
+        on={filter.locked === true}
+        onChip={() => {
+          show({ locked: filter.locked !== true });
+        }}
+      />
       {list.isError ? <ErrorBanner error={list.error} /> : null}
       {list.isPending ? <SlowLine /> : null}
       <Card flush>
