@@ -5,6 +5,7 @@ import {
   DrizzleRateStore,
   DrizzleShopSettingsStore,
 } from '../../database/adapters/balance.adapter';
+import { DrizzleFeeWaiverStore } from '../../database/adapters/fee-waiver.adapter';
 import { AuditModule } from '../audit/audit.module';
 import { PaymentsModule } from '../payments/payments.module';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
@@ -24,6 +25,7 @@ import { TopUpService } from './services/top-up.service';
 import {
   BALANCE_LEDGER_STORE,
   CLOCK,
+  FEE_WAIVER_STORE,
   LOW_BALANCE_NOTIFIER,
   PLATFORM_WALLETS_STORE,
   RATE_STORE,
@@ -50,6 +52,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     { provide: SHOP_SETTINGS_STORE, useClass: DrizzleShopSettingsStore },
     { provide: PLATFORM_WALLETS_STORE, useClass: DrizzlePlatformWalletsStore },
     { provide: LOW_BALANCE_NOTIFIER, useClass: MailLowBalanceNotifier },
+    { provide: FEE_WAIVER_STORE, useClass: DrizzleFeeWaiverStore },
     { provide: CLOCK, useValue: (): Date => new Date() },
     BalanceService,
     RateService,

@@ -156,11 +156,14 @@ sudo -s
 cd /opt/lytro/state/current
 set -a; . /opt/lytro/settings.env; . /opt/lytro/state/release.env; set +a
 read -rs PASSWORD   # type it, then Enter; it isn't shown or kept in the history
-docker compose --profile tools run --rm migrate \
+docker compose --profile tools run --rm --no-deps migrate \
   node node_modules/@lytronix/db/dist/create-operator.js <your email> "$PASSWORD"
 unset PASSWORD
 exit
 ```
+
+`--no-deps` leaves the running database alone. `release.env` also carries `PG_ARCHIVE_MODE`, so even a hand-run command
+that recreates PostgreSQL keeps the point-in-time archive on, as the deploy started it.
 
 ## Moving PostgreSQL to a new major version
 

@@ -262,9 +262,13 @@ if [ "$MONITOR" = on ]; then
   wait_healthy monitor 60
 fi
 
-# What this server runs now, for anyone running `docker compose` here by hand (deploy/README.md).
-printf 'RELEASE=%s\nEDGE_TAG=%s\nPGBOUNCER_TAG=%s\nDATABASE_TAG=%s\n' "$RELEASE" "$EDGE_TAG" "$PGBOUNCER_TAG" \
-  "$DATABASE_TAG" > "$LYTRO_HOME/state/release.env.next"
+# What this server runs now, for anyone running `docker compose` here by hand (deploy/README.md): the images, and the
+# values this script works out that compose.yml reads. Without PG_ARCHIVE_MODE a hand-run compose that recreates
+# PostgreSQL (even `run migrate`, through its depends_on) started it with archive_mode=off and silently stopped
+# point-in-time recovery's archive (the production reset, 2026-11-23).
+printf 'RELEASE=%s\nEDGE_TAG=%s\nPGBOUNCER_TAG=%s\nDATABASE_TAG=%s\nPG_ARCHIVE_MODE=%s\nMONITOR_CONFIG_SHA=%s\n' \
+  "$RELEASE" "$EDGE_TAG" "$PGBOUNCER_TAG" "$DATABASE_TAG" "$PG_ARCHIVE_MODE" "${MONITOR_CONFIG_SHA:-}" \
+  > "$LYTRO_HOME/state/release.env.next"
 mv "$LYTRO_HOME/state/release.env.next" "$LYTRO_HOME/state/release.env"
 ln -sfn "$DEPLOY_DIR" "$LYTRO_HOME/state/current.next"
 mv -fT "$LYTRO_HOME/state/current.next" "$LYTRO_HOME/state/current"
