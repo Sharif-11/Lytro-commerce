@@ -4,7 +4,7 @@ import {
   auditListQuerySchema,
   ConsumerMetric,
   consumersQuerySchema,
-  LedgerEntryType,
+  ledgerEntryTypeOfRow,
   reportQuerySchema,
   TenantState,
   dateField,
@@ -20,7 +20,7 @@ const money = z.string();
 
 const revenueFiguresSchema = z.object({
   wallet: z.object({ purchase: money, renewal: money, upgrade: money, addon: money }),
-  balance: z.partialRecord(z.enum(LedgerEntryType), money),
+  balance: z.partialRecord(ledgerEntryTypeOfRow, money),
   givenBack: money,
   manual: z.object({
     plans: money,
