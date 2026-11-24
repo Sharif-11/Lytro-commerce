@@ -1,4 +1,3 @@
-import type { Metadata } from 'next';
 import QRCode from 'qrcode';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { SiteNav } from '@/components/layout/site-nav';
@@ -11,13 +10,9 @@ import { SiteEnvironment } from '@/lib/env';
 import { Copy, type Bilingual } from '@/lib/i18n/copy';
 import { requestLanguage } from '@/lib/i18n/read-language';
 import { ListenerReleases, sizeInMegabytes } from '@/lib/listener/release';
+import { pageMetadata } from '@/lib/seo/site-pages';
 
-export const metadata: Metadata = {
-  title: 'লিসেনার অ্যাপ',
-  description:
-    'Lytro Listener অ্যাপ ডাউনলোড ও সেটআপ গাইড। bKash-এর SMS মিলিয়ে পেমেন্ট নিজে থেকেই ভেরিফাই হয়।',
-  alternates: { canonical: '/listener' },
-};
+export const metadata = pageMetadata('listener');
 
 // docs/SITE-PAGES-DESIGN.md §6, the prototype's `listener`. The app's own words where it has them (brand/lytro-listener.html), so
 // the guide and the app say the same thing.

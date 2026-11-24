@@ -1,4 +1,3 @@
-import type { Metadata } from 'next';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { SiteNav } from '@/components/layout/site-nav';
 import { Container } from '@/components/ui/container';
@@ -15,15 +14,11 @@ import {
 import { SiteEnvironment } from '@/lib/env';
 import { Copy, type Bilingual } from '@/lib/i18n/copy';
 import { requestLanguage } from '@/lib/i18n/read-language';
+import { pageMetadata } from '@/lib/seo/site-pages';
 import { ContactForm } from './contact-form';
 import { OpenNow } from './open-now';
 
-export const metadata: Metadata = {
-  title: 'যোগাযোগ',
-  description:
-    'একজন মানুষের সাথে কথা বলুন, বটের সাথে নয়। WhatsApp, ফোন বা ইমেইলে, বাংলা বা ইংরেজিতে।',
-  alternates: { canonical: '/contact' },
-};
+export const metadata = pageMetadata('contact');
 
 // docs/SITE-PAGES-DESIGN.md §2. WhatsApp, the phone and the hours are Lytro's help line, the numbers the operator sets in
 // the console (GET /help-line, D8-69, D8-73), so placeholders cannot ship: a number not set, or cleared, is not shown,

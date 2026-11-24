@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { LytroPixel } from '@/components/analytics/lytro-pixel';
 import { SiteEnvironment } from '@/lib/env';
 import { requestLanguage } from '@/lib/i18n/read-language';
+import { fullTitle, pageMetadata, SITE_NAME, SITE_PAGES } from '@/lib/seo/site-pages';
 import './globals.css';
 // After globals.css: the sketch's look (site.css), whose unlayered rules sit above Tailwind's base layer.
 import './site.css';
@@ -40,23 +41,12 @@ const notoLatin = localFont({
 
 const env = SiteEnvironment.current();
 
+// The home page's words stand for any page that names none (a 404); every page names its own (lib/seo/site-pages.ts).
 export const metadata: Metadata = {
   metadataBase: new URL(env.siteUrl),
-  title: {
-    default: 'Lytro — আপনার দোকান, আপনার হাতে',
-    template: '%s · Lytro',
-  },
-  description:
-    'বাংলাদেশি সেলারের জন্য আসল অনলাইন দোকান চালানোর সবচেয়ে সহজ উপায়: অর্ডার, বিকাশ-নগদ পেমেন্ট, কুরিয়ার বুকিং আর ফেক অর্ডার চেক, বাংলায়। ৩০ দিন ফ্রি, কার্ড লাগে না।',
-  applicationName: 'Lytro',
-  alternates: { canonical: '/' },
-  openGraph: {
-    type: 'website',
-    siteName: 'Lytro',
-    locale: 'bn_BD',
-    alternateLocale: ['en_US'],
-  },
-  twitter: { card: 'summary_large_image' },
+  ...pageMetadata('home'),
+  title: { default: fullTitle(SITE_PAGES.home), template: `%s · ${SITE_NAME}` },
+  applicationName: SITE_NAME,
   robots: { index: true, follow: true },
 };
 
