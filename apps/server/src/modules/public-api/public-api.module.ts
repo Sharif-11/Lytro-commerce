@@ -56,13 +56,13 @@ import { MediaModule } from '../media/media.module';
 import { OrdersModule } from '../orders/orders.module';
 import { IdempotencyModule } from '../../common/idempotency/idempotency.module';
 import { QueueModule } from '../shared/queue/queue.module';
+import { MetaConversionsModule } from '../shared/meta-conversions/meta-conversions.module';
 import { EdgeCacheModule } from '../shared/edge-cache/edge-cache.module';
 import { PublicDeliveryController } from './controllers/public-delivery.controller';
 import { PublicOrdersController } from './controllers/public-orders.controller';
 import { PublicShopperController } from './controllers/public-shopper.controller';
 import { PublicPaymentMethodsController } from './controllers/public-payment-methods.controller';
 import { StorefrontContextController } from './controllers/storefront-context.controller';
-import { GraphMetaConversions } from './services/graph-meta-conversions';
 import { MetaPurchaseSender } from './services/meta-purchase-sender';
 import { OrderLimits } from './services/order-limits';
 import { PublicOrderService } from './services/public-order.service';
@@ -79,7 +79,6 @@ import {
   CATALOG_FEED_STORE,
   CATALOGUE_CACHE_SETTINGS,
   CATALOGUE_SEARCH,
-  META_CONVERSIONS,
   PUBLIC_CATALOGUE_STORE,
 } from './tokens';
 
@@ -97,6 +96,8 @@ import {
     MediaModule,
     OrdersModule,
     QueueModule,
+    // LND-16: the Conversions API client, shared with Lytro's own events (MKT-02).
+    MetaConversionsModule,
     // D9-32: a Pixel's change drops the pages Cloudflare keeps.
     EdgeCacheModule,
     TenancyModule,
@@ -167,7 +168,6 @@ import {
     VisitorLimit,
     OrderLimits,
     PublicOrderService,
-    { provide: META_CONVERSIONS, useClass: GraphMetaConversions },
     MetaPurchaseSender,
     PublicKeyGuard,
     PublicApiHost,

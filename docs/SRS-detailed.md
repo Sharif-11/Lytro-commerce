@@ -1341,6 +1341,19 @@ The notice board is how the operator tells tenants about important things: rate 
 | NTC-19 | The notice board shall be usable on a phone-sized screen and installable-app view. | Board and banner render without horizontal scrolling at 360 px width. | S | E2E |
 | NTC-20 | Notices shall be available through the API to secret keys with `notices:read`. | A key with the scope lists active notices; without it, 403. | C | API |
 
+### 23.2 Lytro's own ad measurement (MKT)
+
+Added 2026-11-24 (the owner's read): Lytro's own Facebook ads are measured by its own Meta pixel. This is apart from a shop's pixel on its landing pages (LND-15 to LND-18): nothing here reads or sends a shop's orders, products or customers.
+
+| ID | Requirement | Pass criteria | Pri | Ver |
+| --- | --- | --- | --- | --- |
+| MKT-01 | lytro.app shall load Lytro's own Meta pixel only when its website settings name the pixel's ID, and send `PageView` for each page, client-side route changes included, with Meta's automatic configuration off. The script shall load after the page's own content and never block it; a blocked or failing script changes nothing on the page. | With no ID set, the page loads no Meta script; with one, one script load and one `PageView` per page. | M | E2E |
+| MKT-02 | Lytro's server shall tell its own pixel through Meta's Conversions API of: a new account's accepted phone code (`Lead`; never a returning sign-in), a shop created (`CompleteRegistration`), a shop's first order (`ShopActivated`, Lytro's own custom event) and its first paid plan (`Subscribe`, with the amount in BDT). Each is queued in the transaction it happened in and sent apart from it, tried again on failure. | A sign-up queues one `Lead`; signing in again queues none; a paid plan queues one `Subscribe` with its amount. | M | API |
+| MKT-03 | An event shall carry only: the phone as Meta takes it (SHA-256 of 8801…), a hashed account ID, the client's address and browser, Meta's `_fbp`/`_fbc` cookie values and the page without its query; an event with no browser behind it (a shop's first order, its first plan) is sent as `system_generated` with the owner's hashed phone. The dashboard shall load no Meta code and keep its Content-Security-Policy (§SEC, Slice 11.13a); it only keeps an ad's `fbclid` as Meta's `_fbc` cookie on the platform domain. | A queued `Lead` holds no phone number in plain; the dashboard's policy is unchanged. | M | API |
+| MKT-04 | `ShopActivated` and `Subscribe` shall be told at most once per shop, kept in the database, whatever later happens to the order or the plan. | Deleting a shop's first order and making another queues no second `ShopActivated`; a renewal queues no second `Subscribe`. | M | API |
+| MKT-05 | The pixel's ID and Conversions API token shall be set in production's settings alone (website.env, server.env); unset, nothing loads, is queued or is sent, so staging and development tell Meta nothing. The token is never logged or returned. A test event code, while set, sends the events to Events Manager's Test events. | With the settings unset, no job is queued. | M | API |
+| MKT-06 | Ad measurement shall never fail or delay a sign-up, a shop's creation, an order or a payment: a failure to queue rolls back to a savepoint and is logged. | With the queue failing, the sign-up, shop, order or payment still succeeds. | M | API |
+
 ## 24. Logging, monitoring and non-functional requirements
 
 ### 24.1 Logging and monitoring (LOG, MON)
@@ -1743,6 +1756,7 @@ Each item below changes at least one requirement above if the answer differs. Br
 | LOG | 4 | 4 | 0 | 0 |
 | LSN | 25 | 18 | 6 | 1 |
 | MED | 13 | 10 | 3 | 0 |
+| MKT | 6 | 6 | 0 | 0 |
 | MNU | 4 | 4 | 0 | 0 |
 | MON | 5 | 5 | 0 | 0 |
 | NTC | 20 | 14 | 5 | 1 |
@@ -1776,6 +1790,6 @@ Each item below changes at least one requirement above if the answer differs. Br
 | UPG | 17 | 15 | 2 | 0 |
 | VER | 12 | 12 | 0 | 0 |
 | WAL | 19 | 17 | 2 | 0 |
-| **Total** | **910** | **776** | **116** | **18** |
+| **Total** | **916** | **782** | **116** | **18** |
 
-By verification method: API 446, E2E 286, JOB 51, LOAD 19, MAN 108 (2026-10-17: +58 for ATL, UOM, INV, PUR, PST, TAX, MNU, FPR; +18 for LND; +1 for STO-09; +14 for DLV, FED, PRD-17, PRD-18, ATR-16; +4 for ATR-17, ATR-18, INV-23, PST-05; +10 for CMB, −1 for MNU-05 withdrawn into CMB; +4 for PST-06, DLV-06, DLV-07, INV-24; 2026-10-18: +1 for TEN-31, +7 for BRN, +1 for PAY-23, +1 for RAT-16, +1 for PLN-20, +1 for CUS-13, +3 for AUTH-29 to AUTH-31; 2026-11-04: +3 for CRR-28 to CRR-30, −1 for CUS-13 withdrawn). Withdrawn IDs (ADM-07, STO-08, BKP-04, MED-14, DAT-48, DAT-49, DAT-50, AUTH-25, RED-12, MNU-05, CUS-13) are not counted. The OBS requirements are counted as Could until paying tenants exceed 50.
+By verification method: API 451, E2E 287, JOB 51, LOAD 19, MAN 108 (2026-10-17: +58 for ATL, UOM, INV, PUR, PST, TAX, MNU, FPR; +18 for LND; +1 for STO-09; +14 for DLV, FED, PRD-17, PRD-18, ATR-16; +4 for ATR-17, ATR-18, INV-23, PST-05; +10 for CMB, −1 for MNU-05 withdrawn into CMB; +4 for PST-06, DLV-06, DLV-07, INV-24; 2026-10-18: +1 for TEN-31, +7 for BRN, +1 for PAY-23, +1 for RAT-16, +1 for PLN-20, +1 for CUS-13, +3 for AUTH-29 to AUTH-31; 2026-11-04: +3 for CRR-28 to CRR-30, −1 for CUS-13 withdrawn; 2026-11-24: +6 for MKT-01 to MKT-06). Withdrawn IDs (ADM-07, STO-08, BKP-04, MED-14, DAT-48, DAT-49, DAT-50, AUTH-25, RED-12, MNU-05, CUS-13) are not counted. The OBS requirements are counted as Could until paying tenants exceed 50.

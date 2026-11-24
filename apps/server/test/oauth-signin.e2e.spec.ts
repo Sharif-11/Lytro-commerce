@@ -3,7 +3,7 @@ import { type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { OauthProvider } from '@lytronix/validators';
+import { OauthProvider, PUBLISHED_PRIVACY_VERSIONS } from '@lytronix/validators';
 import { AppModule } from '../src/app/app.module';
 import type { OauthProfile, OauthProviderPort } from '../src/modules/identity/ports/oauth-provider';
 import {
@@ -129,7 +129,7 @@ describeIfDatabase('Google and Facebook sign-in (AUTH-24, AUTH-27)', () => {
     // LEG-01: signing up by Google accepts them as a code does.
     expect(account.rows[0]).toMatchObject({
       terms_version: '2026-11-20',
-      privacy_version: '2026-11-20',
+      privacy_version: PUBLISHED_PRIVACY_VERSIONS[PUBLISHED_PRIVACY_VERSIONS.length - 1],
     });
   });
 

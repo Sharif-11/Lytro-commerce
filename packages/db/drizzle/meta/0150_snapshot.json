@@ -1,5 +1,5 @@
 {
-  "id": "8b6448a6-60d8-4fec-a26a-aeef25c7c65a",
+  "id": "a64150fd-00df-4ff7-bd92-3e61dc09c903",
   "prevId": "ccaa5139-c6b2-4d62-b780-21e98918b099",
   "version": "7",
   "dialect": "postgresql",
@@ -1263,19 +1263,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": false
-        },
-        "storefront_activated_at": {
-          "name": "storefront_activated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "api_monthly_cap": {
-          "name": "api_monthly_cap",
-          "type": "numeric(12, 2)",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'200.00'"
         },
         "retention_floor_days": {
           "name": "retention_floor_days",
@@ -11557,26 +11544,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "access": {
-          "name": "access",
-          "type": "order_access",
-          "typeSchema": "tenant",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'open'"
-        },
-        "phone_shown_at": {
-          "name": "phone_shown_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "phone_shown_by": {
-          "name": "phone_shown_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -18116,34 +18083,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "billable": {
-          "name": "billable",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "billed_blocks": {
-          "name": "billed_blocks",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "charged": {
-          "name": "charged",
-          "type": "numeric(12, 2)",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'0'"
-        },
-        "charge_warned": {
-          "name": "charge_warned",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
         "updated_at": {
           "name": "updated_at",
           "type": "timestamp with time zone",
@@ -18209,20 +18148,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": 0
-        },
-        "billable": {
-          "name": "billable",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "charged": {
-          "name": "charged",
-          "type": "numeric(12, 2)",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'0'"
         }
       },
       "indexes": {},
@@ -19166,6 +19091,54 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "control.platform_ad_events": {
+      "name": "platform_ad_events",
+      "schema": "control",
+      "columns": {
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "event_name": {
+          "name": "event_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "queued_at": {
+          "name": "queued_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "platform_ad_events_tenant_id_tenants_id_fk": {
+          "name": "platform_ad_events_tenant_id_tenants_id_fk",
+          "tableFrom": "platform_ad_events",
+          "tableTo": "tenants",
+          "schemaTo": "control",
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "platform_ad_events_pkey": {
+          "name": "platform_ad_events_pkey",
+          "columns": ["tenant_id", "event_name"]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "control.payment_method_types": {
       "name": "payment_method_types",
       "schema": "control",
@@ -19656,9 +19629,7 @@
         "reversal",
         "verification_fee",
         "carry_over",
-        "addon",
-        "order_unlock",
-        "api_requests"
+        "addon"
       ]
     },
     "tenant.delivery_mode": {
@@ -19781,11 +19752,6 @@
       "name": "fulfilment_type",
       "schema": "tenant",
       "values": ["delivery", "takeaway", "dine_in"]
-    },
-    "tenant.order_access": {
-      "name": "order_access",
-      "schema": "tenant",
-      "values": ["open", "locked", "phone", "confirmed"]
     },
     "tenant.order_history_field": {
       "name": "order_history_field",

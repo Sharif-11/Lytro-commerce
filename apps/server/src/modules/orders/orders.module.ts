@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { FraudCheckQueueModule } from '../fraud-checks/fraud-check-queue.module';
+import { PlatformAdEventsModule } from '../platform-ads/platform-ad-events.module';
 import { SmsEventQueueModule } from '../sms-events/sms-event-queue.module';
 import { IdempotencyModule } from '../../common/idempotency/idempotency.module';
 import { DrizzleOrderStore } from '../../database/adapters/orders.adapter';
@@ -47,6 +48,8 @@ import { NotificationsModule } from '../notifications/notifications.module';
     FairUseModule,
     SmsEventQueueModule,
     FraudCheckQueueModule,
+    // MKT-02, MKT-04: a shop's first order told to Lytro's own Meta pixel.
+    PlatformAdEventsModule,
     StaffModule,
     UsageWarningsModule,
   ],

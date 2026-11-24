@@ -19,6 +19,11 @@ export class SiteEnvironment {
   readonly support: SupportContact;
   /** Where the listener app's file and `latest.json` live (SITE-PAGES-DESIGN §6). */
   readonly listenerDownloadUrl: string;
+  /**
+   * MKT-01, MKT-05: Lytro's own Meta pixel ID, read at run time from website.env, which only production sets, so the
+   * same image on staging loads no pixel. Digits only; anything else is ignored.
+   */
+  readonly metaPixelId: string | undefined;
 
   constructor(env: NodeJS.ProcessEnv = process.env) {
     this.serverUrl = SiteEnvironment.trimSlash(env.SERVER_URL ?? 'http://localhost:3000');
@@ -35,6 +40,8 @@ export class SiteEnvironment {
     this.listenerDownloadUrl = SiteEnvironment.trimSlash(
       env.LISTENER_DOWNLOAD_URL ?? LISTENER_DOWNLOAD_DEFAULT_URL,
     );
+    const pixel = SiteEnvironment.blankToUndefined(env.META_PIXEL_ID);
+    this.metaPixelId = pixel !== undefined && /^\d{5,20}$/.test(pixel) ? pixel : undefined;
     this.support = {
       email: SiteEnvironment.blankToUndefined(env.SUPPORT_EMAIL) ?? null,
     };

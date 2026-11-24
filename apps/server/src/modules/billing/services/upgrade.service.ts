@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { PlatformAdEvents } from '../../platform-ads/services/platform-ad-events';
 import type { Transaction } from '@lytronix/db';
 import {
   ActorType,
@@ -87,6 +88,7 @@ export class UpgradeService {
     @Inject(AddonRenewalService) private readonly renewals: AddonRenewalService,
     @Inject(CLOCK) private readonly clock: () => Date,
     @Inject(PlanStarted) private readonly planStarted: PlanStarted,
+    @Inject(PlatformAdEvents) private readonly platformAds: PlatformAdEvents,
   ) {}
 
   /**
@@ -319,6 +321,8 @@ export class UpgradeService {
         invoiceNumber: invoice.number,
       },
     });
+    // MKT-02, MKT-04: a Pilot shop's first paid plan can come as an upgrade; told once a shop, whichever way it came.
+    await this.platformAds.planPaidWithin(tx, payment.tenantId, payment.amount);
 
     return invoice;
   }

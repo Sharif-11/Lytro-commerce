@@ -48,6 +48,7 @@ import { ShopDataDeletionService } from './services/shop-data-deletion.service';
 import { AddressReadsModule } from '../address-reads/address-reads.module';
 import { FraudChecksModule } from '../fraud-checks/fraud-checks.module';
 import { QueueModule } from '../shared/queue/queue.module';
+import { PlatformAdEventsModule } from '../platform-ads/platform-ad-events.module';
 import { EdgeCacheModule } from '../shared/edge-cache/edge-cache.module';
 import { SmsEventsModule } from '../sms-events/sms-events.module';
 import { PlanLimitOverridesService } from './services/plan-limit-overrides.service';
@@ -84,6 +85,8 @@ import { NotificationsModule } from '../notifications/notifications.module';
     AddressReadsModule,
     FraudChecksModule,
     QueueModule,
+    // MKT-02, MKT-04: a shop's first paid plan told to Lytro's own Meta pixel.
+    PlatformAdEventsModule,
     SmsEventsModule,
     TenancyModule,
     AuditModule,

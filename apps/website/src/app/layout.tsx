@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import localFont from 'next/font/local';
 import type { ReactNode } from 'react';
+import { LytroPixel } from '@/components/analytics/lytro-pixel';
 import { SiteEnvironment } from '@/lib/env';
 import { requestLanguage } from '@/lib/i18n/read-language';
 import './globals.css';
@@ -66,7 +67,11 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       lang={language}
       className={`${jakarta.variable} ${inter.variable} ${notoBengali.variable} ${notoLatin.variable}`}
     >
-      <body>{children}</body>
+      <body>
+        {children}
+        {/* MKT-01: Lytro's own Meta pixel, only where website.env names it (production). */}
+        {env.metaPixelId !== undefined ? <LytroPixel pixelId={env.metaPixelId} /> : null}
+      </body>
     </html>
   );
 }

@@ -524,6 +524,44 @@ nothing else from §9f and can go on by itself):
    - with `-H 'Cookie: lytro-lang=en'`: `BYPASS`;
    - `https://lytro.app/contact`: `DYNAMIC`.
 
+### 9h. As built (2026-11-24, Lytro's own Meta pixel, MKT-01 to MKT-06)
+
+For the owner's Facebook ads: Lytro's own pixel measures them. It is apart from a shop's own pixel (LND-15 to LND-18).
+
+- **lytro.app** loads the pixel when `website.env` names it (`META_PIXEL_ID`): `PageView` only, Meta's automatic
+  configuration off, loaded after the page. The ID is read at run time, so the same image on staging loads nothing.
+  The site sets no Content-Security-Policy, so nothing else changes; the page Cloudflare keeps (§9g) is the same for
+  everyone, as before.
+- **The dashboard loads no Meta code** and keeps its policy (§5, Slice 11.13a). It only keeps an ad's `?fbclid=` as
+  Meta's `_fbc` cookie on the platform domain, so the server's events can name the click.
+- **The server** (`server.env`: `LYTRO_META_PIXEL_ID`, `LYTRO_META_CAPI_TOKEN`) tells the pixel through Meta's
+  Conversions API of a sign-up (`Lead`), a shop made (`CompleteRegistration`), a shop's first order (`ShopActivated`,
+  a custom event) and its first paid plan (`Subscribe`, with the amount). Each is queued with what it is about
+  (`platform_ad_event`) and sent apart from it; `control.platform_ad_events` keeps a shop's once-only ones. Unset,
+  nothing is queued. Degraded mode holds the queue back, as Meta purchases. The token is never logged.
+
+The privacy policy that names the pixel (version 2026-11-25) goes live with the deploy: migration 0151 makes it the
+version a new account accepts. The pixel itself stays off until the lines below are set.
+
+**Switching it on** (the owner; production only, never staging):
+1. **Meta Events Manager**, in Lytro's Business account: **Connect data sources → Web**, name it *Lytro*. Note the
+   pixel (dataset) ID, digits only. Link it to the ad account.
+2. **Business settings → Brand safety → Domains:** add and verify `lytro.app` (the DNS TXT record Meta gives, at
+   Cloudflare).
+3. **Settings of the pixel → Conversions API → Generate access token.** Keep it in your password manager; never in
+   chat, a ticket or the repository.
+4. **On the production server**, add these lines yourself (each only once you have its value; a blank one is refused):
+   - `/opt/lytro/env/website.env`: `META_PIXEL_ID=<the pixel ID>`;
+   - `/opt/lytro/env/server.env`: `LYTRO_META_PIXEL_ID=<the pixel ID>` and `LYTRO_META_CAPI_TOKEN=<the token>`;
+   - for the first test only, `LYTRO_META_TEST_EVENT_CODE=<the code from Events Manager → Test events>`.
+   Then recreate the `website`, `api-1`, `api-2` and `worker` containers (or deploy), so they read them.
+5. **Check** in Events Manager → **Test events**: open `https://lytro.app/` (a `PageView` from the browser), sign up
+   with a phone you own (a `Lead`, then a `CompleteRegistration` when the shop is made, both "Server"). Then remove
+   `LYTRO_META_TEST_EVENT_CODE` and recreate `api-1`, `api-2` and `worker` again, or the live events keep going to the
+   test tab.
+6. **In Ads Manager**, a campaign can optimise for `CompleteRegistration`, or for a custom conversion on
+   `ShopActivated` once it has about 50 a week.
+
 ## 10. Open, deliberately deferred
 
 Settled by Phase 9's plan and Slice 9.1:

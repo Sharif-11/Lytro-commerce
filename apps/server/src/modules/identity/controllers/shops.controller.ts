@@ -13,6 +13,7 @@ import { OwnAccountGuard } from '../guards/own-account.guard';
 import { SessionGuard } from '../guards/session.guard';
 import { AddressChecks } from '../services/address-checks';
 import { ShopCreationService } from '../services/shop-creation.service';
+import { AdVisitReader } from '../../platform-ads/services/ad-visit-reader';
 import type { AddressCheckView } from '../types/address-check-view';
 import type { ShopCreated } from '../types/shop-created';
 
@@ -25,6 +26,7 @@ export class ShopsController {
     @Inject(ShopCreationService) private readonly shops: ShopCreationService,
     @Inject(ClientIp) private readonly clientIp: ClientIp,
     @Inject(AddressChecks) private readonly addresses: AddressChecks,
+    @Inject(AdVisitReader) private readonly adVisits: AdVisitReader,
   ) {}
 
   @Get('address-check')
@@ -53,6 +55,12 @@ export class ShopsController {
     @Body(new ZodValidationPipe(CreateShopDto.schema)) body: CreateShopDto,
     @Req() request: HttpRequest & { session: SessionRecord },
   ): Promise<ShopCreated> {
-    return this.shops.createShop(request.session, body, this.clientIp.resolve(request));
+    const context = this.clientIp.context(request);
+    return this.shops.createShop(
+      request.session,
+      body,
+      context.ip,
+      this.adVisits.read(request, context),
+    );
   }
 }

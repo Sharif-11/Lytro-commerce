@@ -176,6 +176,17 @@ const envSchema = z.object({
   // DAT-55 (Slice 9.6): what a second server would cost a month, in taka. Unset, revenue never says it's time for one;
   // the paying shops' count still does.
   SECOND_SERVER_MONTHLY_TAKA: z.coerce.number().positive().optional(),
+  // MKT-02, MKT-05 (the owner, 2026-11-24): Lytro's own Meta pixel (its ID, digits) and its Conversions API token, in
+  // production's server.env only, so staging tells Meta nothing. Both set, the server tells Meta of a sign-up (Lead), a
+  // shop made (CompleteRegistration), a shop's first order (ShopActivated) and its first paid plan (Subscribe). The token
+  // is never logged. A test code sends the events to Events Manager's Test events tab instead; remove it after testing.
+  LYTRO_META_PIXEL_ID: z
+    .string()
+    .trim()
+    .regex(/^\d{5,20}$/)
+    .optional(),
+  LYTRO_META_CAPI_TOKEN: z.string().trim().min(1).optional(),
+  LYTRO_META_TEST_EVENT_CODE: z.string().trim().min(1).optional(),
   // OBS-03 (Slice 9.6): Sentry's address for the server's errors; unset, none are sent. Its environment names the server.
   SENTRY_DSN: z.url().optional(),
   SENTRY_ENVIRONMENT: z.string().trim().min(1).default('production'),

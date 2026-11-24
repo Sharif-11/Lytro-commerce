@@ -613,6 +613,9 @@ export enum QueueName {
   // LND-16: a shopper's order told to Meta's Conversions API, queued in the order's own transaction, retried apart
   // from it.
   MetaPurchase = 'meta_purchase',
+  // MKT-02 (the owner, 2026-11-24): one of Lytro's own sign-up, shop and plan events told to its Meta pixel, queued in
+  // the transaction where it happened, retried apart from it.
+  PlatformAdEvent = 'platform_ad_event',
   // TEN-11 (Slice 13): every 10 minutes, each waiting domain's records looked for, and each active one's once a day.
   DomainCheckTick = 'domain_check_tick',
   // API-11, KNOWN-GAPS §106: once a day, every idempotency key past its 24 hours goes, with the reply stored for it.

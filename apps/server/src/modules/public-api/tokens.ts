@@ -12,5 +12,3 @@ export const CARD_FACTS_STORE = Symbol('CARD_FACTS_STORE');
 export const AD_TRACKING_STORE = Symbol('AD_TRACKING_STORE');
 export const CATALOG_FEED_STORE = Symbol('CATALOG_FEED_STORE');
 export const CATALOG_FEED_SETTINGS = Symbol('CATALOG_FEED_SETTINGS');
-// LND-16: Meta's Conversions API, a shopper's purchases are told to.
-export const META_CONVERSIONS = Symbol('META_CONVERSIONS');

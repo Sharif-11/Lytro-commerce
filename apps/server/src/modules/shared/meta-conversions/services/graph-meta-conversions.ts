@@ -1,21 +1,30 @@
 import { Injectable } from '@nestjs/common';
-import { SECOND_MS } from '../../../common/time';
-import type { MetaConversions, MetaServerEvent } from '../ports/meta-conversions';
+import { SECOND_MS } from '../../../../common/time';
+import type { MetaConversions, MetaSendOptions, MetaServerEvent } from '../ports/meta-conversions';
 
 // The Graph API version the events go to, and how long one send may take before it counts as failed.
 const GRAPH_VERSION = 'v21.0';
 const SEND_TIMEOUT_MS = 10 * SECOND_MS;
 
-/** LND-16: Meta's Conversions API over HTTPS, `POST /{pixel}/events`. */
+/** LND-16, MKT-02: Meta's Conversions API over HTTPS, `POST /{pixel}/events`. */
 @Injectable()
 export class GraphMetaConversions implements MetaConversions {
-  async send(pixelId: string, accessToken: string, events: MetaServerEvent[]): Promise<void> {
+  async send(
+    pixelId: string,
+    accessToken: string,
+    events: MetaServerEvent[],
+    options: MetaSendOptions = {},
+  ): Promise<void> {
     const response = await fetch(
       `https://graph.facebook.com/${GRAPH_VERSION}/${encodeURIComponent(pixelId)}/events`,
       {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ data: events, access_token: accessToken }),
+        body: JSON.stringify({
+          data: events,
+          access_token: accessToken,
+          ...(options.testEventCode ? { test_event_code: options.testEventCode } : {}),
+        }),
         signal: AbortSignal.timeout(SEND_TIMEOUT_MS),
       },
     );

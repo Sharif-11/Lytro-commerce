@@ -136,6 +136,7 @@ export {
   type NewRequestError,
   type RequestErrorRow,
 } from './repositories/platform/request-error.repository';
+export { PlatformAdEventRepository } from './repositories/platform/platform-ad-events.repository';
 export {
   MediaCostRepository,
   type MediaCostAlertRow,

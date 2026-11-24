@@ -1,16 +1,7 @@
-import { createHash } from 'node:crypto';
 import { purchaseEventIdOf } from '../../orders/services/order-tracking';
 import type { OrderLineRecord, OrderRecord } from '../../orders/types/orders';
-import type { MetaServerEvent } from '../ports/meta-conversions';
-
-function sha256(value: string): string {
-  return createHash('sha256').update(value).digest('hex');
-}
-
-/** Meta's phone form: the country code and number, digits only -- 8801712345678 for 01712345678. */
-export function metaPhoneOf(localPhone: string): string {
-  return `88${localPhone.replace(/\D/g, '')}`;
-}
+import type { MetaServerEvent } from '../../shared/meta-conversions/ports/meta-conversions';
+import { metaHash, metaPhoneOf } from '../../shared/meta-conversions/services/meta-user-data';
 
 /** Meta's city form: lowercase letters only -- "coxsbazar" for "Cox's Bazar". */
 export function metaCityOf(name: string): string {
@@ -34,9 +25,9 @@ export function purchaseEventOf(
     event_id: purchaseEventIdOf(order.trackingId),
     action_source: 'website',
     user_data: {
-      ph: order.customerPhone !== null ? [sha256(metaPhoneOf(order.customerPhone))] : [],
+      ph: order.customerPhone !== null ? [metaHash(metaPhoneOf(order.customerPhone))] : [],
       ...(district !== null && metaCityOf(district) !== ''
-        ? { ct: [sha256(metaCityOf(district))] }
+        ? { ct: [metaHash(metaCityOf(district))] }
         : {}),
     },
     custom_data: {

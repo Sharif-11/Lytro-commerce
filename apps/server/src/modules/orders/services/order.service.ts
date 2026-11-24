@@ -58,6 +58,7 @@ import { OrderAccessSteps } from './order-access-steps';
 import { OrderMask } from './order-mask';
 import { milli } from '../../inventory/services/stock-state';
 import { FraudCheckQueue } from '../../fraud-checks/services/fraud-check-queue';
+import { PlatformAdEvents } from '../../platform-ads/services/platform-ad-events';
 import { SmsEventQueue } from '../../sms-events/services/sms-event-queue';
 import { StaffService } from '../../staff/services/staff.service';
 import type { OrderStore } from '../ports/order-store';
@@ -319,6 +320,7 @@ export class OrderService {
     @Inject(SmsEventQueue) private readonly smsEvents: SmsEventQueue,
     @Inject(FraudCheckQueue) private readonly fraudChecks: FraudCheckQueue,
     @Inject(OrderAccessSteps) private readonly access: OrderAccessSteps,
+    @Inject(PlatformAdEvents) private readonly platformAds: PlatformAdEvents,
   ) {}
 
   /**
@@ -526,6 +528,8 @@ export class OrderService {
         codAmount: order.codAmount,
       });
     }
+    // MKT-02, MKT-04: a shop's first order makes it active for Lytro's own ads; told to Meta once, with the order.
+    await this.platformAds.orderMadeWithin(tx, tenantId);
     await this.activity.record(
       tx,
       tenantId,
