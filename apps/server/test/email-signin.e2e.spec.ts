@@ -4,6 +4,7 @@ import { Test } from '@nestjs/testing';
 import { randomUUID } from 'node:crypto';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { PUBLISHED_PRIVACY_VERSIONS } from '@lytronix/validators';
 import { AppModule } from '../src/app/app.module';
 import { MAIL_PROVIDER } from '../src/modules/shared/mail/tokens';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
@@ -97,7 +98,12 @@ describeIfDatabase('sign-in by emailed code (AUTH-08, AUTH-12)', () => {
        WHERE i.kind = 'email' AND i.value = $1`,
       [email.toLowerCase()],
     );
-    expect(account.rows).toEqual([{ terms_version: '2026-11-20', privacy_version: '2026-11-20' }]);
+    expect(account.rows).toEqual([
+      {
+        terms_version: '2026-11-20',
+        privacy_version: PUBLISHED_PRIVACY_VERSIONS[PUBLISHED_PRIVACY_VERSIONS.length - 1],
+      },
+    ]);
   });
 
   it('signs a returning address into the same account, and treats the address case-insensitively', async () => {
