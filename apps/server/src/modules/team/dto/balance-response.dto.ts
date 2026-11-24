@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
-import { LedgerEntryType, RateKey, TenantState, dateField } from '@lytronix/validators';
+import { ledgerEntryTypeOfRow, RateKey, TenantState, dateField } from '@lytronix/validators';
 
 // BAL-01, BAL-04: the balance, and the top-up bounds the sheet states before a quote (the quote still holds to them).
 export const balanceViewSchema = z.object({
@@ -28,7 +28,7 @@ export class EssentialSmsUsageDto extends createZodDto(essentialSmsUsageSchema) 
 
 export const ledgerEntrySchema = z.object({
   id: z.number(),
-  type: z.enum(LedgerEntryType),
+  type: ledgerEntryTypeOfRow,
   amount: z.string(),
   units: z.string().nullable(),
   rateUsed: z.string().nullable(),
