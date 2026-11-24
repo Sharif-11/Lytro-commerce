@@ -127,7 +127,7 @@ Home switches to a working state: the three figures, the order list preview with
 ---
 
 ## 4. Copy rules on these screens
-Bangla first, English by toggle (I18N-01); the dashboard's existing vernacular (`apps/dashboard/src/i18n/locales/bn.json`: লাইট্রোতে স্বাগতম, এগিয়ে যান, ভেরিফাই করুন, স্টাফ? এখানে লগইন করুন); one sentence per message; never blame the seller; the AUTH-30 refusal, the AUTH-27 recovery note and the AUTH-21 free-SMS line are the three places where a second sentence explains what to do.
+Bangla first, English by toggle (I18N-01); the dashboard's existing vernacular (`apps/dashboard/src/i18n/locales/bn.json`: লিট্রোতে স্বাগতম, এগিয়ে যান, ভেরিফাই করুন, স্টাফ? এখানে লগইন করুন); one sentence per message; never blame the seller; the AUTH-30 refusal, the AUTH-27 recovery note and the AUTH-21 free-SMS line are the three places where a second sentence explains what to do.
 
 ---
 
