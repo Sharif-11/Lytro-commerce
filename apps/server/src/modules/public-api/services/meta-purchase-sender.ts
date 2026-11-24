@@ -3,8 +3,8 @@ import { CircuitBreaker, CircuitOpen } from '../../../common/circuit-breaker';
 import { OutsideCalls } from '../../shared/outside-calls/services/outside-calls';
 import { LocationService } from '../../delivery/services/location.service';
 import { OrderTracking } from '../../orders/services/order-tracking';
-import type { MetaConversions } from '../ports/meta-conversions';
-import { META_CONVERSIONS } from '../tokens';
+import type { MetaConversions } from '../../shared/meta-conversions/ports/meta-conversions';
+import { META_CONVERSIONS } from '../../shared/meta-conversions/tokens';
 import { AdTrackingService } from './ad-tracking.service';
 import { purchaseEventOf } from './meta-purchase-event';
 

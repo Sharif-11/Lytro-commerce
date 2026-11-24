@@ -15,11 +15,11 @@ import { PlatformSettingsService } from '../src/modules/platform-settings/servic
 import type {
   MetaConversions,
   MetaServerEvent,
-} from '../src/modules/public-api/ports/meta-conversions';
+} from '../src/modules/shared/meta-conversions/ports/meta-conversions';
 import { MetaPurchaseSender } from '../src/modules/public-api/services/meta-purchase-sender';
 import { DEFAULT_ORDERS_PER_SHOP_PER_MINUTE } from '../src/modules/public-api/services/order-limits';
 import { RequestQuota } from '../src/modules/public-api/services/request-quota';
-import { META_CONVERSIONS } from '../src/modules/public-api/tokens';
+import { META_CONVERSIONS } from '../src/modules/shared/meta-conversions/tokens';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase } from './support/database';

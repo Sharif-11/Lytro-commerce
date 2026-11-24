@@ -6,7 +6,8 @@
  * its text, in the same change.
  */
 export const PUBLISHED_TERMS_VERSIONS = ['2026-11-20'] as const;
-export const PUBLISHED_PRIVACY_VERSIONS = ['2026-11-20'] as const;
+// 2026-11-25 (MKT-01 to MKT-03): Lytro's own Meta pixel on lytro.app and its sign-up events to Meta.
+export const PUBLISHED_PRIVACY_VERSIONS = ['2026-11-20', '2026-11-25'] as const;
 
 export type TermsVersion = (typeof PUBLISHED_TERMS_VERSIONS)[number];
 export type PrivacyVersion = (typeof PUBLISHED_PRIVACY_VERSIONS)[number];

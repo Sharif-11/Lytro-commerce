@@ -14,11 +14,12 @@ const READ_EVERY_MS = 5 * SECOND_MS;
 
 /**
  * DAT-38 (Slice 9.5): the background jobs degraded mode holds back while it's on -- a shop's export, and the purchases
- * sent to Meta, whose retries can wait. Every other queue runs: orders, payments, courier booking, codes, tracking.
+ * and Lytro's own events (MKT-02) sent to Meta, whose retries can wait. Every other queue runs: orders, payments, courier booking, codes, tracking.
  */
 export const PAUSED_QUEUES: ReadonlySet<string> = new Set<string>([
   QueueName.DataExport,
   QueueName.MetaPurchase,
+  QueueName.PlatformAdEvent,
 ]);
 
 /** DAT-38: degraded mode as it stands: on or off, the notice it put up, and what it divides a per-minute limit by. */

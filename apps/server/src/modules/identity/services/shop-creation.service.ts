@@ -15,6 +15,8 @@ import type { SessionRecord } from '../ports/session-store';
 import type { SignupGateway } from '../ports/signup-gateway';
 import type { SignupSettings } from '../ports/signup-settings';
 import type { ShopCreated } from '../types/shop-created';
+import { PlatformAdEvents } from '../../platform-ads/services/platform-ad-events';
+import type { AdVisit } from '../../platform-ads/types/platform-ad';
 
 /**
  * The create-shop step (AUTH-10, AUTH-11, AUTH-28, D13). It needs the owner's verified phone, whatever they signed up
@@ -33,12 +35,14 @@ export class ShopCreationService {
     @Inject(TrialLimiter) private readonly trialLimiter: TrialLimiter,
     @Inject(BalanceService) private readonly balance: BalanceService,
     @Inject(LegalAcceptance) private readonly acceptance: LegalAcceptance,
+    @Inject(PlatformAdEvents) private readonly ads: PlatformAdEvents,
   ) {}
 
   async createShop(
     session: SessionRecord,
     input: CreateShopInput,
     ip: string | null,
+    visit: AdVisit | null = null,
   ): Promise<ShopCreated> {
     const shopName = input.shopName.trim();
     const ownerName = input.ownerName.trim();
@@ -72,6 +76,13 @@ export class ShopCreationService {
         await this.sessions.attachTenant(tx, session.id, created.tenantId);
         await this.trialLimiter.record(tx, phone.id, ip);
         await this.balance.carryOverFromDeletedShops(tx, session.subscriberId, created.tenantId);
+        // MKT-02: the shop made is Lytro's registration (Meta's CompleteRegistration).
+        await this.ads.shopCreatedWithin(tx, {
+          tenantId: created.tenantId,
+          subscriberId: session.subscriberId,
+          phone: phone.phone,
+          visit,
+        });
         return { tenantId: created.tenantId, messages: created.messages };
       });
 
