@@ -138,7 +138,11 @@ test.describe('a delivery charge the server is too busy to work out (p910-busy-d
     const asked = page.waitForResponse(isEstimate);
     await deliveryLine(page).getByRole('button', { name: 'Try again' }).click();
     expect((await asked).status()).toBe(200);
-    await expect(deliveryLine(page)).toContainText('Dhaka city: ৳70');
+    // The one product page (SB-31): once answered, the charge is the order summary's, and the busy line leaves.
+    await expect(deliveryLine(page)).toHaveCount(0);
+    await expect(page.locator('.sum .r', { hasText: 'Delivery · Dhaka city' })).toContainText(
+      '৳70',
+    );
   });
 
   test('says it in Bangla', async ({ page }) => {
@@ -159,7 +163,7 @@ test.describe('a delivery charge the server is too busy to work out (p910-busy-d
     const failed = page.waitForResponse(isEstimate);
     await page.goto(shop.url('/p/cotton-panjabi'));
     expect((await failed).status()).toBe(500);
-    await expect(deliveryLine(page)).not.toContainText("can't be shown right now");
+    await expect(page.getByText("can't be shown right now")).toHaveCount(0);
   });
 
   test("the edge's own 502, a server process that dropped the call, is a short wait, not a fault", async ({

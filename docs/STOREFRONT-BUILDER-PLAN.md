@@ -112,6 +112,18 @@ seller touching anything,** because every section fills itself from the shop's o
 | SB-28 | **Missing pieces.** | A design's photo or target deleted later is left out where it shows (a slide or banner without its photo is dropped; a button to a deleted category goes home), its pages leave the edge, and the editor lists the sections it touched (`broken`). Saving refuses a photo, category or product the shop doesn't have. |
 | SB-29 | **Picked rows and category tiles.** | The public product list takes `productIds` (up to 12, in the seller's order) for a picked row; a category without a picture of its own is covered by its first product's first photo. |
 
+**SB-30: the owner's ask, 2026-11-24** ("add three category automatically by default"; then "First three in the shop's order" and "No, only shops on the default home").
+
+| # | Decision | Decided |
+|---|---|---|
+| SB-30 | **Category rows on the starting page.** | A shop that has not published its own page starts with a row for each of its **first three categories**: in its own order (top-level first, then each level by its place, then name, as the Categories page lists them), each shown to shoppers (it and every category above it visible) and holding an active product in stock, in it or under it. Each is a grid of four titled with the category's name, with See all, placed after the theme's last row of products. Fewer such categories, fewer rows; none, the theme's page as before. A page the shop has published is its own and gets no rows; the editor opens on the starting page with the rows, so a first save keeps them. The rows follow the shop's categories and stock until it publishes. |
+
+**SB-31: the one product page, the owner's ask, 2026-11-24** (Bonik's page compared: "yes, unified", "yes, all of those, if available in our site", WhatsApp only on a paid plan "agreed"; then "the landing page is product detail page. so we should include website header and category here", "sketch is fine"; and "exclude all technical info like these from storefront").
+
+| # | Decision | Decided |
+|---|---|---|
+| SB-31 | **One product page.** | /p/ and /l/ open one page in the shop's own frame: the product with the landing page's order form under the choices, and Add to cart beside the order button. It also has another size or design in the same order, the saving on the photo and in taka, payment and delivery chips, a trust strip, the description cut short, the photos again, how ordering works, questions from the shop's settings, the product's facts, more from the shop and a pinned price-and-Order bar. Drawn as the builder sketch's `pp-*` screens. Design cards stay unnamed (PD-6); there is no product code (the storefront has none). /l/ orders stay the landing link's; with the storefront off, /l/ shows the product alone. The storefront shows no technical notes. |
+
 ---
 
 ## 3. Requirement changes (`SRS-detailed.md`)

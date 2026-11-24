@@ -1,7 +1,15 @@
 import { AttributeDataType } from '@lytronix/validators/enums';
 import { expect, type Page, test } from '@playwright/test';
 import { EMBROIDER, GIFT_WRAP, idOf, PACKING, panjabi, THANA, WRAP } from './support/fixtures';
-import { alertOn, hijabLine, openShop, panjabiLine, seedArea, seedCart } from './support/shop';
+import {
+  alertOn,
+  fillOrderForm,
+  hijabLine,
+  openShop,
+  panjabiLine,
+  seedArea,
+  seedCart,
+} from './support/shop';
 
 // MNU-01, MNU-02, ATR-08, CMB-09, SFT-05 (Slice 4.8e): what a shopper picks with a product, kept on its cart line, and the
 // cart that checks it all against the shop.
@@ -193,15 +201,31 @@ test.describe('a combo (CMB-09)', () => {
   });
 });
 
-test.describe('Buy now', () => {
-  test('goes straight to checkout with the item', async ({ page }) => {
-    test.skip(test.info().project.name === 'phone', "a phone's bar has Add to cart only, as drawn");
+test.describe('ordering on the product page (SB-31)', () => {
+  test("places the order without leaving the page, a second size in it, counted as the storefront's", async ({
+    page,
+  }) => {
     const shop = await openShop(page);
-    await page.goto(shop.url('/p/chiffon-hijab'));
-    await page.getByRole('button', { name: 'Buy now' }).click();
-    await page.waitForURL('**/checkout');
-    await expect(page.getByRole('heading', { name: 'Order summary' })).toBeVisible();
-    await expect(page.locator('.side .cl')).toContainText('Chiffon Hijab');
+    await page.goto(shop.url('/p/cotton-panjabi'));
+    await page.getByRole('button', { name: 'Add another size or design' }).click();
+    const second = page.locator('.pp-line2');
+    await second
+      .locator('.vals[aria-label="Size"]')
+      .getByRole('button', { name: 'L', exact: true })
+      .click();
+    await fillOrderForm(page);
+    await expect(page.locator('.side .cl')).toHaveCount(2);
+    await page.getByRole('button', { name: 'Confirm order' }).click();
+    await expect(
+      page.getByRole('heading', { name: 'Thank you! Your order is placed' }),
+    ).toBeVisible();
+    expect(page.url()).toBe(shop.url('/p/cotton-panjabi'));
+    const {
+      orders: [sent],
+    } = await shop.sent();
+    const body = sent?.body as { source: string; items: { variantId: string }[] };
+    expect(body.source).toBe('storefront');
+    expect(body.items).toHaveLength(2);
   });
 });
 

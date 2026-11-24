@@ -611,11 +611,8 @@ const PAIRS: Pair[] = [
       };
     },
     then: async (page) => {
-      await page
-        .locator('.dbtns .btn.ghost, .buybar .btn.primary')
-        .filter({ visible: true })
-        .last()
-        .click();
+      // The one product page (SB-31): Add to cart beside the order button.
+      await page.locator('.pp-alt button.btn.ghost').click();
     },
   },
   {
@@ -762,7 +759,8 @@ const PAIRS: Pair[] = [
     path: '/l/lawn-three-piece',
     then: fillLanding,
   },
-  { name: 'landing-out', screen: 'e48-landing-out', path: '/l/kids-frock', then: fillLanding },
+  // The one product page (SB-31): sold out, there is no form to fill.
+  { name: 'landing-out', screen: 'e48-landing-out', path: '/l/kids-frock' },
   {
     name: 'product-kg',
     screen: 'e48-product-kg',
@@ -1163,11 +1161,8 @@ const PAIRS: Pair[] = [
         .last()
         .getByRole('button', { name: 'L', exact: true })
         .click();
-      await page
-        .locator('.dbtns .btn.ghost, .buybar .btn.primary')
-        .filter({ visible: true })
-        .last()
-        .click();
+      // The one product page (SB-31): Add to cart beside the order button.
+      await page.locator('.pp-alt button.btn.ghost').click();
       await page.locator('.scroll').evaluate((scroller) => {
         scroller.scrollTo({ top: 0 });
       });

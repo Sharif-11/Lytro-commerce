@@ -367,10 +367,15 @@ button.vb.pic img {
     overflow: hidden;
     background: #fff;
   }
-  .sfb .sb-hd .dsearch .sbox span {
+  /* The box is a real field (it was a button drawn as one), its placeholder where the drawn words sat. */
+  .sfb .sb-hd .dsearch .sbox input {
+    align-self: stretch;
     padding: 0 14px;
-    color: var(--muted);
     font-size: 14px;
+  }
+  .sfb .sb-hd .dsearch .sbox input::placeholder {
+    color: var(--muted);
+    opacity: 1;
   }
   .sfb .sb-hd .dsearch .sbox svg.i {
     box-sizing: border-box;
@@ -444,4 +449,388 @@ button.vb.pic img {
   margin-top: 6px;
   font-weight: 700;
   text-decoration: underline;
+}
+
+/* The one product page (the owner, 2026-11-24; the builder sketch's `pp-page`): the product and its order form on one
+   page, with Bonik's best parts. The product page's own rules stay in storefront.css as drawn; these add what is new. */
+.pp .gallery .dots {
+  display: none;
+}
+.pp-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 1;
+  padding: 4px 10px;
+  border-radius: var(--r-pill);
+  background: var(--danger);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+}
+.pp-count {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  padding: 3px 10px;
+  border-radius: var(--r-pill);
+  background: rgba(0, 0, 0, 0.62);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+/* On a phone the thumbnails run in a row under the photo, as Bonik's do. */
+.pp .gal {
+  display: flex;
+  flex-direction: column-reverse;
+  margin-bottom: 8px;
+}
+.pp .thumbs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-top: 10px;
+  scrollbar-width: none;
+}
+.pp .thumbs button {
+  flex: none;
+}
+.pp .thumbs i {
+  display: block;
+  width: 58px;
+  height: 58px;
+  border-radius: 8px;
+  background: var(--sunken) center / cover no-repeat;
+  border: 2px solid transparent;
+}
+.pp .thumbs i.on {
+  border-color: var(--text);
+}
+.pp-cat {
+  align-self: flex-start;
+  padding: 3px 11px;
+  border-radius: var(--r-pill);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-size: 12.5px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.pp-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.pp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: var(--r-control);
+  background: var(--sunken);
+  color: var(--muted);
+  font-size: 13px;
+}
+.pp-chip.ok {
+  background: var(--success-soft);
+  color: var(--success);
+  font-weight: 600;
+}
+.pp-chip svg.i {
+  width: 15px;
+  height: 15px;
+  flex: none;
+}
+.pp-another {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 46px;
+  border: 1.5px dashed var(--accent);
+  border-radius: var(--r-control);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-size: 14.5px;
+  font-weight: 700;
+}
+.pp-another svg.i {
+  width: 17px;
+  height: 17px;
+}
+.pp-line2 {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--surface);
+}
+.pp-line2-hd {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  font-weight: 700;
+}
+.pp-line2-hd .lnk {
+  color: var(--danger);
+}
+.pp-form .ofrm {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.pp-fh {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.pp-fh h2 {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+}
+.pp-fh p {
+  color: var(--muted);
+  font-size: 13.5px;
+}
+.pp-phone {
+  display: flex;
+  align-items: stretch;
+}
+.pp-phone span {
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  border: 1.5px solid var(--line-strong);
+  border-right: 0;
+  border-radius: var(--r-control) 0 0 var(--r-control);
+  background: var(--sunken);
+  font-weight: 600;
+}
+.pp-phone .input {
+  flex: 1;
+  min-width: 0;
+  border-radius: 0 var(--r-control) var(--r-control) 0;
+}
+.pp-note {
+  align-self: flex-start;
+  font-weight: 700;
+}
+.pp-cta {
+  flex-direction: column;
+  gap: 2px;
+  height: auto;
+  min-height: 56px;
+  padding: 8px 16px;
+  line-height: 1.3;
+}
+.pp-cta small {
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0.92;
+}
+.pp-track {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  color: var(--success);
+  font-size: 13px;
+}
+.pp-track svg.i {
+  width: 15px;
+  height: 15px;
+}
+.pp-alt {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+}
+.pp-alt .btn {
+  width: 100%;
+}
+.pp-alt .pp-wa {
+  background: var(--success-soft);
+  border-color: transparent;
+  color: var(--success);
+}
+.pp-trust {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  text-align: center;
+}
+.pp-trust span {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+.pp-trust small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+.pp-trust svg.i {
+  width: 22px;
+  height: 22px;
+  color: var(--accent-text);
+}
+.pp-desc {
+  white-space: pre-line;
+  color: var(--muted);
+  font-size: 14.5px;
+  line-height: 1.7;
+}
+.pp-desc.cut {
+  position: relative;
+  max-height: 9.2em;
+  overflow: hidden;
+}
+.pp-desc.cut::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2.6em;
+  background: linear-gradient(transparent, var(--bg));
+}
+.pp-share {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.pp-photos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.pp-photos img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  border-radius: var(--r-card);
+}
+.pp-steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 0;
+  list-style: none;
+  text-align: center;
+}
+.pp-steps li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+.pp-steps b {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.pp-faq details {
+  border-bottom: 1px solid var(--line);
+}
+.pp-faq summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 0;
+  list-style: none;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.pp-faq summary::-webkit-details-marker {
+  display: none;
+}
+.pp-faq summary svg.i {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  color: var(--subtle);
+}
+.pp-faq details[open] summary svg.i {
+  transform: rotate(180deg);
+}
+.pp-faq p {
+  padding-bottom: 13px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.pp-facts-p {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.pp-facts.kv,
+.pp-facts .kv {
+  column-gap: 16px;
+  row-gap: 0;
+  border-top: 1px solid var(--line);
+}
+/* The product's own details carry on the facts above, one table to the eye. */
+.pp-facts .kv {
+  border-top: 0;
+}
+.pp-facts.kv > span,
+.pp-facts .kv > span {
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line);
+}
+.pp-facts.kv .v,
+.pp-facts .kv .v {
+  font-weight: 600;
+}
+.pp-bar .tot .price s {
+  margin-left: 6px;
+  color: var(--subtle);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 400;
+}
+.pp-bar .tot .k {
+  color: var(--success);
+  font-weight: 600;
+}
+@container (min-width: 1024px) {
+  /* On a computer the built gallery stays: the photo fits the window's height (PD-18), its thumbnails beside it. */
+  .pp .gal {
+    display: grid;
+    margin-bottom: 0;
+  }
+  .pp .thumbs {
+    flex-direction: column;
+    padding-top: 0;
+  }
+  .pp .thumbs i {
+    width: 72px;
+    height: 90px;
+  }
+  .pp-photos {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }

@@ -34,11 +34,14 @@ export function PriceRow({
   variant,
   soldOut,
   words,
+  takaSaving = false,
 }: {
   product: PublicProduct;
   variant: ProductVariant | null;
   soldOut: boolean;
   words: Words;
+  /** The one product page: the saving in taka ("৳200 সাশ্রয়"), its percent being on the photo already. */
+  takaSaving?: boolean;
 }) {
   const ranged =
     variant === null && product.maxPrice !== null && product.maxPrice !== product.minPrice;
@@ -59,7 +62,11 @@ export function PriceRow({
           <span className="unit" style={{ textDecoration: 'line-through' }}>
             {money(regular)}
           </span>
-          <span className="st sale plain">{words.t('sb_save', { p: off })}</span>
+          <span className="st sale plain">
+            {takaSaving && price !== null
+              ? words.t('save', { n: plainNumber(Number(regular) - Number(price)) })
+              : words.t('sb_save', { p: off })}
+          </span>
         </>
       ) : null}
       {saving !== null && price !== null ? (

@@ -121,6 +121,7 @@ test.describe("a shop's pages kept at the edge", () => {
         `p:${shop.fixture.products[0]?.product.id ?? ''}`,
       ]),
     );
-    await expect(page.locator('.line', { hasText: /^ডেলিভারি চার্জ/ })).toContainText('ঢাকা শহর');
+    // The one product page (SB-31): the shopper's area is the order form's, its charge the summary's.
+    await expect(page.locator('.sum .r', { hasText: 'ঢাকা শহর' })).toContainText('ডেলিভারি');
   });
 });
