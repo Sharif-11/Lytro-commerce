@@ -540,6 +540,9 @@ For the owner's Facebook ads: Lytro's own pixel measures them. It is apart from 
   (`platform_ad_event`) and sent apart from it; `control.platform_ad_events` keeps a shop's once-only ones. Unset,
   nothing is queued. Degraded mode holds the queue back, as Meta purchases. The token is never logged.
 
+The privacy policy that names the pixel (version 2026-11-25) goes live with the deploy: migration 0151 makes it the
+version a new account accepts. The pixel itself stays off until the lines below are set.
+
 **Switching it on** (the owner; production only, never staging):
 1. **Meta Events Manager**, in Lytro's Business account: **Connect data sources → Web**, name it *Lytro*. Note the
    pixel (dataset) ID, digits only. Link it to the ad account.
@@ -547,18 +550,16 @@ For the owner's Facebook ads: Lytro's own pixel measures them. It is apart from 
    Cloudflare).
 3. **Settings of the pixel → Conversions API → Generate access token.** Keep it in your password manager; never in
    chat, a ticket or the repository.
-4. **Privacy policy first:** in the console, set the platform setting `privacy_version` to `2026-11-25`, the version
-   that names the pixel. Before that, the pixel must not be on.
-5. **On the production server**, add these lines yourself (each only once you have its value; a blank one is refused):
+4. **On the production server**, add these lines yourself (each only once you have its value; a blank one is refused):
    - `/opt/lytro/env/website.env`: `META_PIXEL_ID=<the pixel ID>`;
    - `/opt/lytro/env/server.env`: `LYTRO_META_PIXEL_ID=<the pixel ID>` and `LYTRO_META_CAPI_TOKEN=<the token>`;
    - for the first test only, `LYTRO_META_TEST_EVENT_CODE=<the code from Events Manager → Test events>`.
    Then recreate the `website`, `api-1`, `api-2` and `worker` containers (or deploy), so they read them.
-6. **Check** in Events Manager → **Test events**: open `https://lytro.app/` (a `PageView` from the browser), sign up
+5. **Check** in Events Manager → **Test events**: open `https://lytro.app/` (a `PageView` from the browser), sign up
    with a phone you own (a `Lead`, then a `CompleteRegistration` when the shop is made, both "Server"). Then remove
    `LYTRO_META_TEST_EVENT_CODE` and recreate `api-1`, `api-2` and `worker` again, or the live events keep going to the
    test tab.
-7. **In Ads Manager**, a campaign can optimise for `CompleteRegistration`, or for a custom conversion on
+6. **In Ads Manager**, a campaign can optimise for `CompleteRegistration`, or for a custom conversion on
    `ShopActivated` once it has about 50 a week.
 
 ## 10. Open, deliberately deferred

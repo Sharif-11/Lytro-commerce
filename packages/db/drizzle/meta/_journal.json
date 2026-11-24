@@ -1051,6 +1051,13 @@
       "when": 1795462636117,
       "tag": "0150_platform_ad_events",
       "breakpoints": true
+    },
+    {
+      "idx": 151,
+      "version": "7",
+      "when": 1795504666000,
+      "tag": "0151_privacy_version_2026_11_25",
+      "breakpoints": true
     }
   ]
 }
