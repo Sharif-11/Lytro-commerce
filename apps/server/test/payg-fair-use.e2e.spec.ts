@@ -273,6 +273,19 @@ describeIfDatabase(
       expect(((await shop.get('/customers')).body as { total: number }).total).toBe(0);
     });
 
+    it("refuses another shop's order: 404, nothing shown and nothing charged (SEC-02)", async () => {
+      const { shop, variantId } = await payAsYouGoShop('100.00');
+      const { shop: other } = await payAsYouGoShop('100.00');
+      const order = await storefrontOrder(shop, variantId);
+      const taken = await other.post(`/orders/${order.id}/unlock-phone`, {});
+      expect(taken.status).toBe(404);
+      expect(await ledger(shop.tenantId, 'order_unlock')).toEqual([]);
+      expect(await ledger(other.tenantId, 'order_unlock')).toEqual([]);
+      expect(((await shop.get(`/orders/${order.id}`)).body as Detail).customerPhone).toBe(
+        '017•• ••• 842',
+      );
+    });
+
     it('shows the phone for ৳7, once however often it is tapped, then confirms on a call for ৳3', async () => {
       const { shop, variantId } = await payAsYouGoShop('100.00');
       const order = await storefrontOrder(shop, variantId);
@@ -454,6 +467,29 @@ describeIfDatabase("the shop's own website's API on pay-as-you-go (PF-14, PF-36,
     await app
       .get(PlatformSettingsService)
       .set(PlatformSettingKey.PaygApiFreeRequests, 10_000, randomUUID());
+  });
+
+  it("keeps a shop's API cap and charges its own (SEC-02)", async () => {
+    const { shop } = await payAsYouGoShop('100.00');
+    const { shop: other } = await payAsYouGoShop('100.00');
+    type Summary = { cap: string; charged: string; cycleStart: string };
+    const before = (await other.get('/api-keys/charges')).body as Summary;
+    expect((await shop.put('/api-keys/cap', { cap: 50 })).status).toBe(200);
+    const summary = (await shop.get('/api-keys/charges')).body as Summary;
+    await admin.query(
+      `INSERT INTO control.api_usage (tenant_id, cycle_start, requests, billable) VALUES ($1, $2, 12500, 12500)
+       ON CONFLICT (tenant_id, cycle_start) DO UPDATE SET requests = 12500, billable = 12500`,
+      [shop.tenantId, summary.cycleStart],
+    );
+    await app.get(ApiCharges).chargeDay(new Date(Date.now() + 60 * 60 * 1000));
+    const mine = (await shop.get('/api-keys/charges')).body as Summary;
+    expect(mine.charged).toBe('2.00');
+    expect(Number(mine.cap)).toBe(50);
+    expect((await other.get('/api-keys/charges')).body).toMatchObject({
+      cap: before.cap,
+      charged: before.charged,
+    });
+    expect(await ledger(other.tenantId, 'api_requests')).toEqual([]);
   });
 
   it('charges whole 1,000s past the free allowance each night, once, within the cap', async () => {

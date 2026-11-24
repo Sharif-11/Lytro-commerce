@@ -240,6 +240,9 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'POST /api-keys': 'makes a key for the session shop only; the 20-key limit counts that shop',
   'PATCH /api-keys/:id': "another shop's key answers 404",
   'POST /api-keys/:id/revoke': "another shop's key answers 404 and keeps working",
+  // PAYG fair use (PF-36, PF-37), checked in test/payg-fair-use.e2e.spec.ts: the API's cost and cap are the shop's own.
+  'GET /api-keys/charges': "the session shop's own requests, charges and cap only",
+  'PUT /api-keys/cap': "sets the session shop's own cap only; another shop's stays as it was",
   // Phase 3 Slice 6a, checked in test/media.e2e.spec.ts: a shop's media is its own, and only its own ready images
   // can be attached anywhere (DAT-02, the database's media_ready_image).
   'POST /media/uploads':
@@ -346,6 +349,9 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'POST /orders/:id/calls': "another shop's order answers 404",
   'POST /orders/:id/cancel': "another shop's order answers 404 and keeps its stock held",
   'POST /orders/:id/override': "another shop's order answers 404",
+  // PAYG fair use (PF-2), checked in test/payg-fair-use.e2e.spec.ts.
+  'POST /orders/:id/unlock-phone':
+    "another shop's order answers 404, shows nothing and charges nothing",
   // Phase 4 Slice 4.3, checked in test/order-fulfilment.e2e.spec.ts.
   'POST /orders/:id/ship': "another shop's order answers 404 and keeps its stock held",
   // Phase 6 Slice 6.1, checked in test/courier-booking.e2e.spec.ts: a shop's parcels and connections are its own.
