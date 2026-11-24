@@ -13,6 +13,7 @@ import {
   dueBlocks,
   type ChargeFigures,
 } from '../src/modules/public-api/services/api-charge-rules';
+import { apiChargeWarningWords } from '../src/modules/public-api/services/api-charges';
 
 // PAYG-FAIR-USE-PLAN PF-1, PF-13, PF-14, PF-15, PF-20, PF-36: the rules that need no database.
 describe('which orders lock (PF-1, PF-20, PF-33)', () => {
@@ -114,5 +115,16 @@ describe('the API charge (PF-14, PF-36)', () => {
     expect(chargeWarning(figures(10_000), 0n)).toBe(CHARGE_WARNED.freeUsed);
     expect(chargeWarning(figures(170_000, 160), 16_000n)).toBe(CHARGE_WARNED.nearCap);
     expect(chargeWarning(figures(10_000, 0, { capPaisa: 0n }), 0n)).toBe(CHARGE_WARNED.stopped);
+  });
+
+  it('emails the 80% warning and the stop, in both languages with the figures, and not the free allowance', () => {
+    const spent = { charged: '160.00', cap: '200.00' };
+    expect(apiChargeWarningWords(CHARGE_WARNED.freeUsed, spent).mail).toBeNull();
+    for (const level of [CHARGE_WARNED.nearCap, CHARGE_WARNED.stopped]) {
+      const { mail } = apiChargeWarningWords(level, spent);
+      expect(mail?.en.body).toContain('160.00 TK');
+      expect(mail?.bn.body).toContain('200.00 TK');
+      expect(mail?.bn.body).toContain('সেটিংস → API কী');
+    }
   });
 });

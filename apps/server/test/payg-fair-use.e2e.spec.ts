@@ -540,4 +540,45 @@ describeIfDatabase("the shop's own website's API on pay-as-you-go (PF-14, PF-36,
     };
     expect(after.charged).toBe('2.00');
   });
+
+  it('emails the owner at 80% of the cap and at the stop, once each, never by SMS (PF-36)', async () => {
+    const { shop } = await payAsYouGoShop('100.00');
+    const email = `owner.${randomUUID().slice(0, 8)}@example.com`;
+    await admin.query(
+      `UPDATE tenant.users SET email = $2, language = 'en' WHERE tenant_id = $1 AND is_owner`,
+      [shop.tenantId, email],
+    );
+    expect((await shop.put('/api-keys/cap', { cap: 10 })).status).toBe(200);
+    const { cycleStart } = (await shop.get('/api-keys/charges')).body as { cycleStart: string };
+    const used = (billable: number) =>
+      admin.query(
+        `INSERT INTO control.api_usage (tenant_id, cycle_start, requests, billable) VALUES ($1, $2, $3, $3)
+         ON CONFLICT (tenant_id, cycle_start) DO UPDATE SET requests = $3, billable = $3`,
+        [shop.tenantId, cycleStart, billable],
+      );
+    const mails = async (): Promise<{ subject: string; body: string }[]> =>
+      (
+        await admin.query<{ subject: string; body: string }>(
+          'SELECT subject, body FROM control.mail_outbox WHERE to_email = $1 ORDER BY created_at',
+          [email],
+        )
+      ).rows;
+    const textsBefore = texts.sent.length;
+    const hour = 60 * 60 * 1000;
+    // 8,500 past the free 10,000: ৳8 charged, 80% of the ৳10 cap.
+    await used(18_500);
+    await app.get(ApiCharges).chargeDay(new Date(Date.now() + hour));
+    await app.get(ApiCharges).chargeDay(new Date(Date.now() + hour));
+    const warned = await mails();
+    expect(warned.map((mail) => mail.subject)).toEqual(['API spending at 80% of your limit']);
+    expect(warned[0]?.body).toContain('8.00 TK of 10.00 TK');
+    // The next day reaches the cap: the stop it warned of.
+    await used(20_000);
+    await app.get(ApiCharges).chargeDay(new Date(Date.now() + 25 * hour));
+    expect((await mails()).map((mail) => mail.subject)).toEqual([
+      'API spending at 80% of your limit',
+      "Your website's API has stopped",
+    ]);
+    expect(texts.sent.length).toBe(textsBefore);
+  });
 });

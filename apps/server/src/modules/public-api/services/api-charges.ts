@@ -1,12 +1,15 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import type { Transaction } from '@lytronix/db';
 import { LedgerEntryType, NotificationKind, RateKey, TenantState } from '@lytronix/validators';
+import type { MailWords } from '../../../common/i18n/bilingual';
 import { dhakaDate, HOUR_MS, usageCycleStart } from '../../../common/time';
 import { BalanceService } from '../../balance/services/balance.service';
 import { fromPaisa, rateToPaisa, toPaisa } from '../../balance/services/money';
 import { RateService } from '../../balance/services/rate.service';
 import { StorefrontActivation } from '../../balance/services/storefront-activation';
 import { FairUseSwitch } from '../../fair-use/services/fair-use-switch';
-import { NOTIFICATION_LINKS } from '../../notifications/notification-words';
+import { NOTIFICATION_LINKS, type NotificationText } from '../../notifications/notification-words';
+import { AccountNotices } from '../../notifications/services/account-notices';
 import { Notifications } from '../../notifications/services/notifications';
 import { TenantService } from '../../tenancy/services/tenant.service';
 import type { ApiUsageStore } from '../ports/api-key-store';
@@ -20,6 +23,89 @@ import {
   type ChargeFigures,
 } from './api-charge-rules';
 import { RequestQuota } from './request-quota';
+
+/**
+ * PF-36: what a charge warning says -- in the bell and by push at every level, and by email to the owner at 80% of the
+ * cap and at the stop it warns of (`mail` null below that). Never by SMS, which would itself cost.
+ */
+export function apiChargeWarningWords(
+  level: number,
+  spent: { charged: string; cap: string },
+): { bell: NotificationText; mail: MailWords | null } {
+  if (level === CHARGE_WARNED.stopped) {
+    return {
+      bell: {
+        bn: {
+          title: 'API বন্ধ',
+          body: 'এ মাসের API খরচের লিমিট বা ব্যালেন্স শেষ, তাই আপনার ওয়েবসাইটের API উত্তর দিচ্ছে না। লিমিট বাড়ান বা টপ-আপ করুন।',
+        },
+        en: {
+          title: 'API stopped',
+          body: "This month's API spending limit or your balance ran out, so your website's API has stopped. Raise the limit or top up.",
+        },
+      },
+      mail: {
+        bn: {
+          subject: 'আপনার ওয়েবসাইটের API বন্ধ',
+          body:
+            `এ মাসের API খরচের লিমিট বা ব্যালেন্স শেষ (খরচ ${spent.charged} TK, লিমিট ${spent.cap} TK), তাই আপনার ` +
+            'ওয়েবসাইটের API উত্তর দিচ্ছে না। অর্ডার নেওয়া চালু আছে। আবার চালু করতে ড্যাশবোর্ডের সেটিংস → API কী থেকে ' +
+            'লিমিট বাড়ান, অথবা ব্যালেন্স টপ-আপ করুন।',
+        },
+        en: {
+          subject: "Your website's API has stopped",
+          body:
+            `This month's API spending limit or your balance ran out (spent ${spent.charged} TK, limit ${spent.cap} TK), ` +
+            "so your website's API has stopped answering. Orders are still taken. To start it again, raise the limit " +
+            'under Settings → API keys in the dashboard, or top up your balance.',
+        },
+      },
+    };
+  }
+  if (level === CHARGE_WARNED.nearCap) {
+    return {
+      bell: {
+        bn: {
+          title: 'API খরচ লিমিটের ৮০%',
+          body: 'এ মাসে API-তে খরচ লিমিটের ৮০% ছুঁয়েছে। লিমিটে পৌঁছালে API বন্ধ হবে।',
+        },
+        en: {
+          title: 'API spending at 80% of the limit',
+          body: "This month's API spending reached 80% of your limit. At the limit the API stops.",
+        },
+      },
+      mail: {
+        bn: {
+          subject: 'API খরচ লিমিটের ৮০% ছুঁয়েছে',
+          body:
+            `এ মাসে আপনার ওয়েবসাইটের API-তে খরচ লিমিটের ৮০% ছুঁয়েছে: ${spent.charged} TK, লিমিট ${spent.cap} TK। ` +
+            'লিমিটে পৌঁছালে API উত্তর দেওয়া বন্ধ হবে, অর্ডার নেওয়া চালু থাকবে। লিমিট বাড়াতে ড্যাশবোর্ডের ' +
+            'সেটিংস → API কী দেখুন।',
+        },
+        en: {
+          subject: 'API spending at 80% of your limit',
+          body:
+            `Your website's API spending this month reached 80% of your limit: ${spent.charged} TK of ${spent.cap} TK. ` +
+            'At the limit the API stops answering; orders are still taken. To raise the limit, open Settings → API ' +
+            'keys in the dashboard.',
+        },
+      },
+    };
+  }
+  return {
+    bell: {
+      bn: {
+        title: 'ফ্রি API রিকোয়েস্ট শেষ',
+        body: 'এ মাসের ফ্রি রিকোয়েস্ট শেষ। এখন থেকে প্রতি ১,০০০ রিকোয়েস্টে চার্জ হবে।',
+      },
+      en: {
+        title: 'Free API requests used',
+        body: "This month's free requests are used. From now on every 1,000 requests is charged.",
+      },
+    },
+    mail: null,
+  };
+}
 
 /** PYG-26 (PF-36): the API page's figures for a pay-as-you-go shop's own website this cycle. */
 export interface ApiChargeSummary {
@@ -58,6 +144,7 @@ export class ApiCharges {
     @Inject(TenantService) private readonly tenants: TenantService,
     @Inject(StorefrontActivation) private readonly activation: StorefrontActivation,
     @Inject(Notifications) private readonly notifications: Notifications,
+    @Inject(AccountNotices) private readonly notices: AccountNotices,
   ) {}
 
   /** Whether the charge replaces the plan's request limit for this shop. */
@@ -204,7 +291,10 @@ export class ApiCharges {
       const level = chargeWarning(after, chargedPaisa);
       if (level > cycle.chargeWarned) {
         await this.store.setChargeWarned(tx, shop.id, cycleStart, level);
-        await this.warn(shop.id, level);
+        await this.warn(tx, shop.id, level, {
+          charged: fromPaisa(chargedPaisa),
+          cap: fromPaisa(figures.capPaisa),
+        });
       }
       return blocks > 0;
     });
@@ -229,45 +319,32 @@ export class ApiCharges {
     };
   }
 
-  /** PF-36: in the app and by push, never by SMS (which would itself cost). */
-  private async warn(tenantId: string, level: number): Promise<void> {
-    const text =
-      level === CHARGE_WARNED.stopped
-        ? {
-            bn: {
-              title: 'API বন্ধ',
-              body: 'এ মাসের API খরচের লিমিট বা ব্যালেন্স শেষ, তাই আপনার ওয়েবসাইটের API উত্তর দিচ্ছে না। লিমিট বাড়ান বা টপ-আপ করুন।',
-            },
-            en: {
-              title: 'API stopped',
-              body: "This month's API spending limit or your balance ran out, so your website's API has stopped. Raise the limit or top up.",
-            },
-          }
-        : level === CHARGE_WARNED.nearCap
-          ? {
-              bn: {
-                title: 'API খরচ লিমিটের ৮০%',
-                body: 'এ মাসে API-তে খরচ লিমিটের ৮০% ছুঁয়েছে। লিমিটে পৌঁছালে API বন্ধ হবে।',
-              },
-              en: {
-                title: 'API spending at 80% of the limit',
-                body: "This month's API spending reached 80% of your limit. At the limit the API stops.",
-              },
-            }
-          : {
-              bn: {
-                title: 'ফ্রি API রিকোয়েস্ট শেষ',
-                body: 'এ মাসের ফ্রি রিকোয়েস্ট শেষ। এখন থেকে প্রতি ১,০০০ রিকোয়েস্টে চার্জ হবে।',
-              },
-              en: {
-                title: 'Free API requests used',
-                body: "This month's free requests are used. From now on every 1,000 requests is charged.",
-              },
-            };
+  /**
+   * PF-36: in the app and by push, never by SMS (which would itself cost). The 80% warning, and the stop it warns of,
+   * also go to the owner by email, in the charge's own transaction.
+   */
+  private async warn(
+    tx: Transaction,
+    tenantId: string,
+    level: number,
+    spent: { charged: string; cap: string },
+  ): Promise<void> {
+    const words = apiChargeWarningWords(level, spent);
+    if (words.mail) {
+      await this.notices.send(
+        tx,
+        tenantId,
+        NotificationKind.UsageWarning,
+        words.mail,
+        NOTIFICATION_LINKS.apiKeys,
+        words.bell,
+      );
+      return;
+    }
     await this.notifications.notify({
       tenantId,
       kind: NotificationKind.UsageWarning,
-      text,
+      text: words.bell,
       link: NOTIFICATION_LINKS.apiKeys,
     });
   }
