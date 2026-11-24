@@ -2,17 +2,11 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { LegalVersionsApi } from '@/lib/api/legal-versions-api';
 import { SiteEnvironment } from '@/lib/env';
-import type { Bilingual } from '@/lib/i18n/copy';
 import { requestLanguage } from '@/lib/i18n/read-language';
 import { dhakaToday } from '@/lib/legal/legal-dates';
 import { type LegalKind, legalLibrary } from '@/lib/legal/legal-library';
+import { pageMetadata } from '@/lib/seo/site-pages';
 import { LegalPage } from './legal-page';
-
-/** The page titles, in Bangla like the site's other pages. */
-const TITLES: Record<LegalKind, Bilingual> = {
-  terms: { bn: 'ব্যবহারের শর্তাবলি', en: 'Terms of Service' },
-  privacy: { bn: 'প্রাইভেসি পলিসি', en: 'Privacy Policy' },
-};
 
 /** /terms and /privacy show the version in force (`version` unset); /terms/<version> and /privacy/<version> show that
     published version, and any other name is a 404. */
@@ -37,9 +31,7 @@ export async function LegalRoute({ kind, version }: { kind: LegalKind; version?:
   );
 }
 
+/** The title (in Bangla like the site's other pages), description and address of /terms, /privacy or a version. */
 export function legalMetadata(kind: LegalKind, version?: string): Metadata {
-  return {
-    title: version === undefined ? TITLES[kind].bn : `${TITLES[kind].bn} (${version})`,
-    alternates: { canonical: version === undefined ? `/${kind}` : `/${kind}/${version}` },
-  };
+  return pageMetadata(kind, version);
 }

@@ -1,4 +1,3 @@
-import type { Metadata } from 'next';
 import { FinalCta } from '@/components/landing/final-cta';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { SiteNav } from '@/components/layout/site-nav';
@@ -9,14 +8,10 @@ import { SectionHeading } from '@/components/ui/section-heading';
 import { SiteEnvironment } from '@/lib/env';
 import { Copy, type Bilingual } from '@/lib/i18n/copy';
 import { requestLanguage } from '@/lib/i18n/read-language';
+import { pageMetadata } from '@/lib/seo/site-pages';
 import { AppUrls } from '@/lib/urls';
 
-export const metadata: Metadata = {
-  title: 'আমাদের সম্পর্কে',
-  description:
-    'আমরা নিজেরাও অনলাইন ব্যবসা করি। Lytro তৈরি হয়েছে আমাদের নিজেদের অনলাইন ব্যবসার প্রয়োজন থেকে।',
-  alternates: { canonical: '/about' },
-};
+export const metadata = pageMetadata('about');
 
 // docs/SITE-PAGES-DESIGN.md §1. First person plural, plain, no superlatives, no invented people or numbers.
 const text = {

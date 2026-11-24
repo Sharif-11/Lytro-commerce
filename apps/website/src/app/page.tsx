@@ -21,7 +21,11 @@ import { SiteEnvironment } from '@/lib/env';
 import { LiveFeatures } from '@/lib/features';
 import { Copy } from '@/lib/i18n/copy';
 import { requestLanguage } from '@/lib/i18n/read-language';
+import { pageMetadata } from '@/lib/seo/site-pages';
+import { jsonLdText, landingStructuredData } from '@/lib/seo/structured-data';
 import { AppUrls } from '@/lib/urls';
+
+export const metadata = pageMetadata('home');
 
 // The page reads the visitor's language cookie and the live plan catalogue on every request; the catalogue
 // fetch itself is cached for a minute (ServerApi), so a pricing change shows within that time.
@@ -59,6 +63,13 @@ export default async function LandingPage() {
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        // Built here from the catalogue, never from a visitor's input; jsonLdText escapes `<`.
+        dangerouslySetInnerHTML={{
+          __html: jsonLdText(landingStructuredData(env.siteUrl, catalogue, paygPlan)),
+        }}
+      />
       <SiteNav language={language} overHero />
       <main className="lp">
         <Hero
