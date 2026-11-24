@@ -4,10 +4,11 @@ import { ledgerPageSchema } from '../src/modules/team/dto/balance-response.dto';
 import { revenueReportSchema } from '../src/modules/team/dto/operator-reports.dto';
 
 // ENGINEERING-STANDARDS §5, recipe 6: this release runs beside the next one while it deploys, and is what a rollback
-// of it goes back to. A ledger kind the next release adds (pay-as-you-go's `order_unlock` and `api_requests`) must
-// not fail the statement or the revenue report here: CI's previous-release job found GET /balance/ledger answering
-// 500 for them.
-const LATER_KINDS = ['order_unlock', 'api_requests'];
+// of it goes back to. A ledger kind the next release adds must not fail the statement or the revenue report here: CI's
+// previous-release job found GET /balance/ledger answering 500 for pay-as-you-go's `order_unlock` and `api_requests`
+// (#437 read them first; PAYG fair use names and writes them). The kind below stands for whatever comes after.
+const LATER_KINDS = ['a_kind_a_later_release_adds'];
+const PAYG_KINDS = [LedgerEntryType.OrderUnlock, LedgerEntryType.ApiRequests];
 
 const row = (type: string): Record<string, unknown> => ({
   id: 1,
@@ -31,17 +32,21 @@ const figures = (balance: Record<string, string>): Record<string, unknown> => ({
 describe('ledger kinds a later release adds (ENGINEERING-STANDARDS §5, recipe 6)', () => {
   it("answers the statement's rows of a kind this release doesn't name, as they are", () => {
     const page = ledgerPageSchema.parse({
-      entries: [row(LedgerEntryType.Sms), ...LATER_KINDS.map(row)],
+      entries: [LedgerEntryType.Sms, ...PAYG_KINDS, ...LATER_KINDS].map(row),
       nextCursor: null,
     });
-    expect(page.entries.map((entry) => entry.type)).toEqual([LedgerEntryType.Sms, ...LATER_KINDS]);
+    expect(page.entries.map((entry) => entry.type)).toEqual([
+      LedgerEntryType.Sms,
+      ...PAYG_KINDS,
+      ...LATER_KINDS,
+    ]);
   });
 
   it('answers the revenue report with a later kind in its balance figures', () => {
     const balance = {
       [LedgerEntryType.Sms]: '-1.10',
-      order_unlock: '-10.00',
-      api_requests: '-1.00',
+      [LedgerEntryType.OrderUnlock]: '-10.00',
+      a_kind_a_later_release_adds: '-1.00',
     };
     const report = revenueReportSchema.parse({
       dateFrom: '2026-11-01',
@@ -59,8 +64,9 @@ describe('ledger kinds a later release adds (ENGINEERING-STANDARDS §5, recipe 6
     );
   });
 
-  it('filters only by the kinds this release names', () => {
+  it('filters only by the kinds this release names, the two pay-as-you-go kinds among them', () => {
     expect(listLedgerSchema.safeParse({ type: 'sms' }).success).toBe(true);
+    expect(listLedgerSchema.safeParse({ type: PAYG_KINDS.join(',') }).success).toBe(true);
     for (const kind of LATER_KINDS) {
       expect(listLedgerSchema.safeParse({ type: kind }).success).toBe(false);
     }
