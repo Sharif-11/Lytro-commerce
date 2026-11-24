@@ -787,6 +787,8 @@
       "sms": "SMS",
       "verification_fee": "ভেরিফিকেশন ফি",
       "order_fee": "অর্ডার ফি",
+      "order_unlock": "PAYG অর্ডার ফি",
+      "api_requests": "PAYG API রিকোয়েস্ট",
       "product_fee": "প্রোডাক্ট ফি",
       "ai": "ঠিকানা পড়া",
       "extraction": "মেসেজ থেকে ঠিকানা পড়া",

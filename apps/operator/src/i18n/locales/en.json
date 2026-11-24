@@ -787,6 +787,8 @@
       "sms": "SMS",
       "verification_fee": "Verification fees",
       "order_fee": "Order fees",
+      "order_unlock": "PAYG order fees",
+      "api_requests": "PAYG API requests",
       "product_fee": "Product fees",
       "ai": "Address reads",
       "extraction": "Address reads from messages",

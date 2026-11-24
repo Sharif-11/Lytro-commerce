@@ -11,6 +11,12 @@ const ledgerTypesField = z
   .transform((value) => value.split(','))
   .pipe(z.array(z.enum(LedgerEntryType)).min(1));
 
+// ENGINEERING-STANDARDS §5, recipe 6: a ledger row's type as a response states it, a kind this release names or one a
+// later release adds. The release before a new kind runs beside it while it deploys and is what a rollback goes back
+// to, so it answers that kind's rows as they are instead of failing the whole statement. Filters stay to the kinds
+// this release names.
+export const ledgerEntryTypeOfRow = z.union([z.enum(LedgerEntryType), z.string().min(1).max(63)]);
+
 // GET /balance/ledger: filters for the statement page (BAL-14). Keyset pagination, never OFFSET.
 export const listLedgerSchema = z.object({
   type: ledgerTypesField.optional(),
