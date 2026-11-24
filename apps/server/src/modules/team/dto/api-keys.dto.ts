@@ -1,10 +1,12 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
 import {
+  apiCapInputSchema,
   ApiKeyPurpose,
   ApiKeyType,
   createApiKeySchema,
   updateApiKeySchema,
+  coercedDateField,
   dateField,
 } from '@lytronix/validators';
 
@@ -29,6 +31,28 @@ const apiKeyViewSchema = z.object({
 });
 export class ApiKeyViewDto extends createZodDto(apiKeyViewSchema) {}
 export class ApiKeyListDto extends createZodDto(z.array(apiKeyViewSchema)) {}
+
+// PYG-26 (PAYG-FAIR-USE-PLAN PF-36): what the shop's own website's API cost this cycle, and its cap.
+const apiChargeSummarySchema = z.object({
+  applies: z.boolean(),
+  cycleStart: coercedDateField(),
+  requests: z.number(),
+  free: z.number(),
+  rate: z.string(),
+  charged: z.string(),
+  cap: z.string(),
+  stopped: z.boolean(),
+  days: z.array(
+    z.object({
+      day: z.string(),
+      requests: z.number(),
+      billable: z.number(),
+      charged: z.string(),
+    }),
+  ),
+});
+export class ApiChargeSummaryDto extends createZodDto(apiChargeSummarySchema) {}
+export class ApiCapDto extends createZodDto(apiCapInputSchema) {}
 export class CreatedApiKeyViewDto extends createZodDto(
   apiKeyViewSchema.extend({ key: z.string() }),
 ) {}

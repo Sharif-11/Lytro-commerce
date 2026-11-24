@@ -10,10 +10,12 @@ import { CatalogueModule } from '../catalogue/catalogue.module';
 import { CustomersModule } from '../customers/customers.module';
 import { DeliveryModule } from '../delivery/delivery.module';
 import { InventoryModule } from '../inventory/inventory.module';
+import { FairUseModule } from '../fair-use/fair-use.module';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
 import { StaffModule } from '../staff/staff.module';
 import { UsageWarningsModule } from '../usage-warnings/usage-warnings.module';
 import { HandlingQuota } from './services/handling-quota';
+import { OrderAccessSteps } from './services/order-access-steps';
 import { OrderFulfilment } from './services/order-fulfilment';
 import { OrderPayments } from './services/order-payments';
 import { OrderPicker } from './services/order-picker';
@@ -42,6 +44,8 @@ import { NotificationsModule } from '../notifications/notifications.module';
     IdempotencyModule,
     InventoryModule,
     PlatformSettingsModule,
+    // PAYG-FAIR-USE-PLAN: the switch that decides what a pay-as-you-go booking holds.
+    FairUseModule,
     SmsEventQueueModule,
     FraudCheckQueueModule,
     // MKT-02, MKT-04: a shop's first order told to Lytro's own Meta pixel.
@@ -54,6 +58,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     { provide: ORDER_NOTIFIER, useExisting: BellOrderNotifier },
     { provide: SALES_STORE, useClass: DrizzleSalesStore },
     HandlingQuota,
+    OrderAccessSteps,
     OrderFulfilment,
     OrderPayments,
     OrderPicker,
@@ -69,6 +74,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     // Slice 4.8a: New order's Add an item, for the orders routes.
     OrderPicker,
     HandlingQuota,
+    OrderAccessSteps,
     OrderFulfilment,
     OrderPayments,
     OrderService,

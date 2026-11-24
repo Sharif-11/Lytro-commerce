@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { StorefrontActivation } from '../../balance/services/storefront-activation';
 import { ActorType, AuditAction, AuditResult, TenantState } from '@lytronix/validators';
 import { AuditService } from '../../audit/services/audit.service';
 import { TenantService } from '../../tenancy/services/tenant.service';
@@ -19,6 +20,7 @@ export class TrialLifecycleService {
     @Inject(TenantService) private readonly tenants: TenantService,
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(CLOCK) private readonly clock: () => Date,
+    @Inject(StorefrontActivation) private readonly activation: StorefrontActivation,
   ) {}
 
   /** Returns how many trials were converted, for the caller (eventually slice 7's job) to log/report. */
@@ -43,6 +45,13 @@ export class TrialLifecycleService {
           periodEnd: null,
           state: TenantState.PayAsYouGo,
         });
+        // PF-13, PF-35 (TRL-07 amended): a trial that never paid pauses its storefront; its cached pages go.
+        const info = await this.tenants.findBillingInfo(tx, tenantId);
+        await this.activation.becamePayAsYouGoWithin(
+          tx,
+          tenantId,
+          info?.storefrontActivatedAt ?? null,
+        );
         await this.audit.record(tx, {
           tenantId,
           actorType: ActorType.System,

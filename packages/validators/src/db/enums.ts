@@ -380,6 +380,11 @@ export enum AuditAction {
   OrderStatusChanged = 'order_status_changed',
   OrderDeleted = 'order_deleted',
   OrderCallLogged = 'order_call_logged',
+  // PYG-27 (PAYG-FAIR-USE-PLAN PF-31): a pay-as-you-go order opened a step -- its phone shown or its confirm -- by whom,
+  // and what it was charged.
+  OrderUnlocked = 'order_unlocked',
+  // PYG-25 (PF-13): a trial told, on day 25 or day 29, that its storefront will pause on pay-as-you-go.
+  TrialPauseWarned = 'trial_pause_warned',
   // Phase 3 Slice 13: the shop's own domain added, verified, its record found missing (the shop back on its subdomain),
   // and removed (TEN-09 to TEN-14).
   DomainAdded = 'domain_added',
@@ -643,6 +648,9 @@ export enum QueueName {
   RawMessagePurgeTick = 'raw_message_purge_tick',
   // DAT-55 (Phase 9 Slice 9.6): each morning, whether paying shops or revenue say it's time for a second server.
   CapacityTick = 'capacity_tick',
+  // PYG-26 (PAYG-FAIR-USE-PLAN PF-14): each night, a pay-as-you-go shop's API requests past the free allowance charged,
+  // and the shops that paid since marked activated (PFQ-9).
+  ApiChargeTick = 'api_charge_tick',
   // D9-32 (Phase 9 Slice 9.10): shop pages Cloudflare keeps to drop, queued in the transaction that changed them, sent in
   // batches within Cloudflare's purge rate.
   EdgePurge = 'edge_purge',
@@ -850,6 +858,11 @@ export enum LedgerEntryType {
   CarryOver = 'carry_over',
   // PLN-13, PLN-14: an add-on bought from the balance.
   Addon = 'addon',
+  // PYG-02 as amended (PAYG-FAIR-USE-PLAN PF-2, PF-3): a pay-as-you-go order's phone shown (৳7) or its address on
+  // confirming (৳3); the reference names the order and the step.
+  OrderUnlock = 'order_unlock',
+  // RTE-03 as amended for PAYG (PF-14): a day's successful API requests past the free allowance, in whole 1,000s.
+  ApiRequests = 'api_requests',
 }
 
 // RAT-01: the platform-wide, per-use rates control.rates holds. Add a key here before any code reads or writes
@@ -868,6 +881,12 @@ export enum RateKey {
   GatewayVerificationPct = 'gateway_verification_pct',
   // ORD-34, D7-16 (Phase 7 Slice 7.6): one read of a customer's delivery details from a pasted message.
   AiExtraction = 'ai_extraction',
+  // RAT-17 to RAT-20 (PAYG-FAIR-USE-PLAN PF-2 to PF-4, PF-11, PF-14): a pay-as-you-go order's phone shown, its confirm,
+  // a manual order's courier booked through Lytro, and every 1,000 successful API requests past the free allowance.
+  PaygUnlockPhone = 'payg_unlock_phone',
+  PaygUnlockConfirm = 'payg_unlock_confirm',
+  PaygBookingFee = 'payg_booking_fee',
+  PaygApiPerThousand = 'payg_api_per_thousand',
 }
 
 // RAT-01, D7-16: the rates a shop or the operator is shown. The chat-reply rate stays stored, but nothing offers chat in
@@ -989,6 +1008,30 @@ export enum PlatformSettingKey {
   VatRate = 'vat_rate',
   VatSellerName = 'vat_seller_name',
   VatSellerAddress = 'vat_seller_address',
+  // PYG-30 (PAYG-FAIR-USE-PLAN section 6): the operator's switch for pay-as-you-go fair use, off until its screens are
+  // live; with it off, pay-as-you-go works as it did before. PF-13: the one top-up, in TK, that opens a pay-as-you-go
+  // storefront. PF-14: the successful requests a pay-as-you-go shop's own website makes free each cycle.
+  PaygFairUse = 'payg_fair_use',
+  PaygActivationTopUp = 'payg_activation_topup',
+  PaygApiFreeRequests = 'payg_api_free_requests',
+}
+
+// PYG-30: pay-as-you-go fair use, off or on.
+export enum PaygFairUseMode {
+  Off = 'off',
+  On = 'on',
+}
+
+/**
+ * PYG-22 (PAYG-FAIR-USE-PLAN PF-1 to PF-3, PF-20): how much of a pay-as-you-go order from Lytro the shop has opened.
+ * Open: every order of a plan, a trial or the dashboard, and one opened free by a plan. Locked: step 0, masked.
+ * Phone: step 1, its phone and name shown (৳7). Confirmed: step 2, its address too (৳3).
+ */
+export enum OrderAccess {
+  Open = 'open',
+  Locked = 'locked',
+  Phone = 'phone',
+  Confirmed = 'confirmed',
 }
 
 // AI-10, D7-4: the AIs Lytro can read a pasted message with. One today; the setting names which.

@@ -53,6 +53,16 @@ export const meResponseSchema = z.object({
         .nullable(),
       // LIF-12, LIF-19: once lapsed, when the shop's business data would be deleted; null otherwise.
       deletesAt: z.string().nullable(),
+      // PAYG-FAIR-USE-PLAN: whether fair use is on, the shop's storefront paused until its activation top-up, and the
+      // prices the dashboard names (PF-2, PF-3, PF-11, PF-13).
+      fairUse: z.object({
+        on: z.boolean(),
+        paused: z.boolean(),
+        activationTopUp: z.number(),
+        unlockPhone: z.string(),
+        unlockConfirm: z.string(),
+        bookingFee: z.string(),
+      }),
     })
     .nullable(),
   // TEN-31: every shop the signed-in person may open -- one opens directly, several show the picker.

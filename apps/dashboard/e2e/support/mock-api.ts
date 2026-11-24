@@ -150,6 +150,12 @@ export interface MoneyState {
   usage?: UsageFixture & AddonsFixture;
 }
 
+/** PAYG-FAIR-USE-PLAN: fair use on, the storefront paused or not, and the API page's figures. */
+export interface FairUseFixture {
+  paused?: boolean;
+  charges?: unknown;
+}
+
 export interface ShopState {
   /**
    * False for a second tab of the same browser: it answers the API but leaves no token of its own, so the page must find
@@ -225,6 +231,8 @@ export interface ShopState {
   listenerApp?: ListenerAppRead;
   /** Slice 8.8: requests the server answers with a fault and its error ID, or a refusal (`p88-err-*`). */
   faults?: Fault[];
+  /** PAYG-FAIR-USE-PLAN: null with fair use off, as today. */
+  fairUse?: FairUseFixture | null;
 }
 
 export function envelope(data: unknown, statusCode = 200): string {
@@ -293,6 +301,17 @@ export function me(state: Required<ShopState>): unknown {
         deletes === undefined || deletes === null
           ? null
           : new Date(Date.now() + deletes * DAY_MS).toISOString(),
+      fairUse:
+        state.fairUse === null
+          ? undefined
+          : {
+              on: true,
+              paused: state.fairUse.paused ?? false,
+              activationTopUp: 10,
+              unlockPhone: '7.0000',
+              unlockConfirm: '3.0000',
+              bookingFee: '10.0000',
+            },
     },
     shops: [
       { slug: SLUG, shopName: shopName(state.language), role: state.isOwner ? 'owner' : 'staff' },
@@ -426,6 +445,7 @@ export function shopState(given: ShopState = {}): Required<ShopState> {
     helpLine: DRAWN_HELP_LINE,
     listenerApp: DRAWN_LISTENER_APP,
     faults: [],
+    fairUse: null,
     ...given,
     money: { ...given.money },
     sales: { ...given.sales },
@@ -605,6 +625,7 @@ export function shopAnswer(path: string, url: URL, state: Required<ShopState>): 
   const cards = cardsAnswer(path, (state.cards ??= drawnCards()));
   if (cards !== undefined) return cards;
   if (path === '/api-keys') return state.keys ?? drawnKeys();
+  if (path === '/api-keys/charges') return state.fairUse?.charges ?? { applies: false };
   const meta = metaAnswer(path, state.meta ?? drawnMeta());
   if (meta !== undefined) return meta;
   if (path === '/activity') {

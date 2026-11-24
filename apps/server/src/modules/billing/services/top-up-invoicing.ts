@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { Transaction } from '@lytronix/db';
 import { InvoiceKind, InvoiceLineKind, LedgerEntryType, paidByOf } from '@lytronix/validators';
 import { BalanceService } from '../../balance/services/balance.service';
+import { StorefrontActivation } from '../../balance/services/storefront-activation';
 import { InvoicesService } from '../../payments/services/invoices.service';
 import type { InvoiceRecord } from '../../payments/types/invoice';
 import type { PlanPaymentRecord } from '../../payments/types/plan-payment';
@@ -21,6 +22,7 @@ export class TopUpInvoicing {
     @Inject(InvoicesService) private readonly invoices: InvoicesService,
     @Inject(TenantService) private readonly tenants: TenantService,
     @Inject(StaffService) private readonly staff: StaffService,
+    @Inject(StorefrontActivation) private readonly activation: StorefrontActivation,
   ) {}
 
   /** `amount` of `payment`, a top-up, onto its shop's balance, and the top-up's invoice. */
@@ -35,6 +37,8 @@ export class TopUpInvoicing {
       amount,
       reference: { planPaymentId: payment.id },
     });
+    // PYG-25 (PF-13): a top-up of the activation amount opens a pay-as-you-go storefront, once and for good.
+    await this.activation.toppedUpWithin(tx, payment.tenantId, amount, new Date());
     const shop = await this.tenants.findBillingInfo(tx, payment.tenantId);
     const owner = await this.staff.ownerContactIn(tx, payment.tenantId);
     return this.invoices.issue(

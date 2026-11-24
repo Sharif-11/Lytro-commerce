@@ -1,6 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
+  ApiUsageRepository,
   BalanceLedgerRepository,
+  OrderRepository,
+  type PayAsYouGoShopRow,
   ReportsRepository,
   ShopDayRepository,
   SmsLogRepository,
@@ -14,6 +17,7 @@ import {
 import type { LedgerEntryType, PlanPaymentKind, TenantState } from '@lytronix/validators';
 import type { DayCount, ReportsStore } from '../../modules/reports/ports/reports-store';
 import type { LedgerTotals, ShopDayStore } from '../../modules/reports/ports/shop-day-store';
+import type { PaygReportStore } from '../../modules/reports/ports/payg-report-store';
 import { DatabaseService } from '../database.service';
 
 /** D8-9: the night's reads of each shop, inside its own row-level security, and its writes of the shop's day. */
@@ -50,6 +54,42 @@ export class DrizzleShopDayStore implements ShopDayStore {
     return this.transactions.run(this.database.handle.db, async (tx) =>
       (await this.sms.report(tx, tenantId, from, to)).reduce((sum, row) => sum + row.units, 0),
     );
+  }
+}
+
+/** PYG-13 as amended (PF-38): the fair-use report's figures, each shop read inside its own row-level security. */
+@Injectable()
+export class DrizzlePaygReportStore implements PaygReportStore {
+  constructor(
+    @Inject(DatabaseService) private readonly database: Pick<DatabaseService, 'handle'>,
+    @Inject(TransactionRunner) private readonly transactions: TransactionRunner,
+    @Inject(TenantRepository) private readonly tenants: TenantRepository,
+    @Inject(OrderRepository) private readonly orders: OrderRepository,
+    @Inject(BalanceLedgerRepository) private readonly ledger: BalanceLedgerRepository,
+    @Inject(ApiUsageRepository) private readonly usage: ApiUsageRepository,
+  ) {}
+
+  shops(): Promise<PayAsYouGoShopRow[]> {
+    return this.tenants.listPayAsYouGo(this.database.handle.db);
+  }
+
+  orderCounts(
+    tenantId: string,
+    from: Date,
+  ): Promise<{ received: number; opened: number; confirmed: number }> {
+    return this.transactions.run(this.database.handle.db, (tx) =>
+      this.orders.fairUseCounts(tx, tenantId, from),
+    );
+  }
+
+  ledgerTotals(tenantId: string, from: Date, to: Date): Promise<LedgerTotals[]> {
+    return this.transactions.run(this.database.handle.db, (tx) =>
+      this.ledger.totalsBetween(tx, tenantId, from, to),
+    );
+  }
+
+  apiSince(tenantId: string, fromDay: string): Promise<{ requests: number; billable: number }> {
+    return this.usage.sinceDay(this.database.handle.db, tenantId, fromDay);
   }
 }
 

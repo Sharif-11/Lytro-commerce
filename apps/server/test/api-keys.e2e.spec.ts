@@ -226,6 +226,8 @@ describeIfDatabase('public API keys in the dashboard (API-01, API-02, API-21)', 
     expect(withoutDesign(answer.body)).toEqual({
       name: `Shop ${owner.slug}`,
       slug: owner.slug,
+      // PAYG fair use (PF-13, PF-35): a pay-as-you-go shop not yet activated is paused; this one is on its trial.
+      paused: false,
       metaPixelId: null,
       brand: null,
       // Slice 12: the logo, contact details and zones the storefront shows.
@@ -276,6 +278,8 @@ describeIfDatabase('the public API host (API-03 to API-05, API-08, API-14, API-2
     expect(withoutDesign(answer.body)).toEqual({
       name: `Shop ${shop.slug}`,
       slug: shop.slug,
+      // PAYG fair use (PF-13, PF-35): on its trial, so not paused.
+      paused: false,
       metaPixelId: null,
       brand: null,
       // Slice 12: the logo, contact details and zones the storefront shows.

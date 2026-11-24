@@ -475,6 +475,67 @@ export class TenantRepository {
   }
 
   /**
+   * PYG-25 (PAYG-FAIR-USE-PLAN PF-13): marks the shop's storefront activated -- once, at its first plan paid or top-up of
+   * the activation amount; a later one changes nothing. True when this call marked it.
+   */
+  async markStorefrontActivated(tx: Executor, tenantId: string, at: Date): Promise<boolean> {
+    const rows = await tx
+      .update(tenants)
+      .set({ storefrontActivatedAt: at })
+      .where(and(eq(tenants.id, tenantId), isNull(tenants.storefrontActivatedAt)))
+      .returning({ id: tenants.id });
+    return rows.length > 0;
+  }
+
+  /**
+   * PYG-25 (PF-13, PFQ-9): marks activated every shop not yet marked that already paid -- a plan bought, renewed or
+   * upgraded, or a top-up of at least `minTopUp` TK -- so fair use, switched on, pauses only those that never paid. Can
+   * run any number of times. The ids it marked.
+   */
+  async markPaidShopsActivated(tx: Executor, minTopUp: number, at: Date): Promise<string[]> {
+    const rows = await tx.execute<{ id: string }>(sql`
+      UPDATE control.tenants t SET storefront_activated_at = ${at}
+      WHERE t.storefront_activated_at IS NULL AND EXISTS (
+        SELECT 1 FROM control.plan_payments p
+        WHERE p.tenant_id = t.id AND p.status = 'verified' AND (
+          p.kind IN ('purchase', 'renewal', 'upgrade')
+          OR (p.kind = 'top_up' AND coalesce(p.amount_arrived, p.amount) >= ${minTopUp})
+        )
+      )
+      RETURNING t.id`);
+    return rows.rows.map((row) => row.id);
+  }
+
+  /** PYG-26 (PF-14): every live pay-as-you-go shop, with what its API cycle and cap are worked out from. */
+  async listPayAsYouGo(tx: Executor): Promise<PayAsYouGoShopRow[]> {
+    return tx
+      .select({
+        id: tenants.id,
+        state: tenants.state,
+        periodStart: tenants.periodStart,
+        createdAt: tenants.createdAt,
+        apiMonthlyCap: tenants.apiMonthlyCap,
+        shopName: tenants.shopName,
+        slug: tenants.slug,
+        balanceAmount: tenants.balanceAmount,
+        storefrontActivatedAt: tenants.storefrontActivatedAt,
+      })
+      .from(tenants)
+      .where(
+        and(
+          eq(tenants.state, TenantState.PayAsYouGo),
+          isNull(tenants.deletedAt),
+          isNull(tenants.suspendedAt),
+        ),
+      );
+  }
+
+  /** PYG-26 (PF-36): the most the shop's own website is charged for API requests in a cycle. */
+  async setApiMonthlyCap(tx: Executor, tenantId: string, cap: string): Promise<void> {
+    await tx.update(tenants).set({ apiMonthlyCap: cap }).where(eq(tenants.id, tenantId));
+  }
+
+  /**
    * PLN-17/TRL-07: activates a plan assignment (not-for-sale operator override, or the trial-end conversion
    * to pay-as-you-go), storing a normal snapshot exactly as a purchase would. `periodEnd: null` means no
    * expiry (PLN-18, PYG-08) -- the lifecycle job (slice 7) must treat a plan with no period end as never
@@ -583,6 +644,31 @@ export class TenantRepository {
   }
 
   /** TRL-07: trials whose period has ended with no purchase -- the trial-end job's own candidate list. */
+  /**
+   * PYG-25 (PF-13): the trials ending before `horizon` whose storefront would pause on pay-as-you-go -- never activated by
+   * a payment -- for the day-25 and day-29 warnings.
+   */
+  async findTrialsToWarn(
+    tx: Executor,
+    now: Date,
+    horizon: Date,
+  ): Promise<{ id: string; periodEnd: Date }[]> {
+    const rows = await tx
+      .select({ id: tenants.id, periodEnd: tenants.periodEnd })
+      .from(tenants)
+      .where(
+        and(
+          eq(tenants.state, TenantState.Trial),
+          isNull(tenants.storefrontActivatedAt),
+          gt(tenants.periodEnd, now),
+          lte(tenants.periodEnd, horizon),
+        ),
+      );
+    return rows.flatMap((one) =>
+      one.periodEnd === null ? [] : [{ id: one.id, periodEnd: one.periodEnd }],
+    );
+  }
+
   async findExpiredTrialIds(tx: Executor, now: Date): Promise<string[]> {
     const rows = await tx
       .select({ id: tenants.id })
@@ -965,6 +1051,8 @@ export class TenantRepository {
         downgradeOverLimit: tenants.downgradeOverLimit,
         downgradeFinalWarningAt: tenants.downgradeFinalWarningAt,
         autoBuyRequests: tenants.autoBuyRequests,
+        storefrontActivatedAt: tenants.storefrontActivatedAt,
+        apiMonthlyCap: tenants.apiMonthlyCap,
       })
       .from(tenants)
       .where(eq(tenants.id, id))
@@ -1034,6 +1122,19 @@ export class TenantRepository {
   }
 }
 
+/** PYG-26, PF-38: a live pay-as-you-go shop, for the night's API charge and the operator's fair-use report. */
+export interface PayAsYouGoShopRow {
+  id: string;
+  state: TenantState;
+  periodStart: Date | null;
+  createdAt: Date;
+  apiMonthlyCap: string;
+  shopName: string;
+  slug: string;
+  balanceAmount: string;
+  storefrontActivatedAt: Date | null;
+}
+
 export interface BillingInfoRow {
   state: TenantState;
   // BIL-12: copied onto each invoice at issue.
@@ -1060,6 +1161,10 @@ export interface BillingInfoRow {
   downgradeFinalWarningAt: Date | null;
   /** PLN-15: the auto-buy switch for request packs. */
   autoBuyRequests: boolean;
+  /** PYG-25 (PF-13): when the shop first paid a plan or the activation top-up. */
+  storefrontActivatedAt: Date | null;
+  /** PYG-26 (PF-36): the most its own website is charged for API requests in a cycle. */
+  apiMonthlyCap: string;
 }
 
 export interface BalanceRow {

@@ -8,6 +8,7 @@ import {
   PlatformSettingKey,
   FieldProblemCode,
   OrderLimitMode,
+  PaygFairUseMode,
   appVersionField,
   cloudflarePricesSchema,
   CLOUDFLARE_BILLING_DAY_MAX,
@@ -138,6 +139,12 @@ const DESCRIPTIONS: Record<PlatformSettingKey, string> = {
     'The name Lytro is registered for VAT under, as its invoices print it (D9-7).',
   [PlatformSettingKey.VatSellerAddress]:
     'The address Lytro is registered for VAT at, as its invoices print it (D9-7).',
+  [PlatformSettingKey.PaygFairUse]:
+    'Pay-as-you-go fair use: orders from Lytro opened for 7 + 3 TK, the 10 TK activation top-up, and the API charge past the free requests. Off until its screens are live (PYG-30).',
+  [PlatformSettingKey.PaygActivationTopUp]:
+    "The one top-up, in TK, that opens a pay-as-you-go shop's storefront, landing pages and public key once fair use is on (PF-13).",
+  [PlatformSettingKey.PaygApiFreeRequests]:
+    "The successful requests a pay-as-you-go shop's own website makes free each cycle, before 1 TK per 1,000 (PF-14).",
 };
 
 // A positive-int check, the only shape any key needs today; slice 7 extends this map, not a switch, as more
@@ -189,6 +196,9 @@ const isLocalMobileOrCleared = (value: unknown): boolean => value === '' || isLo
 const isHour = (value: unknown): boolean =>
   typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= HELP_HOUR_MAX;
 // DAT-38 (Slice 9.5): the switch's stored form, and a factor that still lets some requests through.
+// PYG-30: pay-as-you-go fair use, off or on.
+const isFairUseMode = (value: unknown): boolean =>
+  Object.values<unknown>(PaygFairUseMode).includes(value);
 const isDegradedMode = (value: unknown): boolean =>
   degradedModeValueSchema.safeParse(value).success;
 const isDegradedFactor = (value: unknown): boolean =>
@@ -247,6 +257,9 @@ const VALIDATORS: Record<PlatformSettingKey, (value: unknown) => boolean> = {
   [PlatformSettingKey.VatRate]: isVatRateOrCleared,
   [PlatformSettingKey.VatSellerName]: isSellerNameOrCleared,
   [PlatformSettingKey.VatSellerAddress]: isSellerAddressOrCleared,
+  [PlatformSettingKey.PaygFairUse]: isFairUseMode,
+  [PlatformSettingKey.PaygActivationTopUp]: isPositiveInt,
+  [PlatformSettingKey.PaygApiFreeRequests]: isPositiveInt,
 };
 
 // D8-77: the help line's two hours, each checked against the other.

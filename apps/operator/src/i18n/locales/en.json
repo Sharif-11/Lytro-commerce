@@ -1,6 +1,7 @@
 {
   "common": {
     "appName": "Lytro Operator",
+    "new": "New",
     "loading": "Loading…",
     "somethingWentWrong": "Something went wrong. Please try again.",
     "language": "Language",
@@ -72,6 +73,7 @@
     "attributes": "Attribute library",
     "optionSets": "Option sets",
     "reports": "Reports",
+    "paygFairUse": "PAYG fair use",
     "audit": "Audit log",
     "inbox": "Support inbox",
     "notices": "Notices",
@@ -409,6 +411,7 @@
     "change": "Change",
     "history": "History",
     "since": "since {{d}}",
+    "retired": "Retired while fair use is on; history kept",
     "saved": "Saved. Applies from the next charge.",
     "noHistory": "No changes recorded.",
     "noNotice": "no notice",
@@ -417,7 +420,8 @@
       "taka": "৳ each",
       "orderPercent": "% of the order",
       "paymentPercent": "% of the payment",
-      "characters": "characters"
+      "characters": "characters",
+      "perThousand": "৳ per 1,000 successful requests"
     },
     "offerTitle": "Tell shops about this change?",
     "offerLine": "A rate-change notice, filled from it: \"{{t}}\"",
@@ -434,6 +438,10 @@
     "payg_order_fee_min": "Pay-as-you-go order fee, minimum",
     "payg_order_fee_pct": "Pay-as-you-go order fee",
     "payg_product_fee": "Pay-as-you-go product fee",
+    "payg_unlock_phone": "PAYG: show the phone (step 1)",
+    "payg_unlock_confirm": "PAYG: confirm (step 2)",
+    "payg_booking_fee": "PAYG: manual order, courier booked through Lytro",
+    "payg_api_per_thousand": "PAYG: API, per 1,000 successful requests",
     "sms_unit_size_chars": "SMS part size",
     "listener_verification_pct": "Listener verification fee",
     "gateway_verification_pct": "Gateway verification fee"
@@ -479,8 +487,14 @@
       "perMinute": "a minute",
       "mb": "MB",
       "seconds": "seconds",
-      "hours": "hours"
+      "hours": "hours",
+      "requests": "requests a cycle"
     },
+    "fairUse": {
+      "off": "Off",
+      "on": "On"
+    },
+    "fairUseHelp": "Before turning it on: the top-up minimum at ৳10 or less, Lytro's own listener phone paired, and the 7-day notice to pay-as-you-go shops posted.",
     "orderLimit": {
       "block": "Block",
       "allow_with_prompt": "Allow, with a prompt to upgrade"
@@ -553,6 +567,9 @@
     "archived_days": "Archived",
     "reservation_expiry_minutes": "Unpaid order holds stock for",
     "order_limit_mode": "Past the order limit",
+    "payg_fair_use": "Pay-as-you-go fair use",
+    "payg_activation_topup": "Pay-as-you-go activation top-up",
+    "payg_api_free_requests": "Pay-as-you-go free API requests",
     "usage_grace_percent": "Grace past a limit",
     "fast_spend_percent": "Fast-spend alert at",
     "public_requests_per_visitor_per_minute": "Requests per visitor",
@@ -2139,5 +2156,26 @@
       "courier_message_unread": "A courier's message couldn't be read. It is kept as it came, for checking.",
       "shop_payment_without_proof": "A customer's payment was marked paid without an SMS or a gateway answer."
     }
+  },
+  "payg": {
+    "title": "PAYG fair use",
+    "lead": "Pay-as-you-go shops over the last 30 days: the orders that came through Lytro (storefront, landing pages, public key) against those the seller opened. Watch marks a shop with 20 or more orders and under 25% opened.",
+    "switchOff": "Fair use is off, so no order locks yet: the figures count orders as they arrive, and nothing is charged for opening them.",
+    "all": "All",
+    "watch": "Watch",
+    "paused": "Paused",
+    "active": "Active",
+    "shop": "Shop",
+    "received": "Orders in",
+    "opened": "Opened (৳7)",
+    "confirmed": "Confirmed (৳3)",
+    "openRate": "Open rate",
+    "apiRequests": "API requests",
+    "apiCharged": "API charged",
+    "fees": "Fees, 30 d",
+    "balance": "Balance",
+    "storefront": "Storefront",
+    "empty": "No pay-as-you-go shop here.",
+    "note": "Storefront visits are served from Cloudflare's cache and never reach the server, so they are not counted here. Fees: unlocks, manual bookings, new products and API charges."
   }
 }

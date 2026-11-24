@@ -23,6 +23,7 @@ import { PaymentMethodsModule } from '../payment-methods/payment-methods.module'
 import { PaymentSessionsModule } from '../payment-sessions/payment-sessions.module';
 import { DomainsModule } from '../domains/domains.module';
 import { CatalogueModule } from '../catalogue/catalogue.module';
+import { FairUseModule } from '../fair-use/fair-use.module';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
 import { ShoppersModule } from '../shoppers/shoppers.module';
 import { TenancyModule } from '../tenancy/tenancy.module';
@@ -46,6 +47,8 @@ import { PublicApiHost } from './services/public-api-host';
 import { PublicCatalogue } from './services/public-catalogue';
 import { RequestLimits } from './services/request-limits';
 import { RequestQuota } from './services/request-quota';
+import { ApiCharges } from './services/api-charges';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { VisitorLimit } from './services/visitor-limit';
 import { BalanceModule } from '../balance/balance.module';
 import { DeliveryModule } from '../delivery/delivery.module';
@@ -100,6 +103,9 @@ import {
     TenancyModule,
     CatalogueModule,
     PlatformSettingsModule,
+    // PAYG-FAIR-USE-PLAN: locked orders, the paused storefront and the API charge, and its warnings (PF-36).
+    FairUseModule,
+    NotificationsModule,
     UsageWarningsModule,
     BrandModule,
     StorefrontDesignModule,
@@ -158,6 +164,7 @@ import {
     PublicApiEraser,
     RequestLimits,
     RequestQuota,
+    ApiCharges,
     VisitorLimit,
     OrderLimits,
     PublicOrderService,
@@ -181,6 +188,7 @@ import {
     PublicApiEraser,
     PublicApiHost,
     RequestQuota,
+    ApiCharges,
   ],
 })
 export class PublicApiModule {}

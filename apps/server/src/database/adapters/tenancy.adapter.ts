@@ -1,3 +1,4 @@
+import type { PayAsYouGoShopRow } from '@lytronix/db';
 import type { PlanStanding } from '@lytronix/db';
 import { Inject, Injectable } from '@nestjs/common';
 import {
@@ -159,6 +160,30 @@ export class DrizzleTenantStore implements TenantStore {
 
   setBalanceFrozen(tx: Transaction, tenantId: string, frozen: boolean): Promise<void> {
     return this.tenants.setBalanceFrozen(tx, tenantId, frozen);
+  }
+
+  markStorefrontActivated(tx: Transaction, tenantId: string, at: Date): Promise<boolean> {
+    return this.tenants.markStorefrontActivated(tx, tenantId, at);
+  }
+
+  markPaidShopsActivated(tx: Transaction, minTopUp: number, at: Date): Promise<string[]> {
+    return this.tenants.markPaidShopsActivated(tx, minTopUp, at);
+  }
+
+  findTrialsToWarn(
+    tx: Transaction,
+    now: Date,
+    horizon: Date,
+  ): Promise<{ id: string; periodEnd: Date }[]> {
+    return this.tenants.findTrialsToWarn(tx, now, horizon);
+  }
+
+  listPayAsYouGo(tx: Transaction): Promise<PayAsYouGoShopRow[]> {
+    return this.tenants.listPayAsYouGo(tx);
+  }
+
+  setApiMonthlyCap(tx: Transaction, tenantId: string, cap: string): Promise<void> {
+    return this.tenants.setApiMonthlyCap(tx, tenantId, cap);
   }
 
   applyPlanAssignment(

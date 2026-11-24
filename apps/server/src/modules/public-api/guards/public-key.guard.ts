@@ -2,17 +2,26 @@ import { CanActivate, ExecutionContext, Inject, Injectable } from '@nestjs/commo
 import { Reflector } from '@nestjs/core';
 import { ApiKeyPurpose } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
-import { TAKES_ORDERS } from '../../../common/decorators/public-api';
+import { SERVED_WHILE_PAUSED, TAKES_ORDERS } from '../../../common/decorators/public-api';
+import { storefrontPaused } from '../../fair-use/services/fair-use-rules';
+import { FairUseSwitch } from '../../fair-use/services/fair-use-switch';
 import { headerValue, type HttpRequest, type HttpResponse } from '../../../common/http';
 import { CLOSED_STATES } from '../../tenancy/services/tenant-resolver.service';
 import type { CachedTenant } from '../../tenancy/types/cached-tenant';
 import { ApiKeyAuthenticator } from '../services/api-key-authenticator';
 import { looksLikeKey } from '../services/api-key-value';
 import { allowOrigin } from '../services/cors';
+import { ApiCharges } from '../services/api-charges';
 import { RequestQuota } from '../services/request-quota';
 import { VisitorLimit } from '../services/visitor-limit';
 import { API_CLOCK } from '../tokens';
 import type { ApiShop, AuthenticatedKey } from '../types/public-api';
+
+/** What the response shows of itself once it has gone out (Express's, under the minimal HttpResponse). */
+interface AnsweredResponse {
+  statusCode: number;
+  once(event: 'finish', listener: () => void): unknown;
+}
 
 /** A public API request once its key is accepted: the shop it acts for (TEN-02, API-10) and the key. */
 export interface PublicApiRequest extends HttpRequest {
@@ -43,6 +52,8 @@ export class PublicKeyGuard implements CanActivate {
     @Inject(RequestQuota) private readonly quota: RequestQuota,
     @Inject(API_CLOCK) private readonly clock: () => Date,
     @Inject(Reflector) private readonly reflector: Reflector,
+    @Inject(FairUseSwitch) private readonly fairUse: FairUseSwitch,
+    @Inject(ApiCharges) private readonly charges: ApiCharges,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -73,13 +84,34 @@ export class PublicKeyGuard implements CanActivate {
     if (CLOSED_STATES.has(shop.row.state) || shop.row.suspendedAt !== null) {
       throw new ApiError('tenant_offline', 'ShopUnavailable', {});
     }
+    // PYG-25 (PF-13, PFQ-2): a pay-as-you-go shop that never paid answers only the shop itself and tracking, through
+    // its storefront's key and its own alike, until its first top-up of the activation amount.
+    if (
+      storefrontPaused(await this.fairUse.isOn(), shop.row) &&
+      !this.reflector.get<boolean>(SERVED_WHILE_PAUSED, context.getHandler())
+    ) {
+      throw new ApiError('tenant_offline', 'StorefrontPaused', { paused: true });
+    }
 
     await this.visitors.admit(shop, request, response, now);
     if (key.purpose !== ApiKeyPurpose.Storefront) {
       const takesOrders = this.reflector.get<boolean>(TAKES_ORDERS, context.getHandler());
-      if (!(await this.quota.take(shop, now, takesOrders))) {
+      if (await this.charges.applies(shop.row.state)) {
+        // PYG-26 (PF-14): on pay-as-you-go with fair use on, the free allowance and then the per-1,000 charge stand in
+        // for the plan's limit: past the cap or the balance, the API stops -- placing an order still served (QTA-07).
+        if (!takesOrders && !(await this.charges.admits(shop, now))) {
+          throw new ApiError('quota_exceeded', 'ApiCapReached', {});
+        }
+        await this.quota.take(shop, now, true);
+      } else if (!(await this.quota.take(shop, now, takesOrders))) {
         throw new ApiError('quota_exceeded', 'RequestsUsedUp', {});
       }
+      // PF-37: only an answer that succeeded is charged; it is counted as it goes out.
+      const raw = response as HttpResponse & Partial<AnsweredResponse>;
+      raw.once?.('finish', () => {
+        const status = raw.statusCode ?? 0;
+        if ((status >= 200 && status < 300) || status === 304) this.quota.answered(shop, now);
+      });
     }
 
     request.tenant = {

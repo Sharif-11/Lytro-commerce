@@ -83,6 +83,13 @@ export function SettingValue({
       </span>
     );
   }
+  if (unit === 'fairUse') {
+    return (
+      <span className="text-right font-semibold">
+        {t(`settings.fairUse.${plain}`, { defaultValue: plain })}
+      </span>
+    );
+  }
   if (unit === 'ai') {
     return (
       <span className="font-semibold">

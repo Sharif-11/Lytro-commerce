@@ -15,6 +15,10 @@ export const RATE_UNITS: Readonly<Record<RateKey, RateUnit>> = {
   [RateKey.ListenerVerificationPct]: 'paymentPercent',
   [RateKey.GatewayVerificationPct]: 'paymentPercent',
   [RateKey.AiExtraction]: 'taka',
+  [RateKey.PaygUnlockPhone]: 'taka',
+  [RateKey.PaygUnlockConfirm]: 'taka',
+  [RateKey.PaygBookingFee]: 'taka',
+  [RateKey.PaygApiPerThousand]: 'taka',
 };
 
 /**
@@ -38,6 +42,19 @@ export const RATE_NAMES: Readonly<Record<RateKey, { bn: string; en: string }>> =
     en: 'Listener verification fee',
   },
   [RateKey.GatewayVerificationPct]: { bn: 'গেটওয়ে ভেরিফিকেশন ফি', en: 'Gateway verification fee' },
+  [RateKey.PaygUnlockPhone]: {
+    bn: 'অর্ডারের নম্বর দেখা',
+    en: "Pay-as-you-go: an order's phone shown",
+  },
+  [RateKey.PaygUnlockConfirm]: { bn: 'অর্ডার কনফার্ম', en: 'Pay-as-you-go: an order confirmed' },
+  [RateKey.PaygBookingFee]: {
+    bn: 'হাতে লেখা অর্ডারের কুরিয়ার বুকিং',
+    en: 'Pay-as-you-go: courier booking for a manual order',
+  },
+  [RateKey.PaygApiPerThousand]: {
+    bn: 'API, প্রতি ১,০০০ রিকোয়েস্ট',
+    en: 'Pay-as-you-go: API, per 1,000 requests',
+  },
 };
 
 /** A rate's value as words write it: ৳0.55, 1.5%, 160. */

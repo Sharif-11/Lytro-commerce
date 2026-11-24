@@ -10,6 +10,7 @@ import {
   isVatBin,
   isVatRate,
   OrderLimitMode,
+  PaygFairUseMode,
   PlatformSettingKey,
   VAT_SELLER_ADDRESS_MAX,
   VAT_SELLER_NAME_MAX,
@@ -66,6 +67,7 @@ function valueToSend(words: string, unit: SettingUnit): number | string | string
   }
   if (
     unit === 'choice' ||
+    unit === 'fairUse' ||
     unit === 'text' ||
     unit === 'email' ||
     unit === 'version' ||
@@ -211,6 +213,27 @@ export function SettingEditor({
           {Object.values(OrderLimitMode).map((mode) => (
             <option key={mode} value={mode}>
               {t(`settings.orderLimit.${mode}`)}
+            </option>
+          ))}
+        </select>
+      </InlineForm>
+    );
+  }
+  if (unit === 'fairUse') {
+    return (
+      <InlineForm {...shared} after={<div className={HELP}>{t('settings.fairUseHelp')}</div>}>
+        <select
+          name="value"
+          aria-label={label}
+          value={words}
+          onChange={(event) => {
+            change(event.target.value);
+          }}
+          className={`${INLINE_FIELD} h-11 max-w-full`}
+        >
+          {Object.values(PaygFairUseMode).map((mode) => (
+            <option key={mode} value={mode}>
+              {t(`settings.fairUse.${mode}`)}
             </option>
           ))}
         </select>

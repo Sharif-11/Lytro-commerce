@@ -29,6 +29,7 @@ import {
   FulfilmentType,
   ORDER_ADDRESS_MAX_LENGTH,
   ORDER_NOTES_MAX_LENGTH,
+  OrderAccess,
   OrderHistoryField,
   OrderPaymentStatus,
   OrderSource,
@@ -69,6 +70,8 @@ export const fulfilmentType = tenant.enum(
   enumTuple(Object.values(FulfilmentType)),
 );
 export const orderSource = tenant.enum('order_source', enumTuple(Object.values(OrderSource)));
+// PYG-22 (PAYG-FAIR-USE-PLAN PF-1 to PF-3): how much of a pay-as-you-go order from Lytro the shop has opened.
+export const orderAccess = tenant.enum('order_access', enumTuple(Object.values(OrderAccess)));
 export const paymentMethod = tenant.enum('payment_method', enumTuple(Object.values(PaymentMethod)));
 export const callOutcome = tenant.enum('call_outcome', enumTuple(Object.values(CallOutcome)));
 export const cancelReason = tenant.enum('cancel_reason', enumTuple(Object.values(CancelReason)));
@@ -167,6 +170,11 @@ export const orders = tenant.table(
     customerErasedAt: timestamp('customer_erased_at', { withTimezone: true }),
     // ORD-01: the staff member who entered it; null for an order a shopper placed (ORD-02).
     createdBy: uuid('created_by'),
+    // PYG-22 (PF-1 to PF-3, PF-33): open for every order but a pay-as-you-go one from Lytro, which arrives locked; its
+    // phone shown (step 1) and when, and by whom.
+    access: orderAccess('access').notNull().default(OrderAccess.Open),
+    phoneShownAt: timestamp('phone_shown_at', { withTimezone: true }),
+    phoneShownBy: uuid('phone_shown_by'),
     createdAt: createdAt(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -224,6 +232,10 @@ export const orders = tenant.table(
       .on(t.tenantId, t.handledAt)
       .where(sql`${t.handledAt} IS NOT NULL`),
     index('orders_customer_idx').on(t.tenantId, t.customerId),
+    // PF-25, PF-38: a shop's orders still locked or at step 1, for the list's chip and the operator's report.
+    index('orders_tenant_access_idx')
+      .on(t.tenantId, t.access)
+      .where(sql`${t.access} IN ('locked', 'phone')`),
     // DAT-13, ORD-13: search by any part of the name, the phone (its last four digits) or the order number.
     index('orders_customer_name_trgm_idx').using('gin', t.customerName.op('gin_trgm_ops')),
     index('orders_customer_phone_trgm_idx').using('gin', t.customerPhone.op('gin_trgm_ops')),

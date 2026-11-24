@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { formatTaka } from '@lytronix/ui';
-import { OrderSource, OrderStatus, type CancelReason } from '@lytronix/validators';
+import { OrderAccess, OrderSource, OrderStatus, type CancelReason } from '@lytronix/validators';
 import {
   LOOK_TAB,
   MORE_TABS,
@@ -326,7 +326,16 @@ export function OrderRow({
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="truncate text-[16px] font-medium">
           <span className="num mr-1.5 font-semibold text-fg-muted">#{order.orderNumber}</span>
-          {order.customerErased ? t('erased') : (order.customerName ?? '')}
+          {order.customerErased ? (
+            t('erased')
+          ) : order.access === OrderAccess.Locked ? (
+            // PF-25: a locked row shows its masked phone where the name goes.
+            <span className="num text-fg-muted">
+              {order.customerPhone ?? order.customerName ?? ''}
+            </span>
+          ) : (
+            (order.customerName ?? '')
+          )}
         </span>
         <span className="truncate text-[14px] text-fg-muted">
           {atCounter(order) ? (
@@ -345,7 +354,16 @@ export function OrderRow({
         className={`flex flex-none flex-col items-end gap-1 text-right sm:flex-row sm:items-center sm:gap-4 ${wide ? '' : 'lg:flex-col lg:items-end lg:gap-1'}`}
       >
         <span className="num text-[16px] font-semibold">{formatTaka(order.grandTotal)}</span>
-        <StatusTag tone={shown.tone}>{shown.word}</StatusTag>
+        {order.access === OrderAccess.Locked ? (
+          <StatusTag tone="neutral">
+            <Icon name="lock" size={14} />
+            {t('fair.lockedTag')}
+          </StatusTag>
+        ) : order.access === OrderAccess.Phone && order.status === OrderStatus.Pending ? (
+          <StatusTag tone="info">{t('fair.phoneTag')}</StatusTag>
+        ) : (
+          <StatusTag tone={shown.tone}>{shown.word}</StatusTag>
+        )}
         {wide && dayLabel(order.createdAt).kind === 'today' ? (
           <span className="hidden min-w-[60px] text-right text-[13px] text-fg-subtle lg:inline">
             {words.time(order.createdAt)}

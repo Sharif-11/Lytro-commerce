@@ -82,7 +82,11 @@ export default async function LandingPage() {
         />
         <Proof language={language} />
         <ZeroRisk language={language} />
-        <Faq language={language} whatsapp={helpLine?.whatsapp ?? null} />
+        <Faq
+          language={language}
+          whatsapp={helpLine?.whatsapp ?? null}
+          fairUse={rates?.some((rate) => rate.key === 'payg_unlock_phone') === true}
+        />
         <Contact language={language} helpLine={helpLine} email={env.support.email} />
         <FinalCta language={language} signInUrl={urls.signIn()} />
       </main>

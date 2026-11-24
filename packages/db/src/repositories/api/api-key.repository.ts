@@ -27,6 +27,11 @@ export interface ApiShopRow extends TenantLookupRow {
   autoBuyRequests: boolean;
   /** TVR-03 (Slice 5.2b): the shop's payment page suspended by Lytro, or null. */
   paymentPageSuspendedAt: Date | null;
+  /** PYG-25 (PF-13): when the shop first paid a plan or the activation top-up; null pauses it on pay-as-you-go. */
+  storefrontActivatedAt: Date | null;
+  /** PYG-26 (PF-14, PF-36): its own website's API spending cap a cycle, and the balance that pays it. */
+  apiMonthlyCap: string;
+  balanceAmount: string;
 }
 
 // API-01 to API-05, API-08, API-23: a shop's API keys, in the control schema (the API finds a key before it knows
@@ -190,6 +195,9 @@ export class ApiKeyRepository {
         createdAt: tenants.createdAt,
         autoBuyRequests: tenants.autoBuyRequests,
         paymentPageSuspendedAt: tenants.paymentPageSuspendedAt,
+        storefrontActivatedAt: tenants.storefrontActivatedAt,
+        apiMonthlyCap: tenants.apiMonthlyCap,
+        balanceAmount: tenants.balanceAmount,
       })
       .from(tenants)
       .where(eq(tenants.id, tenantId))

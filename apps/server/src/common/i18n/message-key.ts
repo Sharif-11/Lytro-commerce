@@ -606,6 +606,13 @@ export const MESSAGE_KEYS = [
   // (ATR-15).
   'OrderNotFound',
   'OrderIsCancelled',
+  // PAYG-FAIR-USE-PLAN: an order not yet opened, a paused storefront, the API's cap, and packs on pay-as-you-go.
+  'OrderLocked',
+  'OrderPhoneShown',
+  'StorefrontPaused',
+  'ApiCapReached',
+  'ApiCapSaved',
+  'PacksNotOnPayAsYouGo',
   'OrderHasShipped',
   'OrderShippedReturnInstead',
   'OrderCannotBeDeleted',

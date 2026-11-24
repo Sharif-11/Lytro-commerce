@@ -4,9 +4,11 @@ import {
   ApiKeyPurpose,
   FieldProblemCode,
   FulfilmentType,
+  OrderAccess,
   OrderPaymentStatus,
   OrderSource,
   QueueName,
+  RateKey,
   type PublicOrderInput,
 } from '@lytronix/validators';
 import { FieldsError } from '../../../common/api-error';
@@ -25,6 +27,10 @@ import { PaymentSessions } from '../../payment-sessions/services/payment-session
 import type { JobQueue } from '../../shared/queue/ports/job-queue';
 import { JOB_QUEUE } from '../../shared/queue/tokens';
 import type { ApiShop, AuthenticatedKey } from '../types/public-api';
+import { RateService } from '../../balance/services/rate.service';
+import { LocationService } from '../../delivery/services/location.service';
+import { accessForNewOrder } from '../../fair-use/services/fair-use-rules';
+import { FairUseSwitch } from '../../fair-use/services/fair-use-switch';
 import { AdTrackingService } from './ad-tracking.service';
 import type { MetaPurchasePayload } from './meta-purchase-sender';
 import { OrderLimits } from './order-limits';
@@ -55,6 +61,9 @@ export class PublicOrderService {
     @Inject(PaymentMethods) private readonly methods: PaymentMethods,
     @Inject(PaymentSessions) private readonly sessions: PaymentSessions,
     @Inject(OrderLimits) private readonly limits: OrderLimits,
+    @Inject(FairUseSwitch) private readonly fairUse: FairUseSwitch,
+    @Inject(LocationService) private readonly locations: LocationService,
+    @Inject(RateService) private readonly rates: RateService,
   ) {}
 
   async place(
@@ -68,6 +77,8 @@ export class PublicOrderService {
     const source = this.sourceOf(input, key);
     const location = await this.pricing.thanaOf(input.locationId);
     const toMeta = await this.adTracking.sendsPurchases(tenantId);
+    // PYG-22 (PF-1, PF-20): a pay-as-you-go shop's order from Lytro arrives locked, with fair use on.
+    const access = accessForNewOrder(await this.fairUse.isOn(), shop.row.state, source);
     const now = new Date();
     const placed = await this.orders.inTransaction(tenantId, async (tx) => {
       // PAY-01, WAL-08 (Phase 5 Slice 5.2): how an advance could be paid -- the methods the shop offers shoppers now;
@@ -96,6 +107,7 @@ export class PublicOrderService {
         shopper: true,
         onlinePayment:
           offered.length === 0 ? 'unavailable' : input.payment === undefined ? 'not_sent' : 'ready',
+        access,
       });
       if (made.replayed) return made;
       // LND-10, SFT-07: an order waiting on its advance opens its payment with it, in the same transaction -- unless the
@@ -143,16 +155,31 @@ export class PublicOrderService {
     return OrderSource.Api;
   }
 
+  /** PF-28: what a locked order's notice says in place of the customer -- the district, and the phone's price. */
+  private async lockedNotice(
+    order: OrderRecord,
+  ): Promise<{ district: { bn: string; en: string } | null; fee: string }> {
+    const area = order.locationId !== null ? await this.locations.areaOf(order.locationId) : null;
+    const fee = (await this.rates.current(RateKey.PaygUnlockPhone))?.value ?? '7.00';
+    return {
+      district: area ? { bn: area.zilla.nameBn, en: area.zilla.nameEn } : null,
+      fee,
+    };
+  }
+
   /** ORD-20: tells the shop's staff, after the order has committed; a notice that fails never undoes the order. */
   private async tell(tenantId: string, order: OrderRecord): Promise<void> {
     try {
+      // ORD-20 as amended (PF-28): a locked order's notice names no one -- its amount, district and source.
+      const locked = order.access === OrderAccess.Locked;
       await this.notifier.orderPlaced({
         tenantId,
         orderId: order.id,
         orderNumber: order.orderNumber,
         source: order.source,
-        customerName: order.customerName,
+        customerName: locked ? null : order.customerName,
         grandTotal: order.grandTotal,
+        locked: locked ? await this.lockedNotice(order) : null,
       });
     } catch (error) {
       this.logger.error(`could not tell ${tenantId} of order ${order.orderNumber}`, error as Error);

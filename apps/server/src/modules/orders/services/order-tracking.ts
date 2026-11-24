@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
+  type OrderAccess,
   OrderStatus,
   ParcelReading,
   SHIPPED_FULFILLMENT,
@@ -164,6 +165,7 @@ export function trackedViewOf(
     courierReturning:
       shopperStatusOf(order) === OrderStatus.Shipped && reading === ParcelReading.Returning,
     payment: null,
+    shopPhone: null,
   };
 }
 
@@ -172,8 +174,14 @@ export function trackedViewOf(
 export class OrderTracking {
   constructor(@Inject(ORDER_STORE) private readonly store: OrderStore) {}
 
-  /** ORD-17: the order with this tracking ID in this shop; any other is `not_found`. */
-  async track(tenantId: string, trackingId: string): Promise<TrackedOrderView> {
+  /**
+   * ORD-17: the order with this tracking ID in this shop; any other is `not_found`. Its access (PYG-22) comes beside the
+   * view, for the public route's PFQ-5; a shopper is never told it.
+   */
+  async track(
+    tenantId: string,
+    trackingId: string,
+  ): Promise<{ view: TrackedOrderView; access: OrderAccess }> {
     return this.store.run(tenantId, async (tx) => {
       const order = await this.store.findByTrackingId(tx, tenantId, trackingId);
       if (!order) throw new ApiError('not_found', 'OrderNotFound', {});
@@ -185,7 +193,10 @@ export class OrderTracking {
       );
       const latest = await this.store.latestCourierMessage(tx, tenantId, order.id);
       const reading = await this.store.liveParcelReading(tx, tenantId, order.id);
-      return trackedViewOf(order, lines, components, latest, reading);
+      return {
+        view: trackedViewOf(order, lines, components, latest, reading),
+        access: order.access,
+      };
     });
   }
 

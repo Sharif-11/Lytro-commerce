@@ -66,6 +66,31 @@ export const shopsReportSchema = z.object({
 });
 export class ShopsReportDto extends createZodDto(shopsReportSchema) {}
 
+// PYG-13 as amended (PAYG-FAIR-USE-PLAN PF-38): every pay-as-you-go shop's last 30 days.
+const paygFairUseReportSchema = z.object({
+  fairUseOn: z.boolean(),
+  from: dateField(),
+  to: dateField(),
+  rows: z.array(
+    z.object({
+      tenantId: z.string(),
+      shopName: z.string(),
+      slug: z.string(),
+      received: z.number(),
+      opened: z.number(),
+      confirmed: z.number(),
+      openRate: z.number().nullable(),
+      apiRequests: z.number(),
+      apiCharged: z.string(),
+      feesEarned: z.string(),
+      balance: z.string(),
+      storefrontActive: z.boolean(),
+      watch: z.boolean(),
+    }),
+  ),
+});
+export class PaygFairUseReportDto extends createZodDto(paygFairUseReportSchema) {}
+
 export const consumersReportSchema = z.object({
   dateFrom: z.string(),
   dateTo: z.string(),

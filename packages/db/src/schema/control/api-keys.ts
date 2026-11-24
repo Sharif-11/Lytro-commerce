@@ -6,6 +6,7 @@ import {
   date,
   index,
   integer,
+  numeric,
   primaryKey,
   text,
   uniqueIndex,
@@ -101,6 +102,13 @@ export const apiUsage = control.table(
     packFree: bigint('pack_free', { mode: 'number' }).notNull().default(0),
     autoPacks: integer('auto_packs').notNull().default(0),
     autoBuyState: text('auto_buy_state').$type<PackAutoBuyState>(),
+    // PYG-26 (PF-14, PF-37): the cycle's successful answers, which alone are charged on pay-as-you-go; the whole 1,000s
+    // past the free allowance charged so far and what they came to; and the furthest charge warning sent: 1 the free
+    // allowance used, 2 four fifths of the cap, 3 stopped.
+    billable: bigint('billable', { mode: 'number' }).notNull().default(0),
+    billedBlocks: bigint('billed_blocks', { mode: 'number' }).notNull().default(0),
+    charged: numeric('charged', { precision: 12, scale: 2 }).notNull().default('0'),
+    chargeWarned: integer('charge_warned').notNull().default(0),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -124,6 +132,9 @@ export const apiUsageDaily = control.table(
     cycleStart: timestamp('cycle_start', { withTimezone: true }).notNull(),
     day: date('day', { mode: 'string' }).notNull(),
     requests: bigint('requests', { mode: 'number' }).notNull().default(0),
+    // PYG-26 (PF-37): the day's successful answers, and what the day's charge came to (PF-36's day-by-day list).
+    billable: bigint('billable', { mode: 'number' }).notNull().default(0),
+    charged: numeric('charged', { precision: 12, scale: 2 }).notNull().default('0'),
   },
   (t) => [
     primaryKey({ name: 'api_usage_daily_pkey', columns: [t.tenantId, t.cycleStart, t.day] }),

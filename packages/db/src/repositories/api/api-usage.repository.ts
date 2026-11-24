@@ -1,4 +1,4 @@
-import { and, asc, eq, sql } from 'drizzle-orm';
+import { and, asc, eq, gte, sql } from 'drizzle-orm';
 import { apiUsage, apiUsageDaily } from '../../schema';
 import type { Executor } from '../../transactions';
 import type { CyclePackFields, TenantTotal } from '../billing/addon-purchase.repository';
@@ -13,6 +13,10 @@ const ROW = {
   packFree: apiUsage.packFree,
   autoPacks: apiUsage.autoPacks,
   autoBuyState: apiUsage.autoBuyState,
+  billable: apiUsage.billable,
+  billedBlocks: apiUsage.billedBlocks,
+  charged: apiUsage.charged,
+  chargeWarned: apiUsage.chargeWarned,
 };
 
 /** One shop's requests in one billing cycle, as the database holds them. */
@@ -23,12 +27,20 @@ export interface ApiUsageRow extends CyclePackFields {
   warnedPercent: number;
   /** RTE-12: when the last fast-spend alert of the cycle went out, if one did. */
   fastSpendAlertedAt: Date | null;
+  /** PYG-26 (PF-14, PF-37): the cycle's successful answers; whole 1,000s charged and what they came to; warned. */
+  billable: number;
+  billedBlocks: number;
+  charged: string;
+  chargeWarned: number;
 }
 
 /** A shop's requests on one Asia/Dhaka day of a cycle (YYYY-MM-DD). */
 export interface ApiUsageDayRow {
   day: string;
   requests: number;
+  /** PYG-26 (PF-36): the day's successful answers and its charge. */
+  billable: number;
+  charged: string;
 }
 
 /** What one server counted for a shop's cycle since it last added its counts. */
@@ -41,6 +53,8 @@ export interface ApiUsageCounts {
   refusedOrders: number;
   /** RTE-08 (amended 2026-10-31): the payment sessions the shop's per-minute window refused. */
   refusedSessions: number;
+  /** PYG-26 (PF-37): the requests answered with success (2xx or 304), the only ones pay-as-you-go is charged for. */
+  billable?: number;
 }
 
 // RTE-03, D3-2: each shop's requests per billing cycle. The servers count in memory and add their counts here every
@@ -57,18 +71,22 @@ export class ApiUsageRepository {
     counts: ApiUsageCounts,
     day: string,
   ): Promise<ApiUsageRow> {
-    if (counts.requests > 0) {
+    const billable = counts.billable ?? 0;
+    if (counts.requests > 0 || billable > 0) {
       await db
         .insert(apiUsageDaily)
-        .values({ tenantId, cycleStart, day, requests: counts.requests })
+        .values({ tenantId, cycleStart, day, requests: counts.requests, billable })
         .onConflictDoUpdate({
           target: [apiUsageDaily.tenantId, apiUsageDaily.cycleStart, apiUsageDaily.day],
-          set: { requests: sql`${apiUsageDaily.requests} + ${counts.requests}` },
+          set: {
+            requests: sql`${apiUsageDaily.requests} + ${counts.requests}`,
+            billable: sql`${apiUsageDaily.billable} + ${billable}`,
+          },
         });
     }
     const [row] = await db
       .insert(apiUsage)
-      .values({ tenantId, cycleStart, ...counts })
+      .values({ tenantId, cycleStart, ...counts, billable })
       .onConflictDoUpdate({
         target: [apiUsage.tenantId, apiUsage.cycleStart],
         set: {
@@ -77,6 +95,7 @@ export class ApiUsageRepository {
           refusedVisitors: sql`${apiUsage.refusedVisitors} + ${counts.refusedVisitors}`,
           refusedOrders: sql`${apiUsage.refusedOrders} + ${counts.refusedOrders}`,
           refusedSessions: sql`${apiUsage.refusedSessions} + ${counts.refusedSessions}`,
+          billable: sql`${apiUsage.billable} + ${billable}`,
           updatedAt: new Date(),
         },
       })
@@ -88,7 +107,12 @@ export class ApiUsageRepository {
   /** The days of the shop's cycle, in order; together they total the cycle's requests. */
   async listDays(db: Executor, tenantId: string, cycleStart: Date): Promise<ApiUsageDayRow[]> {
     return db
-      .select({ day: apiUsageDaily.day, requests: apiUsageDaily.requests })
+      .select({
+        day: apiUsageDaily.day,
+        requests: apiUsageDaily.requests,
+        billable: apiUsageDaily.billable,
+        charged: apiUsageDaily.charged,
+      })
       .from(apiUsageDaily)
       .where(and(eq(apiUsageDaily.tenantId, tenantId), eq(apiUsageDaily.cycleStart, cycleStart)))
       .orderBy(asc(apiUsageDaily.day));
@@ -117,6 +141,22 @@ export class ApiUsageRepository {
       .for('update');
     if (!row) throw new Error('no api usage row after making it');
     return row;
+  }
+
+  /** PYG-13 as amended (PF-38): the shop's own website's requests, and the successful ones, on the days since `fromDay`. */
+  async sinceDay(
+    db: Executor,
+    tenantId: string,
+    fromDay: string,
+  ): Promise<{ requests: number; billable: number }> {
+    const [row] = await db
+      .select({
+        requests: sql<number>`coalesce(sum(${apiUsageDaily.requests}), 0)::bigint`.mapWith(Number),
+        billable: sql<number>`coalesce(sum(${apiUsageDaily.billable}), 0)::bigint`.mapWith(Number),
+      })
+      .from(apiUsageDaily)
+      .where(and(eq(apiUsageDaily.tenantId, tenantId), gte(apiUsageDaily.day, fromDay)));
+    return row ?? { requests: 0, billable: 0 };
   }
 
   /** RTE-11: what the shop's cycles took from its request packs. */
@@ -150,6 +190,47 @@ export class ApiUsageRepository {
     await db
       .update(apiUsage)
       .set({ fastSpendAlertedAt: at })
+      .where(and(eq(apiUsage.tenantId, tenantId), eq(apiUsage.cycleStart, cycleStart)));
+  }
+
+  /**
+   * PYG-26 (PF-14): a day's charge for the cycle's whole 1,000s past the free allowance -- added to the cycle's and the
+   * day's figures in the charge's own transaction.
+   */
+  async recordCharge(
+    db: Executor,
+    tenantId: string,
+    cycleStart: Date,
+    day: string,
+    blocks: number,
+    amount: string,
+  ): Promise<void> {
+    await db
+      .update(apiUsage)
+      .set({
+        billedBlocks: sql`${apiUsage.billedBlocks} + ${blocks}`,
+        charged: sql`${apiUsage.charged} + ${amount}`,
+      })
+      .where(and(eq(apiUsage.tenantId, tenantId), eq(apiUsage.cycleStart, cycleStart)));
+    await db
+      .insert(apiUsageDaily)
+      .values({ tenantId, cycleStart, day, charged: amount })
+      .onConflictDoUpdate({
+        target: [apiUsageDaily.tenantId, apiUsageDaily.cycleStart, apiUsageDaily.day],
+        set: { charged: sql`${apiUsageDaily.charged} + ${amount}` },
+      });
+  }
+
+  /** PYG-26 (PF-36): the furthest charge warning sent for the cycle, so each goes once. */
+  async setChargeWarned(
+    db: Executor,
+    tenantId: string,
+    cycleStart: Date,
+    level: number,
+  ): Promise<void> {
+    await db
+      .update(apiUsage)
+      .set({ chargeWarned: level })
       .where(and(eq(apiUsage.tenantId, tenantId), eq(apiUsage.cycleStart, cycleStart)));
   }
 

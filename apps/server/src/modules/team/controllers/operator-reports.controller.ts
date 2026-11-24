@@ -7,6 +7,7 @@ import { SkipTenant } from '../../../common/decorators/skip-tenant';
 import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
 import { OperatorSessionGuard } from '../../operator/guards/operator-session.guard';
 import { OperatorAuditLog, type AuditLogPage } from '../../reports/services/operator-audit-log';
+import { PaygReport, type PaygFairUseReport } from '../../reports/services/payg-report';
 import {
   consumersCsv,
   reportFileName,
@@ -24,6 +25,7 @@ import {
   AuditLogPageDto,
   ConsumersQueryDto,
   ConsumersReportDto,
+  PaygFairUseReportDto,
   ReportQueryDto,
   RevenueReportDto,
   ShopsReportDto,
@@ -57,7 +59,20 @@ export class OperatorReportsController {
   constructor(
     @Inject(Reports) private readonly reports: Reports,
     @Inject(OperatorAuditLog) private readonly audit: OperatorAuditLog,
+    @Inject(PaygReport) private readonly payg: PaygReport,
   ) {}
+
+  @Get('reports/payg-fair-use')
+  @PausedWhileDegraded()
+  @ResponseMessage('ShopsReportRead')
+  @ApiOperation({
+    summary:
+      'Every pay-as-you-go shop over the last 30 days: orders from Lytro received, opened and confirmed, its API use and charges, its fees, balance and storefront; many orders and few opened marked to watch (PYG-13, PF-38)',
+  })
+  @ZodResponse({ type: PaygFairUseReportDto })
+  paygFairUse(): Promise<PaygFairUseReport> {
+    return this.payg.fairUseReport();
+  }
 
   @Get('reports/revenue')
   @PausedWhileDegraded()

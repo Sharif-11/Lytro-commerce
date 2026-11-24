@@ -21,6 +21,8 @@ export interface SmsOrderFacts {
   customerPhone: string | null;
   /** CUS-09: an order whose customer was erased has no one to send to. */
   customerErased: boolean;
+  /** PYG-23 (PF-7): a locked order's SMS to the owner names no one. */
+  locked: boolean;
   grandTotal: string;
   trackingLink: string | null;
   trackingCode: string | null;

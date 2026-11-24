@@ -12,6 +12,7 @@ import {
   FulfilmentType,
   OrderHistoryField,
   OrderPaymentStatus,
+  OrderSource,
   OrderStatus,
   ParcelState,
   PaymentMethod,
@@ -38,7 +39,9 @@ import { StockReturnService } from '../../inventory/services/stock-return.servic
 import { SmsEventQueue } from '../../sms-events/services/sms-event-queue';
 import type { ReservationRecord } from '../../inventory/types/inventory';
 import type { OrderStore } from '../ports/order-store';
+import { FairUseSwitch } from '../../fair-use/services/fair-use-switch';
 import { ORDER_STORE } from '../tokens';
+import { OrderAccessSteps } from './order-access-steps';
 import type { OrderLineRecord, OrderRecord, OrderSerialItem, OrderView } from '../types/orders';
 import { HandlingQuota, type HandlingPassed, type HandlingShop } from './handling-quota';
 import { OrderService } from './order.service';
@@ -112,6 +115,8 @@ export class OrderFulfilment {
     @Inject(CatalogueActivity) private readonly activity: CatalogueActivity,
     @Inject(PaymentRecorder) private readonly payments: PaymentRecorder,
     @Inject(SmsEventQueue) private readonly smsEvents: SmsEventQueue,
+    @Inject(OrderAccessSteps) private readonly access: OrderAccessSteps,
+    @Inject(FairUseSwitch) private readonly fairUse: FairUseSwitch,
   ) {}
 
   /** ORD-09, D4-7: a delivery order sent with a courier, the whole order at once. */
@@ -176,12 +181,40 @@ export class OrderFulfilment {
   ): Promise<BookingAside> {
     if (order.handledAt !== null) return { passed: null, fee: null, tookPlace: false };
     const passed = await this.quota.admitWithin(tx, shop, now);
-    const fee =
-      shop.state === TenantState.PayAsYouGo
-        ? await this.payg.holdOrderFee(tx, shop.id, order.grandTotal)
-        : null;
+    const fee = await this.holdFeeWithin(tx, shop, order);
     await this.store.updateOrder(tx, shop.id, order.id, { handledAt: now });
     return { passed, fee, tookPlace: true };
+  }
+
+  /**
+   * PYG-22, PF-23 (PAYG-FAIR-USE-PLAN): a courier booked for an order being opened is its step 2 -- the ৳3 charged in
+   * the booking's own first transaction, and kept if the courier then refuses (PYG-04 as amended). A locked order can't be
+   * booked: its address is still held back. Open orders pass unchanged.
+   */
+  async openForBookingWithin(
+    tx: Transaction,
+    tenantId: string,
+    order: OrderRecord,
+    who: ResolvedActor,
+  ): Promise<OrderRecord> {
+    this.access.refuseLocked(order);
+    return this.access.confirmWithin(tx, tenantId, order, who);
+  }
+
+  /**
+   * PYG-02, PYG-03 and, with fair use on, their amendment (PF-4, PF-11): what a courier booking holds from the balance on
+   * pay-as-you-go. With fair use off, the order fee (1.5%, at least ৳20) as before. With it on, a manual order's flat ৳10
+   * and nothing for any other: an order from Lytro paid its way through its steps, and one placed on a trial or a plan
+   * keeps the rule it arrived under (PF-33).
+   */
+  private async holdFeeWithin(
+    tx: Transaction,
+    shop: HandlingShop,
+    order: OrderRecord,
+  ): Promise<OrderFeeQuote | null> {
+    if (shop.state !== TenantState.PayAsYouGo) return null;
+    if (!(await this.fairUse.isOn())) return this.payg.holdOrderFee(tx, shop.id, order.grandTotal);
+    return order.source === OrderSource.Dashboard ? this.payg.holdBookingFee(tx, shop.id) : null;
   }
 
   /** Phase 6 close-out (A3): a parcel's IDs that came after it settled reach the order, where its tracking reads them. */
@@ -634,8 +667,11 @@ export class OrderFulfilment {
   ): Promise<OrderView> {
     const who = await this.activity.resolve(shop.id, actor);
     return this.store.run(shop.id, async (tx) => {
-      const order = await this.find(tx, shop.id, orderId);
+      let order = await this.find(tx, shop.id, orderId);
       this.refuseDeparture(order, departure.type);
+      // PYG-22, PF-23: an order being opened leaves only once confirmed -- sending it is its step 2.
+      this.access.refuseLocked(order);
+      order = await this.access.confirmWithin(tx, shop.id, order, who);
       // D6-13: by hand stays, unless a booking is open: only a settled parcel leaves the order free to go on.
       const live = await this.store.liveParcel(tx, shop.id, order.id);
       if (live !== null) this.refuseOpenBooking(live);
@@ -743,7 +779,9 @@ export class OrderFulfilment {
   ): Promise<HandlingPassed | null> {
     if (order.handledAt !== null) return null;
     const passed = await this.quota.admitWithin(tx, shop, now);
-    if (shop.state === TenantState.PayAsYouGo) {
+    // PYG-02 as amended (PF-11): with fair use on, a manual tracking entry or a hand-over charges nothing -- only a
+    // courier booked through Lytro does.
+    if (shop.state === TenantState.PayAsYouGo && !(await this.fairUse.isOn())) {
       await this.payg.chargeOrderFee(tx, shop.id, order.id, order.grandTotal);
     }
     return passed;

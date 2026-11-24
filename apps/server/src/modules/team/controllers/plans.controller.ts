@@ -82,6 +82,6 @@ export class PlansController {
   @ApiOperation({ summary: 'Get the current platform rates' })
   @ZodResponse({ type: [RateValueDto] })
   listRates(): Promise<RateValue[]> {
-    return this.rates.list();
+    return this.rates.listForShops();
   }
 }

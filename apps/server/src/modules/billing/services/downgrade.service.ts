@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { StorefrontActivation } from '../../balance/services/storefront-activation';
 import { EdgePurges } from '../../shared/edge-cache/services/edge-purges';
 import type { BillingInfoRow, Transaction } from '@lytronix/db';
 import {
@@ -115,6 +116,7 @@ export class DowngradeService {
     @Inject(AccountNotices) private readonly notices: AccountNotices,
     @Inject(CLOCK) private readonly clock: () => Date,
     @Inject(EdgePurges) private readonly edge: EdgePurges,
+    @Inject(StorefrontActivation) private readonly activation: StorefrontActivation,
   ) {}
 
   /** DWN-01: schedules a downgrade; re-scheduling replaces any existing one (the row is upserted). */
@@ -391,6 +393,8 @@ export class DowngradeService {
         periodEnd: null,
         state: TenantState.PayAsYouGo,
       });
+      // PF-13, PF-35: a shop that never paid (a plan given, not bought) pauses its storefront on pay-as-you-go.
+      await this.activation.becamePayAsYouGoWithin(tx, tenantId, info.storefrontActivatedAt);
       await this.balance.unfreeze(tx, tenantId);
       if (info.cancelledAt) await this.tenants.setCancellation(tx, tenantId, null);
       await this.audit.record(tx, {

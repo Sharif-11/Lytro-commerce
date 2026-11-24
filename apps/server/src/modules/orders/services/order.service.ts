@@ -18,6 +18,7 @@ import {
   FulfilmentType,
   fulfilmentProblems,
   MEASURED_STOCK_UNITS,
+  OrderAccess,
   OrderHistoryField,
   OrderPaymentStatus,
   OrderSource,
@@ -53,6 +54,8 @@ import { LocationService } from '../../delivery/services/location.service';
 import type { ResolvedZoneView } from '../../delivery/types/delivery';
 import { ReservationService } from '../../inventory/services/reservation.service';
 import { OrderCombos } from './order-combos';
+import { OrderAccessSteps } from './order-access-steps';
+import { OrderMask } from './order-mask';
 import { milli } from '../../inventory/services/stock-state';
 import { FraudCheckQueue } from '../../fraud-checks/services/fraud-check-queue';
 import { PlatformAdEvents } from '../../platform-ads/services/platform-ad-events';
@@ -76,6 +79,7 @@ import type {
   OrderWarning,
   UnnumberedOrder,
 } from '../types/orders';
+import type { HandlingShop } from './handling-quota';
 import { newTrackingId, orderNumberOf } from './order-numbers';
 import {
   chooseModifiers,
@@ -151,6 +155,11 @@ export interface NewOrderSpec {
   shopper: boolean;
   /** PAY-01 (Phase 5 Slice 5.2): whether a shopper can pay an advance online; null for staff. */
   onlinePayment: OnlinePayment | null;
+  /**
+   * PYG-22 (PF-1, PF-20): how it starts -- locked for a pay-as-you-go shop's order from Lytro with fair use on, open
+   * otherwise. A locked order makes no customer until its phone is shown (PF-27, CUS-01 amended).
+   */
+  access?: OrderAccess;
 }
 
 /**
@@ -310,8 +319,24 @@ export class OrderService {
     @Inject(OrderCombos) private readonly combos: OrderCombos,
     @Inject(SmsEventQueue) private readonly smsEvents: SmsEventQueue,
     @Inject(FraudCheckQueue) private readonly fraudChecks: FraudCheckQueue,
+    @Inject(OrderAccessSteps) private readonly access: OrderAccessSteps,
     @Inject(PlatformAdEvents) private readonly platformAds: PlatformAdEvents,
   ) {}
+
+  /**
+   * PYG-22 (PAYG-FAIR-USE-PLAN PF-2, PF-31): a locked pay-as-you-go order's phone shown, ৳7 from the balance -- its name,
+   * phone and note, and its customer made. Short of balance the step is refused and the order stays locked. A second tap
+   * on an order already opened charges nothing.
+   */
+  async showPhone(shop: HandlingShop, orderId: string, actor: CatalogueActor): Promise<OrderView> {
+    const tenantId = shop.id;
+    const who = await this.activity.resolve(tenantId, actor);
+    return this.store.run(tenantId, async (tx) => {
+      const order = await this.find(tx, tenantId, orderId, true);
+      const shown = await this.access.showPhoneWithin(tx, tenantId, order, who, new Date(), shop);
+      return this.viewWithin(tx, tenantId, shown, []);
+    });
+  }
 
   /**
    * ORD-01, ORD-07, ORD-22, PRD-07, D4-8: an order entered by staff, holding its stock, once per idempotency key; a
@@ -390,8 +415,11 @@ export class OrderService {
     if (claimed.replay) return { replayed: true, body: claimed.body };
     const now = new Date();
     // KNOWN-GAPS §75 and §98's lock order: products and levels, then the customer, then the day's counter.
+    const access = spec.access ?? OrderAccess.Open;
     const customerId =
-      spec.phone !== null ? await this.customers.claimWithin(tx, tenantId, spec.phone) : null;
+      spec.phone !== null && access === OrderAccess.Open
+        ? await this.customers.claimWithin(tx, tenantId, spec.phone)
+        : null;
     const variants = await this.pricing.variantsWithin(
       tx,
       tenantId,
@@ -431,6 +459,7 @@ export class OrderService {
       createdBy: spec.by,
       createdAt: now,
       updatedAt: now,
+      access,
     });
     const lines = await this.store.insertLines(tx, tenantId, made.id, this.rowsOf(planned, price));
     await this.combos.write(tx, tenantId, lines, components);
@@ -656,9 +685,11 @@ export class OrderService {
           customerId: query.customerId ?? null,
           holdingVariantId: query.variantId ?? null,
           attention: query.attention === 'any',
+          lockedOnly: query.access === 'locked',
         },
         { offset: (query.page - 1) * query.limit, limit: query.limit },
       );
+      const locked = await this.store.countLocked(tx, tenantId);
       const areas = new Map(
         await Promise.all(
           [
@@ -667,29 +698,33 @@ export class OrderService {
         ),
       );
       return {
-        orders: rows.map((row) => ({
-          id: row.id,
-          orderNumber: row.orderNumber,
-          status: statusOf(row),
-          paymentStatus: row.paymentStatus,
-          fulfillmentStatus: row.fulfillmentStatus,
-          source: row.source,
-          fulfilmentType: row.fulfilmentType,
-          customerName: row.customerName,
-          customerPhone: row.customerPhone,
-          customerErased: row.customerErasedAt !== null,
-          tableRef: row.tableRef,
-          items: row.items,
-          grandTotal: row.grandTotal,
-          codAmount: row.codAmount,
-          cancelReason: row.cancelReason,
-          holdUntil: row.holdUntil,
-          createdAt: row.createdAt,
-          area: row.locationId !== null ? (areas.get(row.locationId) ?? null) : null,
-          unansweredCalls: row.unansweredCalls,
-          parcel: row.parcel,
-          attention: row.attention,
-        })),
+        orders: rows.map((row) =>
+          new OrderMask(row.access).row({
+            id: row.id,
+            orderNumber: row.orderNumber,
+            status: statusOf(row),
+            paymentStatus: row.paymentStatus,
+            fulfillmentStatus: row.fulfillmentStatus,
+            source: row.source,
+            fulfilmentType: row.fulfilmentType,
+            customerName: row.customerName,
+            customerPhone: row.customerPhone,
+            customerErased: row.customerErasedAt !== null,
+            tableRef: row.tableRef,
+            items: row.items,
+            grandTotal: row.grandTotal,
+            codAmount: row.codAmount,
+            cancelReason: row.cancelReason,
+            holdUntil: row.holdUntil,
+            createdAt: row.createdAt,
+            access: row.access,
+            area: row.locationId !== null ? (areas.get(row.locationId) ?? null) : null,
+            unansweredCalls: row.unansweredCalls,
+            parcel: row.parcel,
+            attention: row.attention,
+          }),
+        ),
+        locked,
         page: query.page,
         limit: query.limit,
         total,
@@ -716,6 +751,8 @@ export class OrderService {
     return this.store.run(tenantId, async (tx) => {
       const order = await this.find(tx, tenantId, orderId, true);
       this.refuseClosed(order);
+      // PYG-22: an order the shop hasn't confirmed yet can't be edited -- its address is still held back.
+      this.refuseUnconfirmed(order);
       const live = await this.store.liveParcel(tx, tenantId, order.id);
       this.refuseOpenBooking(live);
       this.refuseStockEdit(order, input);
@@ -945,10 +982,12 @@ export class OrderService {
     }
     const who = await this.activity.resolve(tenantId, actor);
     return this.store.run(tenantId, async (tx) => {
-      const order = await this.find(tx, tenantId, orderId, true);
+      let order = await this.find(tx, tenantId, orderId, true);
       if (order.statusOverride === StatusOverride.Cancelled) {
         throw new ApiError('conflict', 'OrderIsCancelled', {});
       }
+      // PYG-22 (PF-22): a call needs the phone, so a locked order's first step is showing it.
+      this.access.refuseLocked(order);
       if (input.outcome === CallOutcome.Cancelled && this.shipped(order)) {
         throw new ApiError('conflict', 'OrderShippedReturnInstead', {});
       }
@@ -974,6 +1013,10 @@ export class OrderService {
         order.paymentStatus === OrderPaymentStatus.PendingVerification
       ) {
         throw new ApiError('conflict', 'AdvanceNotPaidYet', {});
+      }
+      // PF-3, PF-23: a call marked confirmed is step 2 -- ৳3, and the address shown.
+      if (input.outcome === CallOutcome.Confirmed) {
+        order = await this.access.confirmWithin(tx, tenantId, order, who);
       }
       if (input.outcome === CallOutcome.Confirmed && order.confirmedAt === null) {
         Object.assign(patch, { confirmedAt: now, confirmedBy: who.id });
@@ -1165,7 +1208,13 @@ export class OrderService {
         )) {
           items.set(line.orderId, [...(items.get(line.orderId) ?? []), line]);
         }
-        all.push(...batch.map((order) => ({ order, items: items.get(order.id) ?? [] })));
+        // PYG-23 (PF-29): an export masks what the shop hasn't opened, as every screen does.
+        all.push(
+          ...batch.map((order) => ({
+            order: new OrderMask(order.access).record(order),
+            items: items.get(order.id) ?? [],
+          })),
+        );
         const last = batch.at(-1);
         if (!last || batch.length < EXPORT_BATCH) return all;
         after = { createdAt: last.createdAt, id: last.id };
@@ -1232,6 +1281,13 @@ export class OrderService {
   }
 
   /** ORD-11: a cancelled order is final, and a shipped one changes by a return. */
+  /** PYG-22: refuses an edit before the shop has confirmed an order it is opening, its address still held back. */
+  private refuseUnconfirmed(order: OrderRecord): void {
+    if (order.access === OrderAccess.Locked || order.access === OrderAccess.Phone) {
+      throw new ApiError('conflict', 'OrderLocked', {});
+    }
+  }
+
   private refuseClosed(order: OrderRecord): void {
     if (order.statusOverride === StatusOverride.Cancelled) {
       throw new ApiError('conflict', 'OrderIsCancelled', {});
@@ -1759,15 +1815,19 @@ export class OrderService {
       id === null ? null : { id, name: names.get(id) ?? null };
     const location =
       order.locationId !== null ? await this.locations.thana(order.locationId) : null;
+    const area = order.locationId !== null ? await this.locations.areaOf(order.locationId) : null;
     const parcelNews =
       parcel !== null
         ? await this.store.listParcelEvents(tx, tenantId, parcel.id, PARCEL_NEWS_SHOWN)
         : [];
-    return {
+    // PYG-22, PYG-23: a pay-as-you-go order from Lytro shows only what the shop has opened of it.
+    return new OrderMask(order.access).view({
       id: order.id,
       orderNumber: order.orderNumber,
       trackingId: order.trackingId,
       source: order.source,
+      access: order.access,
+      district: area?.zilla ?? null,
       status: statusOf(order),
       paymentStatus: order.paymentStatus,
       fulfillmentStatus: order.fulfillmentStatus,
@@ -1891,6 +1951,6 @@ export class OrderService {
             },
       courierRecordUnchanged: false,
       limitPrompt,
-    };
+    });
   }
 }

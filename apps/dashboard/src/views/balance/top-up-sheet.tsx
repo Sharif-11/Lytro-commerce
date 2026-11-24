@@ -28,6 +28,8 @@ function Steps(): React.JSX.Element {
 interface TopUpSheetProps {
   /** BAL-04: the lowest and highest amounts the platform takes now, said before the request. */
   bounds: { min: number; max: number };
+  /** PF-41: the amount to open on, when a prompt names one -- else ৳50, within the bounds. */
+  opensOn?: number;
   onClose: () => void;
 }
 
@@ -37,12 +39,12 @@ interface TopUpSheetProps {
  * amount outside the bounds says which are allowed. Continue makes the request with that amount (BIL-09) and opens the
  * payment page (§7.19). The banner on Balance then says it is being checked.
  */
-export function TopUpSheet({ bounds, onClose }: TopUpSheetProps): React.JSX.Element {
+export function TopUpSheet({ bounds, opensOn, onClose }: TopUpSheetProps): React.JSX.Element {
   const { t } = useTranslation('money');
   const wallets = usePlatformWallets();
   const quote = useQuoteTopUp();
   const openPage = useOpenPaymentPage();
-  const [amount, setAmount] = useState(() => String(openingTopUp(bounds)));
+  const [amount, setAmount] = useState(() => String(openingTopUp(bounds, opensOn)));
   const value = Number(amount.replace(/[^\d]/g, ''));
   const fits = !outsideTopUp(value, bounds);
   const title = t('topupTitle');

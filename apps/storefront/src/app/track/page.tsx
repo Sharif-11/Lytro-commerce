@@ -4,7 +4,7 @@ import { withBusyMetadata, withBusyPage } from '@/components/busy-page';
 import { loadTrackFrame, TrackFrame } from '@/components/order/track-frame';
 import { TrackingStart } from '@/components/order/tracking-view';
 import { OfflinePage } from '@/components/pages';
-import { loadShopPage } from '@/lib/storefront';
+import { loadShopPageWhilePaused as loadShopPage } from '@/lib/storefront';
 
 // ORD-17, SFT-08 (`e48-tracking-start`): the place to look an order up, and where the search box sends its ID.
 export const dynamic = 'force-dynamic';

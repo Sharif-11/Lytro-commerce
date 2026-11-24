@@ -18,7 +18,8 @@ import {
   type BuyPacksInput,
   type SetPackAutoBuyInput,
 } from '@lytronix/validators';
-import { NotificationKind } from '@lytronix/validators';
+import { NotificationKind, TenantState } from '@lytronix/validators';
+import { FairUseSwitch } from '../../fair-use/services/fair-use-switch';
 import { ApiError } from '../../../common/api-error';
 import { usageCycleStart } from '../../../common/time';
 import { packTaken } from '../../../common/usage-warnings';
@@ -92,7 +93,15 @@ export class AddonPackService {
     @Inject(AccountNotices) private readonly notices: AccountNotices,
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(CLOCK) private readonly clock: () => Date,
+    @Inject(FairUseSwitch) private readonly fairUse: FairUseSwitch,
   ) {}
+
+  /** PFQ-11: request packs aren't sold on pay-as-you-go while fair use is on. */
+  private async refuseOnPayAsYouGo(state: TenantState | null): Promise<void> {
+    if (state === TenantState.PayAsYouGo && (await this.fairUse.isOn())) {
+      throw new ApiError('plan_feature_unavailable', 'PacksNotOnPayAsYouGo', {});
+    }
+  }
 
   /**
    * PLN-15: buys packs from the balance at once -- a pack's price is fixed, so there is no quote to hold -- with its
@@ -112,6 +121,9 @@ export class AddonPackService {
     const info = await this.billingOf(tenantId);
     if (!canTake(info, now))
       throw new ApiError('plan_feature_unavailable', 'AddonNotAvailable', {});
+    // PYG-26 (PFQ-11): with fair use on, pay-as-you-go pays per 1,000 requests past the free allowance, so sells no
+    // request packs; a pack bought before still counts first.
+    await this.refuseOnPayAsYouGo(info.state);
     assertAmountHeld(packPrice(addon, input.quantity));
     assertAmountSeen(input.amount, packPrice(addon, input.quantity));
     return this.tenants.runStandalone((tx) =>
@@ -131,6 +143,8 @@ export class AddonPackService {
     const cycleStart = new Date(job.cycleStart);
     const meter = this.quota;
     const info = await this.billingOf(job.tenantId);
+    // PFQ-11: auto-buy buys nothing on pay-as-you-go with fair use on.
+    if (info?.state === TenantState.PayAsYouGo && (await this.fairUse.isOn())) return;
     const on = info?.autoBuyRequests;
     const pack = (await this.store.run((tx) => this.store.list(tx, false))).find(
       (addon) => metricOf(addon) === job.metric,

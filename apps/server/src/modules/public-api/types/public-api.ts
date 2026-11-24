@@ -65,6 +65,8 @@ export interface ApiShop {
 /** GET /v1/shop: the shop a key belongs to, as anyone holding the key may see it. */
 export interface PublicShopView {
   name: string;
+  /** PYG-25 (PF-13, PF-35): a pay-as-you-go shop's storefront, paused until it activates. */
+  paused: boolean;
   slug: string;
   /** LND-15: the Meta Pixel its pages load; null when none is connected. */
   metaPixelId: string | null;

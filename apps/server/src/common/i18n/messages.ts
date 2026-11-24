@@ -1830,6 +1830,30 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'That order was not found.',
     bn: 'অর্ডারটি পাওয়া যায়নি।',
   },
+  OrderLocked: {
+    en: 'Open this order first: show its phone, then confirm it.',
+    bn: 'আগে অর্ডারটি খুলুন: নম্বর দেখুন, তারপর কনফার্ম করুন।',
+  },
+  OrderPhoneShown: {
+    en: "The customer's phone is shown.",
+    bn: 'কাস্টমারের নম্বর দেখা যাচ্ছে।',
+  },
+  StorefrontPaused: {
+    en: 'This shop is coming back soon.',
+    bn: 'শপটি শিগগিরই আবার চালু হচ্ছে।',
+  },
+  ApiCapReached: {
+    en: "This shop's API spending limit for the month is reached.",
+    bn: 'এই শপের এ মাসের API খরচের লিমিট শেষ।',
+  },
+  ApiCapSaved: {
+    en: 'API spending limit saved.',
+    bn: 'API খরচের লিমিট সেভ হয়েছে।',
+  },
+  PacksNotOnPayAsYouGo: {
+    en: 'On pay-as-you-go, requests past the free allowance are charged per 1,000, so request packs are not sold.',
+    bn: 'পে-অ্যাজ-ইউ-গো-তে ফ্রি রিকোয়েস্টের পর প্রতি ১,০০০-এ চার্জ হয়, তাই রিকোয়েস্ট প্যাক কেনা যায় না।',
+  },
   OrderIsCancelled: {
     en: 'This order is cancelled, so it can no longer be changed.',
     bn: 'এই অর্ডারটি ক্যানসেল করা হয়েছে, তাই আর বদলানো যাবে না।',

@@ -247,6 +247,27 @@ export function renewalReminderWords(daysLeft: number | null): MailWords {
   };
 }
 
+/**
+ * PYG-25 (PAYG-FAIR-USE-PLAN PF-13): the trial ends in this many days, and with it the storefront pauses on pay-as-you-go
+ * until a ৳10 top-up -- on day 25 and day 29 of a 30-day trial.
+ */
+export function trialPauseWarningWords(daysLeft: number, activation: number): MailWords {
+  return {
+    bn: {
+      subject: `${String(daysLeft)} দিন পর ট্রায়াল শেষ`,
+      body:
+        `${String(daysLeft)} দিন পর ট্রায়াল শেষ হবে। তারপর স্টোরফ্রন্ট আর ল্যান্ডিং পেজ চালু রাখতে একবার ৳${String(activation)} টপ-আপ করুন -- ` +
+        'টাকাটা ব্যালেন্সেই থাকবে, প্রথম অর্ডার খুলতে খরচ হবে। অথবা একটা প্ল্যান বেছে নিন।',
+    },
+    en: {
+      subject: `Your trial ends in ${String(daysLeft)} day(s)`,
+      body:
+        `Your trial ends in ${String(daysLeft)} day(s). Then top up ${String(activation)} TK once to keep your storefront and ` +
+        'landing pages on -- it stays in your balance for your first orders -- or choose a plan.',
+    },
+  };
+}
+
 /** LIF-18: the shop will be deleted on this date, this many days from now. */
 export function deletionWarningWords(daysLeft: number, deletesOn: string): MailWords {
   return {

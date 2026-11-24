@@ -1,4 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import { StorefrontActivation } from '../../balance/services/storefront-activation';
+import { FairUseSwitch } from '../../fair-use/services/fair-use-switch';
 import { EdgePurges } from '../../shared/edge-cache/services/edge-purges';
 import { CourierConnections } from '../../couriers/services/courier-connections';
 import { AddressReads } from '../../address-reads/services/address-reads';
@@ -49,6 +51,7 @@ import {
   deletionWarningWords,
   paygArchiveWarningWords,
   renewalReminderWords,
+  trialPauseWarningWords,
   shopClosedWords,
 } from './billing-notice-words';
 import { TenantCache } from '../../tenancy/services/tenant-cache';
@@ -75,6 +78,8 @@ const DELETION_WARNING_DAYS = [45, 57] as const;
 // BIL-14: renewal reminders, counted down to period end while still `active`. Order matters -- `.find`
 // below returns the first match, so a missed tick still catches up on 7 before 3 before 1.
 const RENEWAL_REMINDER_DAYS = [7, 3, 1] as const;
+// PYG-25 (PF-13): a 30-day trial is told on day 25 and day 29 that its storefront will pause on pay-as-you-go.
+const TRIAL_PAUSE_WARNING_DAYS = [5, 1] as const;
 
 // LIF-03: the lapse ladder, in order. The tick moves a shop forward along it, never back: only a payment or the operator
 // brings a shop back, so a shop archived by a request to delete its data (ADM-13) stays archived until its job runs.
@@ -152,6 +157,8 @@ export class LifecycleService {
     @Inject(PlatformSettingsService) private readonly settings: PlatformSettingsService,
     @Inject(CLOCK) private readonly clock: () => Date,
     @Inject(EdgePurges) private readonly edge: EdgePurges,
+    @Inject(StorefrontActivation) private readonly activation: StorefrontActivation,
+    @Inject(FairUseSwitch) private readonly fairUse: FairUseSwitch,
   ) {}
 
   /**
@@ -294,6 +301,7 @@ export class LifecycleService {
 
     const upcomingRemindersSent = await this.runRenewalReminderPass(now);
     const payg = await this.runPaygInactivityPass(now);
+    const trialWarnings = await this.runTrialPauseWarningPass(now);
     const slugsReleased = await this.releaseExpiredSlugs(now);
     return {
       transitioned: transitioned + payg.transitioned,
@@ -301,7 +309,7 @@ export class LifecycleService {
       deleted: deleted + payg.deleted,
       renewed,
       slugsReleased,
-      remindersSent: remindersSent + upcomingRemindersSent + payg.remindersSent,
+      remindersSent: remindersSent + upcomingRemindersSent + payg.remindersSent + trialWarnings,
     };
   }
 
@@ -559,6 +567,49 @@ export class LifecycleService {
       ) {
         sent += 1;
       }
+    }
+    return sent;
+  }
+
+  /**
+   * PYG-25 (PAYG-FAIR-USE-PLAN PF-13): with fair use on, a trial whose storefront would pause on pay-as-you-go is told
+   * on day 25 and day 29 -- in the app, by email and by SMS (the SMS is Lytro's cost) -- each once for its trial.
+   */
+  private async runTrialPauseWarningPass(now: Date): Promise<number> {
+    if (!(await this.fairUse.isOn())) return 0;
+    const horizon = new Date(now.getTime() + Math.max(...TRIAL_PAUSE_WARNING_DAYS) * DAY_MS);
+    const trials = await this.tenants.runStandalone((tx) =>
+      this.tenants.findTrialsToWarn(tx, now, horizon),
+    );
+    const activation = await this.fairUse.activationTopUp();
+    let sent = 0;
+    for (const trial of trials) {
+      const daysLeft = Math.ceil((trial.periodEnd.getTime() - now.getTime()) / DAY_MS);
+      const already = await this.audit.list(
+        trial.id,
+        { action: AuditAction.TrialPauseWarned },
+        null,
+        10,
+      );
+      const sentDays = new Set(
+        already.entries.flatMap((entry) => {
+          const summary = entry.summary as { day?: number; periodEnd?: string } | null;
+          return summary?.periodEnd === trial.periodEnd.toISOString() && summary.day !== undefined
+            ? [summary.day]
+            : [];
+        }),
+      );
+      const due = [...TRIAL_PAUSE_WARNING_DAYS]
+        .sort((a, b) => a - b)
+        .find((day) => daysLeft <= day && !sentDays.has(day));
+      if (due === undefined) continue;
+      await this.sendNotice(
+        trial.id,
+        AuditAction.TrialPauseWarned,
+        { day: due, periodEnd: trial.periodEnd.toISOString() },
+        trialPauseWarningWords(daysLeft, activation),
+      );
+      sent += 1;
     }
     return sent;
   }
@@ -993,6 +1044,13 @@ export class LifecycleService {
       await this.tenants.clearSuspension(tx, tenantId);
       if (archivedBySuspension) {
         await this.tenants.returnToPayAsYouGo(tx, tenantId, now);
+        // PF-13, PF-35: restored to pay-as-you-go, a shop that never paid has its storefront paused.
+        const restored = await this.tenants.findBillingInfo(tx, tenantId);
+        await this.activation.becamePayAsYouGoWithin(
+          tx,
+          tenantId,
+          restored?.storefrontActivatedAt ?? null,
+        );
         await this.audit.record(tx, {
           tenantId,
           actorType: ActorType.PlatformSupport,

@@ -14,7 +14,7 @@ import {
   type SmsSettingsChange,
   type Transaction,
 } from '@lytronix/db';
-import type { SmsLogEntryKind } from '@lytronix/validators';
+import { OrderAccess, type SmsLogEntryKind } from '@lytronix/validators';
 import type {
   SmsEventStore,
   SmsOrderFacts,
@@ -82,6 +82,7 @@ export class DrizzleSmsEventStore implements SmsEventStore {
       customerName: row.customerName,
       customerPhone: row.customerPhone,
       customerErased: row.customerErasedAt !== null,
+      locked: row.access === OrderAccess.Locked,
       grandTotal: row.grandTotal,
       trackingLink: row.trackingLink,
       trackingCode: row.trackingCode,

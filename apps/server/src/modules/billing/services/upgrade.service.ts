@@ -25,6 +25,7 @@ import { AddonRenewalService, addonsTotal } from './addon-renewal.service';
 import { assertAmountSeen } from './amount-seen';
 import { BillingTermsService } from './billing-terms.service';
 import { DowngradeService } from './downgrade.service';
+import { PlanStarted } from './plan-started';
 import { PlanInvoicingService } from './plan-invoicing.service';
 import { PlansService } from './plans.service';
 import { unusedPlanValue } from './plan-credit';
@@ -86,6 +87,7 @@ export class UpgradeService {
     @Inject(DowngradeService) private readonly downgrade: DowngradeService,
     @Inject(AddonRenewalService) private readonly renewals: AddonRenewalService,
     @Inject(CLOCK) private readonly clock: () => Date,
+    @Inject(PlanStarted) private readonly planStarted: PlanStarted,
     @Inject(PlatformAdEvents) private readonly platformAds: PlatformAdEvents,
   ) {}
 
@@ -259,6 +261,8 @@ export class UpgradeService {
       state: TenantState.Active,
       billingTermId: term.id, // BIL-17: the term auto-renewal will reuse at the next period end.
     });
+    // PF-13, PF-33: a plan paid for opens the shop's locked orders and its storefront for good.
+    await this.planStarted.within(tx, payment.tenantId, true, now);
     await this.downgrade.cancelIfScheduled(tx, payment.tenantId);
     // UPG-14: the add-ons it extended run on from their own ends to the new period's end.
     const addons = await this.renewals.activate(tx, payment, {

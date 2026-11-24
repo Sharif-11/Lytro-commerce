@@ -304,6 +304,8 @@
     "top_up": "Top-up"
   },
   "seeBalance": "See balance",
+  "unlockPhone": "phone shown",
+  "unlockConfirm": "confirmed",
   "seeBilling": "See billing",
   "sentForCheck": "The payment is sent for checking. We will tell you when it is confirmed; until then nothing changes.",
   "showEarlier": "Show earlier",

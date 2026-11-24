@@ -1,3 +1,4 @@
+import type { PayAsYouGoShopRow } from '@lytronix/db';
 import type { PlanStanding } from '@lytronix/db';
 import type {
   BalanceRow,
@@ -55,6 +56,20 @@ export interface TenantStore {
   /** ADM-15, D8-48: everything a plan payment changes on a shop, held for the rest of the transaction. */
   planStanding(tx: Transaction, tenantId: string): Promise<PlanStanding | null>;
   restorePlanStanding(tx: Transaction, tenantId: string, standing: PlanStanding): Promise<void>;
+  /** PYG-25 (PF-13): marks the storefront activated, once; true when this call marked it. */
+  markStorefrontActivated(tx: Transaction, tenantId: string, at: Date): Promise<boolean>;
+  /** PYG-25 (PF-13, PFQ-9): marks activated every shop that already paid; the ids marked. */
+  markPaidShopsActivated(tx: Transaction, minTopUp: number, at: Date): Promise<string[]>;
+  /** PYG-25 (PF-13): the trials ending before the horizon that would pause on pay-as-you-go. */
+  findTrialsToWarn(
+    tx: Transaction,
+    now: Date,
+    horizon: Date,
+  ): Promise<{ id: string; periodEnd: Date }[]>;
+  /** PYG-26 (PF-14): every live pay-as-you-go shop, for the day's API charge. */
+  listPayAsYouGo(tx: Transaction): Promise<PayAsYouGoShopRow[]>;
+  /** PYG-26 (PF-36): the shop's API spending cap a cycle. */
+  setApiMonthlyCap(tx: Transaction, tenantId: string, cap: string): Promise<void>;
   /** PLN-17/TRL-07: activates a plan assignment with a normal snapshot; `state` is the caller's to decide. */
   applyPlanAssignment(
     tx: Transaction,

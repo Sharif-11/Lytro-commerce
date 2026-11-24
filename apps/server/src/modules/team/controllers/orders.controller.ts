@@ -307,6 +307,23 @@ export class OrdersController {
     );
   }
 
+  @Post(':id/unlock-phone')
+  @HttpCode(200)
+  @RequirePermission(Permission.OrdersManage)
+  @ResponseMessage('OrderPhoneShown')
+  @ApiOperation({
+    summary:
+      "Show a locked pay-as-you-go order's phone: 7 TK from the balance, refused short of it; a second tap is free (PYG-22, PF-2)",
+  })
+  @ZodResponse({ type: OrderViewDto })
+  showPhone(@Param('id') id: string, @Req() request: DashboardRequest): Promise<OrderView> {
+    return this.orders.showPhone(
+      this.shopOf(request),
+      this.request.idOf(id, 'OrderNotFound'),
+      this.request.actorOf(request),
+    );
+  }
+
   @Post(':id/cancel')
   @HttpCode(200)
   @RequirePermission(Permission.OrdersManage)

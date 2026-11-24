@@ -117,7 +117,9 @@ export class SmsEventSender {
       renderSmsTemplate(templateOf(settings, event), {
         order_number: order.orderNumber,
         amount: takaFigure(job.amount ?? order.grandTotal),
-        customer_name: order.customerName ?? '',
+        // PYG-23 (PF-7): the owner's SMS of a locked order names no one; the shopper's own SMS still does.
+        customer_name:
+          order.locked && SMS_EVENTS[event].recipient === 'owner' ? '' : (order.customerName ?? ''),
         tracking_link:
           event === SmsEvent.OrderShipped ? await this.trackingOf(job.tenantId, shop, order) : '',
       }),

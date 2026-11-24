@@ -1,4 +1,4 @@
-import { Permission, RateKey, TenantState } from '@lytronix/validators';
+import { OrderSource, Permission, RateKey, TenantState } from '@lytronix/validators';
 import { useBalance, useCurrentRates } from '@/api/balance';
 import { orderFeeOf, shortOf, type BalanceShort } from '@/lib/balance-gate';
 import { allows } from '@/shell/hubs';
@@ -29,12 +29,25 @@ export function useBalanceGate() {
     /** PYG-16: a new product, or a copy of one, on pay-as-you-go. */
     product: (): BalanceShort | null => (payg ? flat(RateKey.PaygProductFee) : null),
     /** PYG-02 to PYG-05: shipping, booking or handing over an order whose fee hasn't been taken. */
-    order: (order: { grandTotal: string; handledAt?: string | null }): BalanceShort | null => {
+    order: (order: {
+      grandTotal: string;
+      handledAt?: string | null;
+      source?: OrderSource;
+    }): BalanceShort | null => {
+      // PF-11: with fair use on, a manual order's courier booking costs the flat fee; an order from Lytro paid its steps.
+      if (tenant.fairUse?.on === true) {
+        if (!payg || (order.handledAt ?? null) !== null || order.source !== OrderSource.Dashboard)
+          return null;
+        return flat(RateKey.PaygBookingFee);
+      }
       const min = rate(RateKey.PaygOrderFeeMin);
       const pct = rate(RateKey.PaygOrderFeePct);
       if (!payg || (order.handledAt ?? null) !== null || min === null || pct === null) return null;
       return shortOf(orderFeeOf(order.grandTotal, min, pct), spendable);
     },
+    /** PYG-22 (PF-2, PF-3, PF-24): showing a locked order's phone, or confirming it. */
+    unlock: (step: 'phone' | 'confirm'): BalanceShort | null =>
+      payg ? flat(step === 'phone' ? RateKey.PaygUnlockPhone : RateKey.PaygUnlockConfirm) : null,
     /** FRD-01: one fraud check. */
     fraudCheck: (): BalanceShort | null => flat(RateKey.FraudCheck),
     /** ORD-34: reading a pasted message, once the add-on's reads are used up (or unknown). */

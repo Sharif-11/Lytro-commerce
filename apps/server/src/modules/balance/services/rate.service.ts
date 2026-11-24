@@ -3,7 +3,7 @@ import {
   PlatformActorType,
   PlatformAuditAction,
   AuditResult,
-  type RateKey,
+  RateKey,
   FieldProblemCode,
   SHOWN_RATE_KEYS,
 } from '@lytronix/validators';
@@ -13,6 +13,19 @@ import type { RateStore } from '../ports/rate-store';
 import { RATE_STORE } from '../tokens';
 import { RateCache } from './rate-cache';
 import type { RateHistoryEntry, RateValue } from '../types/rate';
+import { FairUseSwitch } from '../../fair-use/services/fair-use-switch';
+
+// PF-39: pay-as-you-go's order fee, which fair use replaces, and fair use's own rates.
+const ORDER_FEE_KEYS: ReadonlySet<string> = new Set([
+  RateKey.PaygOrderFeeMin,
+  RateKey.PaygOrderFeePct,
+]);
+const FAIR_USE_KEYS: ReadonlySet<string> = new Set([
+  RateKey.PaygUnlockPhone,
+  RateKey.PaygUnlockConfirm,
+  RateKey.PaygBookingFee,
+  RateKey.PaygApiPerThousand,
+]);
 
 /**
  * Reads and changes platform-wide, per-use rates (RAT-01 to RAT-14). A charge always reads the current rate at
@@ -28,6 +41,7 @@ export class RateService {
   constructor(
     @Inject(RATE_STORE) private readonly store: RateStore,
     @Inject(PlatformAuditService) private readonly platformAudit: PlatformAuditService,
+    @Inject(FairUseSwitch) private readonly fairUse: FairUseSwitch,
   ) {}
 
   /** RAT-06: the "current rates" page, and the value a charge should use right now. */
@@ -45,6 +59,16 @@ export class RateService {
    */
   async list(): Promise<RateValue[]> {
     return (await this.store.list()).filter((rate) => SHOWN_RATE_KEYS.includes(rate.key));
+  }
+
+  /**
+   * RAT-06 as amended (PAYG-FAIR-USE-PLAN PF-39): the rates a shop and lytro.app show -- pay-as-you-go's as they apply now.
+   * With fair use off, the order fee (1.5%, at least ৳20) and not fair use's four; with it on, the ৳7, ৳3, ৳10 and the
+   * API's ৳1 per 1,000, and the order fee no longer, though its history stays. The operator sees every rate.
+   */
+  async listForShops(): Promise<RateValue[]> {
+    const hidden = (await this.fairUse.isOn()) ? ORDER_FEE_KEYS : FAIR_USE_KEYS;
+    return (await this.list()).filter((rate) => !hidden.has(rate.key));
   }
 
   async history(key: RateKey): Promise<RateHistoryEntry[]> {

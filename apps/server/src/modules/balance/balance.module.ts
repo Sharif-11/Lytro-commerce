@@ -22,6 +22,9 @@ import { ShopDeliveryRateService } from './services/shop-delivery-rate.service';
 import { ShopStorefrontService } from './services/shop-storefront.service';
 import { ShopLinkSharing } from './services/shop-link-sharing';
 import { TopUpService } from './services/top-up.service';
+import { StorefrontActivation } from './services/storefront-activation';
+import { FairUseModule } from '../fair-use/fair-use.module';
+import { EdgeCacheModule } from '../shared/edge-cache/edge-cache.module';
 import {
   BALANCE_LEDGER_STORE,
   CLOCK,
@@ -45,6 +48,9 @@ import { NotificationsModule } from '../notifications/notifications.module';
     StaffModule,
     MailModule,
     NotificationsModule,
+    // PAYG-FAIR-USE-PLAN PF-13, PF-35: the switch, and the purge of a shop's pages as its storefront activates.
+    FairUseModule,
+    EdgeCacheModule,
   ],
   providers: [
     { provide: BALANCE_LEDGER_STORE, useClass: DrizzleBalanceLedgerStore },
@@ -63,6 +69,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     VerificationFees,
     TopUpService,
     PlatformWalletsService,
+    StorefrontActivation,
   ],
   exports: [
     BalanceService,
@@ -74,6 +81,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     VerificationFees,
     TopUpService,
     PlatformWalletsService,
+    StorefrontActivation,
   ],
 })
 export class BalanceModule {}

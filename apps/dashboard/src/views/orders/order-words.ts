@@ -102,11 +102,12 @@ export function useOrderWords() {
 
   const method = (how: PaymentMethod): string => t(METHOD[how]);
 
-  /** "Mirpur, Dhaka": the thana and its district, in the reader's language. */
-  const area = (where: OrderArea): string =>
-    bn
-      ? `${where.thana.nameBn}, ${where.zilla.nameBn}`
-      : `${where.thana.nameEn}, ${where.zilla.nameEn}`;
+  /** "Mirpur, Dhaka": the thana and its district, in the reader's language; a locked order's district alone (PF-21). */
+  const area = (where: OrderArea): string => {
+    const zilla = bn ? where.zilla.nameBn : where.zilla.nameEn;
+    if (where.thana === null) return zilla;
+    return `${bn ? where.thana.nameBn : where.thana.nameEn}, ${zilla}`;
+  };
 
   /** A thana's or district's name in the reader's language. */
   const named = (place: { nameEn: string; nameBn: string }): string =>

@@ -16,3 +16,11 @@ export const TAKES_ORDERS = 'publicApiTakesOrders';
  * counted and still served, so a plan limit never turns a sale away. The per-minute limits hold as anywhere.
  */
 export const TakesOrders = (): MethodDecorator => SetMetadata(TAKES_ORDERS, true);
+
+export const SERVED_WHILE_PAUSED = 'publicApiServedWhilePaused';
+
+/**
+ * PYG-25 (PAYG-FAIR-USE-PLAN PF-13, PFQ-2): a route a paused pay-as-you-go shop still answers -- the shop itself, so its
+ * storefront can say it is coming back, and tracking for orders already placed. Every other route is refused.
+ */
+export const ServedWhilePaused = (): MethodDecorator => SetMetadata(SERVED_WHILE_PAUSED, true);

@@ -244,6 +244,57 @@ export function paymentsOf(count: number): PaymentFixture[] {
   });
 }
 
+/** PAYG-FAIR-USE-PLAN PF-38 (the sketch's `pf-report`): three shops, one to watch and one paused. */
+const paygRow = (
+  name: string,
+  slug: string,
+  figures: [number, number, number, number | null, number, string, string, string],
+  storefrontActive: boolean,
+  watch: boolean,
+) => ({
+  tenantId: `t-${slug}`,
+  shopName: name,
+  slug,
+  received: figures[0],
+  opened: figures[1],
+  confirmed: figures[2],
+  openRate: figures[3],
+  apiRequests: figures[4],
+  apiCharged: figures[5],
+  feesEarned: figures[6],
+  balance: figures[7],
+  storefrontActive,
+  watch,
+});
+const PAYG_REPORT = {
+  fairUseOn: true,
+  from: '2026-10-24T18:00:00.000Z',
+  to: '2026-11-23T18:00:00.000Z',
+  rows: [
+    paygRow(
+      'Megh Boutique',
+      'megh-boutique',
+      [64, 9, 6, 14, 0, '0.00', '78.00', '12.00'],
+      true,
+      true,
+    ),
+    paygRow(
+      'Rongila Fashion',
+      'rongila',
+      [38, 31, 27, 82, 170_000, '160.00', '578.00', '45.00'],
+      true,
+      false,
+    ),
+    paygRow(
+      'Chotto Pakhi',
+      'chotto-pakhi',
+      [0, 0, 0, null, 0, '0.00', '0.00', '0.00'],
+      false,
+      false,
+    ),
+  ],
+};
+
 /** This many open reports, repeated past the ones it draws. */
 export function openReportsOf(count: number): ReportFixture[] {
   const drawn = drawnReports().filter((each) => each.status === 'open');
@@ -305,6 +356,7 @@ function consoleAnswer(
     return { refused: [refuse.status, refuse.code, refuse.message] };
   }
   if (path === '/operator/recent-changes') return { data: state.changes };
+  if (path === '/operator/reports/payg-fair-use') return { data: PAYG_REPORT };
   if (path === '/operator/payment-queue') return { data: state.payments };
   const queued = /^\/operator\/payment-queue\/([^/]+)\/(approve|credit|reject)$/.exec(path);
   if (queued) {

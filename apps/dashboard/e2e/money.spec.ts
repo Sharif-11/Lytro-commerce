@@ -61,8 +61,9 @@ test('shows the balance, its statement with each row named, and the chips that r
   await expect(main(page).getByText('মেসেজ থেকে ঠিকানা পড়া')).toHaveCount(2);
   await expect(main(page).getByText('ব্যালেন্স টপ-আপ · TrxID 9F2KQ7')).toHaveCount(0);
   const last = new URL(requests.at(-1) ?? '');
+  // PAYG-FAIR-USE-PLAN: an order's unlock and the API's 1,000s are fees too.
   expect(last.searchParams.get('type')).toBe(
-    'order_fee,product_fee,verification_fee,extraction,fraud_check',
+    'order_fee,order_unlock,api_requests,product_fee,verification_fee,extraction,fraud_check',
   );
   // KNOWN-GAPS §113: fetched as every call is, so it names this shop, with the chosen kind of entry.
   const asked = page.waitForRequest((request) => request.url().includes('/balance/ledger/export'));
@@ -71,7 +72,7 @@ test('shows the balance, its statement with each row named, and the chips that r
   const request = await asked;
   expect(request.headers()['x-lytro-shop']).toBe(SLUG);
   expect(new URL(request.url()).searchParams.get('type')).toBe(
-    'order_fee,product_fee,verification_fee,extraction,fraud_check',
+    'order_fee,order_unlock,api_requests,product_fee,verification_fee,extraction,fraud_check',
   );
   expect((await saved).suggestedFilename()).toBe('balance-statement.csv');
 });

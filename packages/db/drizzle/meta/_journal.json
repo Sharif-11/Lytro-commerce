@@ -1058,6 +1058,20 @@
       "when": 1795504666000,
       "tag": "0151_privacy_version_2026_11_25",
       "breakpoints": true
+    },
+    {
+      "idx": 152,
+      "version": "7",
+      "when": 1795509220682,
+      "tag": "0152_payg_fair_use",
+      "breakpoints": true
+    },
+    {
+      "idx": 153,
+      "version": "7",
+      "when": 1795509234781,
+      "tag": "0153_order_access_index",
+      "breakpoints": true
     }
   ]
 }

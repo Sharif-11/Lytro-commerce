@@ -60,5 +60,16 @@
   "jobVerify_other": "{{count}} payments to verify",
   "ckCourierD": "Steadfast, Pathao or RedX",
   "p37JobAck_one": "{{count}} notice needs your \"I understand\"",
-  "p37JobAck_other": "{{count}} notices need your \"I understand\""
+  "p37JobAck_other": "{{count}} notices need your \"I understand\"",
+  "fairTopUp": "Top up {{amount}}",
+  "fairTopUpShort": "Top up",
+  "fairPlans": "See plans",
+  "fairPausedT": "Your storefront is off now",
+  "fairPausedB": "Your trial has ended and you're on pay-as-you-go. Top up {{amount}} once to turn your storefront and landing pages on. The money stays in your balance and pays for your first orders.",
+  "fairPausedFine": "The dashboard, products and manual orders work as before. One top-up is enough, not one a month.",
+  "fairLastDayT": "Your trial ends tomorrow",
+  "fairLastDayB": "Unless you top up {{amount}} today, your storefront and landing pages are off from tomorrow. The money stays in your balance and pays for your first orders.",
+  "fairDaysT_one": "{{count}} day of your trial left.",
+  "fairDaysT_other": "{{count}} days of your trial left.",
+  "fairDaysB": "After {{day}}, keeping your storefront on takes one {{amount}} top-up, or a plan. The money stays in your balance."
 }

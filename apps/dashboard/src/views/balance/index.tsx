@@ -25,7 +25,14 @@ import { TopUpSheet } from './top-up-sheet';
  * checked or rejected (read from the payments list, §7.13). A suspended shop's owner sees it without the shell, with
  * only the balance and Top up -- what settles what is owed (LIF-24, decided 2026-10-26) -- and the way back.
  */
-export function BalanceView({ openTopUp }: { openTopUp: boolean }): React.JSX.Element {
+export function BalanceView({
+  openTopUp,
+  opensOn,
+}: {
+  openTopUp: boolean;
+  /** PF-41: the amount the top-up sheet opens on, when a prompt names one. */
+  opensOn?: number;
+}): React.JSX.Element {
   const { t } = useTranslation('money');
   const { tenant, viewer, slug } = useShell();
   const suspended = tenant.suspended;
@@ -48,6 +55,7 @@ export function BalanceView({ openTopUp }: { openTopUp: boolean }): React.JSX.El
     topUp && data ? (
       <TopUpSheet
         bounds={{ min: data.topUpMin, max: data.topUpMax }}
+        opensOn={opensOn}
         onClose={() => {
           setTopUp(false);
         }}

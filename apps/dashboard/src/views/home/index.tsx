@@ -8,6 +8,7 @@ import { useErrorText } from '@/hooks/use-error-text';
 import { useShell } from '@/shell/shell-context';
 import { ShellPage } from '@/shell/shell-page';
 import { doneOf, FIRST_GROUP } from './checklist';
+import { FairUseCard } from './fair-use-card';
 import { JobQueue } from './job-queue';
 import { NowTiles, TilesSkeleton, TodayTiles } from './now-tiles';
 import { SetupChecklist, SetupDone } from './setup-checklist';
@@ -33,6 +34,8 @@ export function Home(): React.JSX.Element {
 
   return (
     <ShellPage title={null}>
+      {/* PAYG-FAIR-USE-PLAN PF-13: the paused storefront's activation, and a trial's warnings on days 25 and 29. */}
+      <FairUseCard />
       {data?.fastSpendAlertedAt ? (
         <Banner
           tone="warn"

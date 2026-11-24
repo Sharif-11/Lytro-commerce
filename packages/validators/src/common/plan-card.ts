@@ -69,6 +69,24 @@ export const PLAN_CARD_WORDS = {
     bn: 'অর্ডার কুরিয়ারে বুক বা শিপ হলে তবেই অর্ডারপ্রতি ছোট একটা ফি',
     en: 'A small fee per order, only once it is booked with a courier or shipped',
   },
+  // PAYG-FAIR-USE-PLAN (PF-2 to PF-4, PF-13, PF-14, PF-17): with fair use on, an order from Lytro opened in two steps; a
+  // fake one turned down free; the one top-up that opens the storefront; the API's free allowance and its price.
+  paygUnlock: {
+    bn: 'অর্ডার প্রতি {total}: নম্বর দেখতে {phone}, কনফার্মে {confirm}',
+    en: '{total} an order: {phone} to see the phone, {confirm} to confirm',
+  },
+  paygRejectFree: {
+    bn: 'ফেক অর্ডার নম্বর না দেখেই বাদ দিন, কোনো খরচ নেই',
+    en: 'Turn a fake order down before seeing its phone, free',
+  },
+  paygActivation: {
+    bn: 'স্টোরফ্রন্ট চালু রাখতে একবার {fee} টপ-আপ; টাকাটা ব্যালেন্সে থাকে',
+    en: 'Top up {fee} once to keep the storefront on; it stays in your balance',
+  },
+  paygApi: {
+    bn: 'মাসে ১০,০০০ API রিকোয়েস্ট ফ্রি, তারপর প্রতি ১,০০০-এ {fee}',
+    en: '10,000 API requests a month free, then {fee} per 1,000',
+  },
   // PYG-01: each product created is charged at this rate, which may be nothing.
   paygProductFee: { bn: 'প্রতিটি নতুন প্রোডাক্টে {fee}', en: '{fee} for each new product' },
   paygProductFree: { bn: 'প্রোডাক্ট যোগ করা ফ্রি', en: 'Adding products is free' },
@@ -126,6 +144,9 @@ export function planCardTaka(amount: number): string {
 }
 
 /** Taka keeping the paisa a fee has: "৳20", "৳0.50". */
+/** PF-13: the one top-up that opens a pay-as-you-go storefront, as lytro.app names it (the operator's setting, ৳10). */
+const PAYG_ACTIVATION_TOP_UP = 10;
+
 function takaExact(value: number): string {
   return Number.isInteger(value) ? planCardTaka(value) : `৳${value.toFixed(2)}`;
 }
@@ -248,22 +269,39 @@ export class PlanCardLines {
   /** PYG-01, PYG-02: pay-as-you-go's fees, as the rates stand (`GET /rates`) or in words without them. */
   paygFees(rates: readonly PlanCardRate[] | null): string[] {
     const w = PLAN_CARD_WORDS;
+    const product = rateOf(rates, 'payg_product_fee');
+    const productLine =
+      product === null
+        ? []
+        : [
+            product === 0
+              ? this.of(w.paygProductFree)
+              : this.of(w.paygProductFee).replace('{fee}', takaExact(product)),
+          ];
+    // PF-39: with fair use on, the shown rates are its own, and the order fee no longer.
+    const phone = rateOf(rates, 'payg_unlock_phone');
+    const confirm = rateOf(rates, 'payg_unlock_confirm');
+    if (phone !== null && confirm !== null) {
+      const api = rateOf(rates, 'payg_api_per_thousand');
+      return [
+        this.of(w.paygUnlock)
+          .replace('{total}', takaExact(phone + confirm))
+          .replace('{phone}', takaExact(phone))
+          .replace('{confirm}', takaExact(confirm)),
+        this.of(w.paygRejectFree),
+        ...productLine,
+        this.of(w.paygActivation).replace('{fee}', takaExact(PAYG_ACTIVATION_TOP_UP)),
+        ...(api === null ? [] : [this.of(w.paygApi).replace('{fee}', takaExact(api))]),
+      ];
+    }
     const min = rateOf(rates, 'payg_order_fee_min');
     const pct = rateOf(rates, 'payg_order_fee_pct');
-    const product = rateOf(rates, 'payg_product_fee');
     const lines = [
       min !== null && pct !== null
         ? this.of(w.paygOrderFee).replace('{pct}', percent(pct)).replace('{min}', takaExact(min))
         : this.of(w.paygOrderFeeSoft),
     ];
-    if (product !== null) {
-      lines.push(
-        product === 0
-          ? this.of(w.paygProductFree)
-          : this.of(w.paygProductFee).replace('{fee}', takaExact(product)),
-      );
-    }
-    return lines;
+    return [...lines, ...productLine];
   }
 
   private of(words: Words): string {

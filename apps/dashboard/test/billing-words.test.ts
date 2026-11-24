@@ -176,6 +176,9 @@ describe('the statement (TENANT-DASHBOARD-DESIGN §7.11)', () => {
     ]);
     expect(STATEMENT_CHIPS.find((chip) => chip.key === 'fees')?.types).toEqual([
       LedgerEntryType.OrderFee,
+      // PAYG-FAIR-USE-PLAN: an order's unlock and the API's 1,000s are fees too.
+      LedgerEntryType.OrderUnlock,
+      LedgerEntryType.ApiRequests,
       LedgerEntryType.ProductFee,
       LedgerEntryType.VerificationFee,
       LedgerEntryType.Extraction,

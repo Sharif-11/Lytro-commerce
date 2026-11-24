@@ -58,6 +58,8 @@ import { PaymentEvidenceModule } from '../payment-evidence/payment-evidence.modu
 import { PaymentQueueService } from './services/payment-queue.service';
 import { PlanInvoicingService } from './services/plan-invoicing.service';
 import { TopUpInvoicing } from './services/top-up-invoicing';
+import { PlanStarted } from './services/plan-started';
+import { FairUseModule } from '../fair-use/fair-use.module';
 import { PurchaseService } from './services/purchase.service';
 import { ShopLimitsService } from './services/shop-limits.service';
 import { TrialLifecycleService } from './services/trial-lifecycle.service';
@@ -95,6 +97,8 @@ import { NotificationsModule } from '../notifications/notifications.module';
     MailModule,
     NotificationsModule,
     PlatformSettingsModule,
+    // PAYG-FAIR-USE-PLAN PFQ-11: no request packs on pay-as-you-go with fair use on.
+    FairUseModule,
     // LIF-19: the day-60 deletion removes the shop's purchases, stock, orders and customers, catalogue, media, delivery
     // zones, API keys and usage warnings too, and its own domain.
     PurchasingModule,
@@ -139,6 +143,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     TrialLifecycleService,
     PlanInvoicingService,
     TopUpInvoicing,
+    PlanStarted,
     PurchaseService,
     UpgradeService,
     DowngradeService,

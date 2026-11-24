@@ -17,12 +17,18 @@ const text = {
   ask: { bn: 'WhatsApp-এ জিজ্ঞেস করুন', en: 'Ask on WhatsApp' },
 } satisfies Record<string, Bilingual>;
 
-const items: { q: Bilingual; a: Bilingual }[] = [
+// PAYG-FAIR-USE-PLAN (the sketch's `pf-site`): with fair use on, the answers that name pay-as-you-go's fees say the new
+// ones. Until then, the answers as they were.
+const items: { q: Bilingual; a: Bilingual; aFairUse?: Bilingual }[] = [
   {
     q: { bn: 'মাসিক ফি দিতে হবে?', en: 'Do I have to pay a monthly fee?' },
     a: {
       bn: 'না। পে-অ্যাজ-ইউ-গো-তে দোকান খোলা ফ্রি, অর্ডার কুরিয়ারে বুক বা শিপ হলে তবেই ছোট একটা ফি কাটে। পরে ফিক্সড প্ল্যান সস্তা পড়লে সেখানে যেতে পারবেন।',
       en: 'No. On pay-as-you-go, opening the shop is free and a small fee is charged only when an order is booked with a courier or shipped. You can move to a fixed plan later if that works out cheaper for you.',
+    },
+    aFairUse: {
+      bn: 'না। পে-অ্যাজ-ইউ-গো-তে দোকান খোলা ফ্রি। স্টোরফ্রন্ট বা ল্যান্ডিং পেজ থেকে আসা অর্ডারে কাস্টমারের নম্বর দেখতে ৳৭, কনফার্ম করলে আরও ৳৩। ফেক অর্ডার নম্বর না দেখেই বাদ দেওয়া ফ্রি। নিজে লেখা অর্ডারে ফি শুধু Lytro দিয়ে কুরিয়ার বুক করলে, ৳১০।',
+      en: "No. On pay-as-you-go, opening the shop is free. On an order from your storefront or a landing page, seeing the customer's number costs ৳7, and confirming it ৳3 more. Rejecting a fake order without seeing the number is free. An order you type in yourself costs ৳10, only when you book its courier through Lytro.",
     },
   },
   {
@@ -58,6 +64,10 @@ const items: { q: Bilingual; a: Bilingual }[] = [
       bn: 'কিছু হারায় না। ৩০ দিন পর এমনিতেই পে-অ্যাজ-ইউ-গো-তে চলে যাবেন, লিমিট আরও বড় হয়ে। কোনো পেওয়াল নেই, ডেটা মোছা নেই।',
       en: 'Nothing is lost. After 30 days you simply continue on pay-as-you-go with wider limits. There is no paywall and no data deletion.',
     },
+    aFairUse: {
+      bn: 'কিছু হারায় না। ৩০ দিন পর এমনিতেই পে-অ্যাজ-ইউ-গো-তে চলে যাবেন। স্টোরফ্রন্ট চালু রাখতে একবার ৳১০ টপ-আপ করলেই হবে; টাকাটা ব্যালেন্সে থাকে, প্রথম অর্ডার খুলতে খরচ হয়।',
+      en: 'Nothing is lost. After 30 days you simply continue on pay-as-you-go. To keep the storefront on, top up ৳10 once; the money stays in your balance and goes on opening your first orders.',
+    },
   },
   {
     q: { bn: 'স্টাফ যোগ করা যাবে?', en: 'Can I add staff?' },
@@ -70,7 +80,16 @@ const items: { q: Bilingual; a: Bilingual }[] = [
 
 /** The sketch's FAQ: the heading (and a WhatsApp button when the help line has a number) beside a numbered list of
     native disclosure elements, the first answer open and one open at a time through the shared `name`. */
-export function Faq({ language, whatsapp }: { language: Language; whatsapp: string | null }) {
+export function Faq({
+  language,
+  whatsapp,
+  fairUse = false,
+}: {
+  language: Language;
+  whatsapp: string | null;
+  /** PAYG-FAIR-USE-PLAN: fair use is on, as the rates say (`GET /rates` names the unlock's). */
+  fairUse?: boolean;
+}) {
   const copy = new Copy(language);
   const lead =
     whatsapp !== null ? `${copy.of(text.lead)} ${copy.of(text.leadWhatsapp)}` : copy.of(text.lead);
@@ -102,7 +121,7 @@ export function Faq({ language, whatsapp }: { language: Language; whatsapp: stri
                 </span>
               </summary>
               <div className="a">
-                <p>{copy.of(item.a)}</p>
+                <p>{copy.of(fairUse ? (item.aFairUse ?? item.a) : item.a)}</p>
               </div>
             </details>
           ))}

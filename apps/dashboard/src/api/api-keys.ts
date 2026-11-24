@@ -47,3 +47,39 @@ export function useRevokeApiKey() {
     },
   });
 }
+
+/** PYG-26 (PAYG-FAIR-USE-PLAN PF-36): what the shop's own website's API cost this cycle, day by day, and its cap. */
+export interface ApiChargeSummary {
+  applies: boolean;
+  cycleStart: string;
+  requests: number;
+  free: number;
+  rate: string;
+  charged: string;
+  cap: string;
+  stopped: boolean;
+  days: { day: string; requests: number; billable: number; charged: string }[];
+}
+
+export const API_CHARGES_QUERY_KEY = [...API_KEYS_QUERY_KEY, 'charges'] as const;
+
+/** GET /api-keys/charges (PF-36): the API page's figures on pay-as-you-go. */
+export function useApiCharges(options: { enabled?: boolean } = {}) {
+  return useQuery({
+    queryKey: API_CHARGES_QUERY_KEY,
+    queryFn: () => tenantSession.client.get<ApiChargeSummary>('/api-keys/charges'),
+    enabled: options.enabled ?? true,
+  });
+}
+
+/** PUT /api-keys/cap (PF-36, PFQ-10): the most the website may be charged for API requests in a cycle, ৳0 to ৳5,000. */
+export function useSetApiCap() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (cap: number) =>
+      tenantSession.client.put<ApiChargeSummary>('/api-keys/cap', { cap }),
+    onSuccess: (summary) => {
+      queryClient.setQueryData(API_CHARGES_QUERY_KEY, summary);
+    },
+  });
+}

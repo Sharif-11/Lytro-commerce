@@ -16,6 +16,7 @@ import { MessagingModule } from '../shared/messaging/messaging.module';
 import { AuditModule } from '../audit/audit.module';
 import { LegalModule } from '../legal/legal.module';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
+import { FairUseModule } from '../fair-use/fair-use.module';
 import { BalanceModule } from '../balance/balance.module';
 import { BillingModule } from '../billing/billing.module';
 import { BrandModule } from '../brand/brand.module';
@@ -102,6 +103,8 @@ import {
     StaffModule,
     SmsUsageModule,
     BalanceModule,
+    // PAYG-FAIR-USE-PLAN: /me says whether fair use is on and the shop's storefront paused.
+    FairUseModule,
     // TEN-16, BRN-07: /me carries the shop's logo and the identity the dashboard applies.
     BrandModule,
     // Slice 13: and the shop's own domain, its main address while it serves.

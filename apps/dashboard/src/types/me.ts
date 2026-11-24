@@ -64,6 +64,17 @@ export interface MeTenant {
   lapseStages: LapseStages | null;
   /** LIF-12, LIF-19: once lapsed, when the shop's business data would be deleted. */
   deletesAt: string | null;
+  /** PAYG-FAIR-USE-PLAN: whether fair use is on, the storefront paused until its activation top-up, and the prices. */
+  fairUse?: MeFairUse;
+}
+
+export interface MeFairUse {
+  on: boolean;
+  paused: boolean;
+  activationTopUp: number;
+  unlockPhone: string;
+  unlockConfirm: string;
+  bookingFee: string;
 }
 
 export interface MeBillingTerm {

@@ -56,6 +56,7 @@ import { NoticePublishTickWorker } from './services/notice-publish-tick-worker';
 import { RequestErrorPurgeTickWorker } from './services/request-error-purge-tick-worker';
 import { MediaCostTickWorker } from './services/media-cost-tick-worker';
 import { CapacityTickWorker } from './services/capacity-tick-worker';
+import { ApiChargeTickWorker } from './services/api-charge-tick-worker';
 import { EdgePurgeWorker } from './services/edge-purge-worker';
 import { EdgeCacheModule } from '../edge-cache/edge-cache.module';
 import { ShopDayTickWorker } from './services/shop-day-tick-worker';
@@ -130,6 +131,7 @@ import { RawMessagePurgeTickWorker } from './services/raw-message-purge-tick-wor
     RequestErrorPurgeTickWorker,
     MediaCostTickWorker,
     CapacityTickWorker,
+    ApiChargeTickWorker,
     EdgePurgeWorker,
     ShopDayTickWorker,
     EvidenceSweepWorker,

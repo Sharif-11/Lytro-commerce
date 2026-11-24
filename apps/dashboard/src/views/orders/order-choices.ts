@@ -1,6 +1,7 @@
 import {
   FulfillmentStatus,
   LIVE_PARCEL_STATES,
+  OrderAccess,
   OrderStatus,
   ParcelReading,
   ParcelState,
@@ -48,9 +49,16 @@ export function choicesOf(order: Order, may: (permission: Permission) => boolean
   const coming =
     parcel?.reading === ParcelReading.Returning ||
     parcel?.reading === ParcelReading.PartlyDelivered;
+  // PYG-22 (PAYG-FAIR-USE-PLAN PF-22, PF-23, PF-29): a locked order is opened before it can be called, edited, sent or
+  // printed; with only its phone shown it is called and confirmed -- booking or shipping it confirms it too -- but not
+  // edited or printed, its address still held back.
+  const locked = order.access === OrderAccess.Locked;
+  const unconfirmed = locked || order.access === OrderAccess.Phone;
   return {
+    showPhone: manage && locked && order.status !== OrderStatus.Cancelled,
+    confirmStep: manage && order.access === OrderAccess.Phone && open && !counter,
     manage,
-    call: manage && open && !counter && order.customerPhone !== null,
+    call: manage && open && !counter && order.customerPhone !== null && !locked,
     hold: manage && open && !counter && order.status !== OrderStatus.Hold,
     release: manage && order.status === OrderStatus.Hold,
     // CRR-28, ORD-52: a booked order too, until it is on its way; its booking is called off first.
@@ -67,10 +75,16 @@ export function choicesOf(order: Order, may: (permission: Permission) => boolean
       parcel.settleProblem !== null,
     // ORD-11: its customer, items, prices or notes, until it ships. Booked (the Phase 6 close-out's `c36-edit`), only its customer's
     // details and note, once the booking is settled: the server refuses an edit while it isn't.
-    edit: manage && ((open && !live) || editsBooked(order)),
+    edit: manage && !unconfirmed && ((open && !live) || editsBooked(order)),
     delete: may(Permission.OrdersDelete) && open && !livePaid,
     handOver: manage && open && counter,
-    ship: manage && open && !counter && order.status === OrderStatus.Confirmed && !live,
+    ship:
+      manage &&
+      open &&
+      !counter &&
+      !locked &&
+      (order.status === OrderStatus.Confirmed || order.access === OrderAccess.Phone) &&
+      !live,
     deliver: manage && order.status === OrderStatus.Shipped,
     // ORD-10: once delivered, while any unit is still out (the sketch's next step after Delivered); and once its courier says
     // it is coming back or delivered part of it (Part 36's `c36-returning`, `c36-partly`).
@@ -86,8 +100,8 @@ export function choicesOf(order: Order, may: (permission: Permission) => boolean
     // PAY-24 (Part 35): a link the customer pays through, while something is due. At the counter they're standing there.
     paymentLink:
       manage && order.status !== OrderStatus.Cancelled && Number(order.due) > 0 && !counter,
-    // Every order prints its label, for anyone who may see it (ORD-19 amended).
-    print: true,
+    // Every order prints its label, for anyone who may see it (ORD-19 amended) -- once its address shows (PF-29).
+    print: !unconfirmed,
   };
 }
 
