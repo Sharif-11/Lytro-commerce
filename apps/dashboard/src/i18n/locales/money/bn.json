@@ -294,6 +294,8 @@
     "extraction": "মেসেজ থেকে ঠিকানা পড়া",
     "fraud_check": "ফেক অর্ডার চেক",
     "order_fee": "অর্ডার ফি",
+    "order_unlock": "অর্ডার ফি",
+    "api_requests": "API রিকোয়েস্ট",
     "verification_fee": "পেমেন্ট ভেরিফিকেশন ফি",
     "plan_payment": "প্ল্যান পেমেন্ট",
     "product_fee": "প্রোডাক্ট ফি",
