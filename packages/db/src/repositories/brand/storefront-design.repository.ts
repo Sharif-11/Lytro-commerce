@@ -187,6 +187,48 @@ export class StorefrontDesignRepository {
     return { categories, products };
   }
 
+  /**
+   * SB-30 (the owner, 2026-11-24): the shop's first `limit` categories in its own order -- top-level ones first, each
+   * level by its place, then name, as the Categories page lists them -- that shoppers see (it and every category above
+   * it visible) and that hold an active product in stock, in them or any category under them (the same products the
+   * category's own list shows).
+   */
+  async firstStockedCategories(
+    tx: Transaction,
+    tenantId: string,
+    limit: number,
+  ): Promise<string[]> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const result = await tx.execute<{ id: string }>(sql`
+      WITH RECURSIVE tree (id, depth, path, shown) AS (
+        SELECT c.id, c.depth, ARRAY[c.sort_order], c.visible
+        FROM tenant.categories c
+        WHERE c.tenant_id = ${tenantId} AND c.parent_id IS NULL
+        UNION ALL
+        SELECT c.id, c.depth, tree.path || c.sort_order, tree.shown AND c.visible
+        FROM tenant.categories c
+        JOIN tree ON c.parent_id = tree.id
+        WHERE c.tenant_id = ${tenantId}
+      ), scope (root, id) AS (
+        SELECT c.id, c.id FROM tenant.categories c WHERE c.tenant_id = ${tenantId}
+        UNION ALL
+        SELECT scope.root, c.id FROM tenant.categories c
+        JOIN scope ON c.parent_id = scope.id
+        WHERE c.tenant_id = ${tenantId}
+      )
+      SELECT tree.id
+      FROM tree
+      JOIN tenant.categories c ON c.tenant_id = ${tenantId} AND c.id = tree.id
+      WHERE tree.shown AND EXISTS (
+        SELECT 1 FROM scope
+        JOIN tenant.product_categories pc ON pc.tenant_id = ${tenantId} AND pc.category_id = scope.id
+        JOIN tenant.products p ON p.tenant_id = pc.tenant_id AND p.id = pc.product_id
+        WHERE scope.root = tree.id AND p.active AND p.deleted_at IS NULL AND p.stock_state <> 'out')
+      ORDER BY tree.depth, tree.path, lower(c.name), c.id
+      LIMIT ${limit}`);
+    return result.rows.map((row) => row.id);
+  }
+
   /** SB-9: how many active products are on sale, and the biggest saving among them. */
   async sale(tx: Transaction, tenantId: string): Promise<StorefrontSaleSummary> {
     await this.transactions.setTenantContext(tx, tenantId);

@@ -713,11 +713,41 @@ function startingSection(section: StartingSection, at: number): StorefrontSectio
   }
 }
 
-/** SB-11: the design a shop has before it saves its own: its theme's starting page, every section on auto. */
-export function startingDesign(theme: StorefrontThemeKey): StorefrontDesign {
+/**
+ * SB-30 (the owner, 2026-11-24): how many of the shop's categories a page it has never saved shows as rows of their own.
+ */
+export const STARTING_CATEGORY_ROWS = 3;
+
+/** SB-30: a row of one category's products, a grid of four titled with its name; its ID fixed by its place, as above. */
+function startingCategoryRow(categoryId: string, at: number): StorefrontSection {
   return {
-    theme,
-    palette: 0,
-    sections: STOREFRONT_THEMES[theme].sections.map(startingSection),
+    id: startingId(100 + at),
+    visible: true,
+    kind: StorefrontSectionKind.Products,
+    source: ProductRowSource.Category,
+    categoryId,
+    productIds: [],
+    title: null,
+    layout: ProductRowLayout.Grid,
+    count: 4,
   };
+}
+
+/**
+ * SB-11: the design a shop has before it saves its own: its theme's starting page, every section on auto. SB-30: with
+ * a row for each of `categoryIds` (the shop's first categories holding something in stock, at most
+ * STARTING_CATEGORY_ROWS), after the theme's last row of products.
+ */
+export function startingDesign(
+  theme: StorefrontThemeKey,
+  categoryIds: readonly string[] = [],
+): StorefrontDesign {
+  const sections = STOREFRONT_THEMES[theme].sections.map(startingSection);
+  const rows = categoryIds.slice(0, STARTING_CATEGORY_ROWS).map(startingCategoryRow);
+  let after = sections.length;
+  sections.forEach((section, at) => {
+    if (section.kind === StorefrontSectionKind.Products) after = at + 1;
+  });
+  sections.splice(after, 0, ...rows);
+  return { theme, palette: 0, sections };
 }

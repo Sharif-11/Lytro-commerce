@@ -1,28 +1,18 @@
-import { cardKey, spreadsDesigns } from '@/lib/design/card-links';
 import type { Metadata } from 'next';
 import { notFound, permanentRedirect } from 'next/navigation';
 import { withBusyMetadata, withBusyPage } from '@/components/busy-page';
-import { EdgeMark } from '@/components/edge-mark';
 import { OfflinePage } from '@/components/pages';
-import { ThemeCard } from '@/components/design/theme-card';
-import { ProductCard } from '@/components/product-card';
-import { ProductView } from '@/components/product/product-view';
-import { ShopShell } from '@/components/shop-shell';
-import { categoryById, findCategory } from '@/lib/catalogue/browse';
-import { pageTheme } from '@/lib/design/design-look';
-import { keptQuery, productOpening } from '@/lib/product/opening';
+import { loadOnePage, OnePageInShop } from '@/components/product/one-page-route';
+import { keptQuery } from '@/lib/product/opening';
 import { productMetadata } from '@/lib/product/product-metadata';
 import { pathOfSlug, slugOfSegment } from '@/lib/request-path';
-import { shopChatOf } from '@/lib/shop/shop-chat';
-import { loadFrame, loadProduct, loadShopPage, storefrontApi } from '@/lib/storefront';
+import { loadProduct, loadShopPage } from '@/lib/storefront';
 
-// SFT-04: a product's page in the shop's storefront, at /p/<slug>. Kept at Cloudflare's edge whatever its query (a
-// `?v=` link and an ad's click ID alike), never counted, and tagged by the product and each it suggests (Slice 9.10,
-// D9-32); rendered for each shopper who is signed in or reads English.
+// SFT-04: a product's page in the shop's storefront, at /p/<slug>: the one product page (the owner, 2026-11-24), the
+// product and its order form together in the shop's own frame. Kept at Cloudflare's edge whatever its query (a `?v=`
+// link and an ad's click ID alike), never counted, and tagged by the product and each it suggests (Slice 9.10, D9-32);
+// rendered for each shopper who is signed in or reads English.
 export const dynamic = 'force-dynamic';
-
-// Slice 12b's read: "You may also like" shows up to eight from the product's main category.
-const ALSO_LIKE = 8;
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -48,83 +38,22 @@ export default withBusyPage(async function ProductPage({ params, searchParams }:
   const slug = slugOfSegment(segment);
   const page = await loadShopPage();
   if (page.state === 'closed') return <OfflinePage words={page.words} />;
-  // SFT-16: a switched-off storefront answers its paths with not-found; landing pages are separate (/l/).
+  // SFT-16: a switched-off storefront answers its paths with not-found; landing links are separate (/l/).
   if (page.state === 'missing' || !page.shop.storefrontEnabled) notFound();
   const read = await loadProduct(slug);
   if (read === null || read.kind === 'missing') notFound();
   if (read.kind === 'moved') permanentRedirect(`${pathOfSlug('/p', read.slug)}${keptQuery(v)}`);
 
-  const { product } = read;
-  const [opening, frame] = await Promise.all([productOpening(page, product, v), loadFrame(page)]);
-  // Its main category, when the shop shows it: the way back, the header link it lights, and "You may also like".
-  const primary = categoryById(frame.categories, product.primaryCategoryId);
-  const found = primary ? findCategory(frame.categories, primary.slug) : null;
-  const related = primary
-    ? await storefrontApi.products(page.shop, page.shopper, {
-        category: primary.slug,
-        designs: spreadsDesigns(page.info),
-        limit: ALSO_LIKE + 1,
-      })
-    : null;
-  const also = (related?.products ?? [])
-    .filter((card) => card.id !== product.id)
-    .slice(0, ALSO_LIKE);
-  const { words } = page;
-  const now = Date.now();
-  const theme = pageTheme(page.info);
+  const data = await loadOnePage(page, read.product, v);
   return (
-    <ShopShell
+    <OnePageInShop
       page={page}
-      frame={frame}
-      back={primary ? `/c/${primary.slug}` : '/'}
-      title={product.name}
-      current={found?.top.slug}
-    >
-      <EdgeMark page={page} products={[product, ...also]} />
-      <ProductView
-        language={words.language}
-        product={product}
-        category={primary?.name ?? null}
-        zones={page.info.deliveryZones}
-        shopPhone={page.info.contact.phone}
-        chat={shopChatOf(page.info.contact)}
-        linkedVariantId={opening.linkedVariantId}
-        // DC-3: a design card's link; on a page the edge keeps, the browser applies it with `?v=`.
-        linkedDesignId={!opening.openInBrowser && typeof d === 'string' && d.length > 0 ? d : null}
-        areaId={opening.areaId}
-        initialEstimate={opening.estimate}
-        openInBrowser={opening.openInBrowser}
-        shareUrl={`${page.shop.publicOrigin}/p/${product.slug}`}
-      />
-      {also.length > 0 ? (
-        <section className="sec">
-          <div className="sechead">
-            <h2>{words.t('also_like')}</h2>
-          </div>
-          {theme ? (
-            // STOREFRONT-BUILDER-PLAN SB-17: a designed shop's cards are its theme's.
-            <div className="sfb sfb-list" style={theme.variables}>
-              <div className="sb-rail">
-                {also.map((card) => (
-                  <ThemeCard
-                    key={cardKey(card)}
-                    product={card}
-                    style={theme.card}
-                    words={words}
-                    now={now}
-                  />
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="rail">
-              {also.map((card) => (
-                <ProductCard key={cardKey(card)} product={card} words={words} now={now} />
-              ))}
-            </div>
-          )}
-        </section>
-      ) : null}
-    </ShopShell>
+      data={data}
+      source="storefront"
+      // DC-3: a design card's link; on a page the edge keeps, the browser applies it with `?v=`.
+      linkedDesignId={
+        !data.opening.openInBrowser && typeof d === 'string' && d.length > 0 ? d : null
+      }
+    />
   );
 });

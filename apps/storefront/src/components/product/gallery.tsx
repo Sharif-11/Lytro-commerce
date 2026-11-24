@@ -19,11 +19,14 @@ export function Gallery({
   words,
   index: held,
   onIndex,
+  badge = null,
 }: {
   product: PublicProduct;
   words: Words;
   index?: number;
   onIndex?: (next: number) => void;
+  /** The one product page: its saving on the photo ("−13%"); null for none. */
+  badge?: string | null;
 }) {
   const slides: Slide[] = [
     ...product.images.map((image) => ({
@@ -109,6 +112,11 @@ export function Gallery({
               preload="none"
             />
           )}
+          {badge ? <span className="pp-badge">{badge}</span> : null}
+          {/* The one product page: which photo of how many, as Bonik's gallery says it. */}
+          {slides.length > 1 && current ? (
+            <span className="pp-count">{label(current, index)}</span>
+          ) : null}
           {videoIndex >= 0 && current?.kind !== 'video' ? (
             <button
               type="button"

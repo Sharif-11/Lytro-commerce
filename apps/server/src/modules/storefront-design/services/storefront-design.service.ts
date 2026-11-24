@@ -5,6 +5,7 @@ import {
   STOREFRONT_PHOTO_MIN_WIDTH,
   StorefrontCardMode,
   ServerFieldProblemCode,
+  STARTING_CATEGORY_ROWS,
   startingDesign,
   startingTheme,
   storefrontDesignSchema,
@@ -14,6 +15,7 @@ import {
   storefrontTargetRefs,
   storefrontTargets,
   type StorefrontDesign,
+  type StorefrontThemeKey,
   OfferState,
 } from '@lytronix/validators';
 import { ApiError, FieldsError, type InvalidField } from '../../../common/api-error';
@@ -300,7 +302,9 @@ export class StorefrontDesignService {
     const start = startingTheme(await this.store.businessType(tx, tenantId));
     const draft = designOf(row?.draft);
     const published = designOf(row?.published);
-    const design = draft ?? published ?? startingDesign(start);
+    // SB-11, SB-30: what shoppers see -- the published page, else the starting one with the first categories' rows.
+    const live = published ?? (await this.startingOn(tx, tenantId, start));
+    const design = draft ?? live;
     const images = await this.images.viewsOf(tx, tenantId, storefrontMediaIds(design));
     const wanted = storefrontTargets(design);
     const targets = await this.store.targets(tx, tenantId, wanted.categoryIds, wanted.productIds);
@@ -323,7 +327,7 @@ export class StorefrontDesignService {
     ]);
     return {
       design,
-      live: published ?? startingDesign(start),
+      live,
       startingTheme: start,
       hasDraft: draft !== null,
       isPublished: published !== null,
@@ -340,7 +344,25 @@ export class StorefrontDesignService {
   }
 
   private async starting(tx: Transaction, tenantId: string): Promise<StorefrontDesign> {
-    return startingDesign(startingTheme(await this.store.businessType(tx, tenantId)));
+    return this.startingOn(
+      tx,
+      tenantId,
+      startingTheme(await this.store.businessType(tx, tenantId)),
+    );
+  }
+
+  /** SB-11, SB-30: the theme's starting page with a row for each of the shop's first categories holding stock. */
+  private async startingOn(
+    tx: Transaction,
+    tenantId: string,
+    theme: StorefrontThemeKey,
+  ): Promise<StorefrontDesign> {
+    const categories = await this.store.firstStockedCategories(
+      tx,
+      tenantId,
+      STARTING_CATEGORY_ROWS,
+    );
+    return startingDesign(theme, categories);
   }
 
   /**

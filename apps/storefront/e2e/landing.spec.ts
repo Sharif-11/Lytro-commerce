@@ -58,6 +58,8 @@ test.describe('the order', () => {
     const shop = await openShop(page);
     await page.goto(shop.url('/l/cotton-panjabi'));
     await fillOrderForm(page);
+    // The one product page (SB-31): the note for the shop opens from a link.
+    await page.getByRole('button', { name: '+ A note for the shop' }).click();
     await page.getByLabel('Comments (optional)').fill('Call first');
     await expect(page.locator('.side .sum .r.total .price')).toHaveText('৳1,320');
     await expect(page.locator('.side .sum')).toContainText('Delivery · Dhaka city');
@@ -243,10 +245,13 @@ test.describe('what the form refuses', () => {
     expect((sent?.body as { source: string }).source).toBe('landing_page');
   });
 
-  test('a sold-out product says so where the button is', async ({ page }) => {
+  test('a sold-out product says so by its price, with no form to fill', async ({ page }) => {
+    // The one product page (SB-31): sold out, the page keeps the product and drops the order form and the questions.
     const shop = await openShop(page);
     await page.goto(shop.url('/l/kids-frock'));
-    await expect(page.locator('.side').getByRole('button', { name: 'Sold out' })).toBeDisabled();
+    await expect(page.locator('.pricerow .st.out')).toHaveText('Sold out');
+    await expect(page.locator('#order-name')).toHaveCount(0);
+    await expect(page.locator('.pp-bar')).toHaveCount(0);
   });
 
   test('an item sold out as it was placed says so, nothing placed', async ({ page }) => {

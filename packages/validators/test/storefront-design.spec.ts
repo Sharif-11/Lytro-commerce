@@ -8,6 +8,7 @@ import {
   HeroDesign,
   ProductRowLayout,
   ProductRowSource,
+  STARTING_CATEGORY_ROWS,
   STARTING_THEME,
   startingDesign,
   startingTheme,
@@ -81,6 +82,47 @@ describe('a shop that has never saved its design (SB-11)', () => {
   it('keeps the same section IDs every time it is read', () => {
     expect(startingDesign(StorefrontThemeKey.Royal)).toEqual(
       startingDesign(StorefrontThemeKey.Royal),
+    );
+  });
+
+  it("adds a row of each of its first three categories after the theme's last row of products (SB-30)", () => {
+    const categories = [CATEGORY, PRODUCT, PHOTO.mediaId, '3d4e5f60-7182-4a39-84b5-c6d7e8f9a0b1'];
+    expect(STARTING_CATEGORY_ROWS).toBe(3);
+    for (const theme of Object.values(StorefrontThemeKey)) {
+      const plain = startingDesign(theme);
+      const start = startingDesign(theme, categories);
+      expect(storefrontDesignSchema.parse(start)).toEqual(start);
+      const rows = start.sections.filter(
+        (section) =>
+          section.kind === StorefrontSectionKind.Products &&
+          section.source === ProductRowSource.Category,
+      );
+      expect(rows).toEqual(
+        categories.slice(0, 3).map((categoryId, at) => ({
+          id: id(101 + at),
+          visible: true,
+          kind: StorefrontSectionKind.Products,
+          source: ProductRowSource.Category,
+          categoryId,
+          productIds: [],
+          title: null,
+          layout: ProductRowLayout.Grid,
+          count: 4,
+        })),
+      );
+      // The theme's own sections keep their order and IDs; the rows follow its last row of products.
+      expect(start.sections.filter((section) => !rows.includes(section))).toEqual(plain.sections);
+      const lastRow = plain.sections
+        .map((section) => section.kind)
+        .lastIndexOf(StorefrontSectionKind.Products);
+      expect(start.sections.slice(lastRow + 1, lastRow + 4)).toEqual(rows);
+    }
+    // Fewer categories, fewer rows; none, the theme's page as it was.
+    expect(startingDesign(StorefrontThemeKey.Bold, [CATEGORY]).sections).toHaveLength(
+      startingDesign(StorefrontThemeKey.Bold).sections.length + 1,
+    );
+    expect(startingDesign(StorefrontThemeKey.Bold, [])).toEqual(
+      startingDesign(StorefrontThemeKey.Bold),
     );
   });
 });

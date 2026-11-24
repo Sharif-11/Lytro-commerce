@@ -400,9 +400,6 @@ function Summary({
         </div>
         <TaxRows taxes={estimate?.taxes ?? []} words={words} />
       </div>
-      <div className="sub" style={{ fontSize: 12 }}>
-        {words.t('cart_est_note')}
-      </div>
     </>
   );
 }

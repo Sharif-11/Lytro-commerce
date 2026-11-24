@@ -3,20 +3,25 @@ import { notFound, permanentRedirect } from 'next/navigation';
 import { PaymentPolicy } from '@lytronix/validators/enums';
 import { withBusyMetadata, withBusyPage } from '@/components/busy-page';
 import { EdgeMark } from '@/components/edge-mark';
-import { LandingView } from '@/components/landing/landing-view';
 import { MetaPixel } from '@/components/landing/meta-pixel';
 import { OfflinePage } from '@/components/pages';
+import { loadOnePage, OnePageInShop } from '@/components/product/one-page-route';
+import { OnePageView } from '@/components/product/one-page-view';
 import { Footer, Header, Shell } from '@/components/shell';
+import type { PublicProduct } from '@/lib/api/storefront-api';
 import { keptQuery, productOpening } from '@/lib/product/opening';
 import { productMetadata } from '@/lib/product/product-metadata';
 import { VariantChoice } from '@/lib/product/variant-choice';
 import { pathOfSlug, slugOfSegment } from '@/lib/request-path';
+import { shopChatOf } from '@/lib/shop/shop-chat';
 import { loadProduct, loadShopPage, storefrontApi } from '@/lib/storefront';
 
-// LND-01, LND-02: every active product's own page at /l/<slug>: that product only, no cart and no way into the
-// catalogue. It follows the shop's visibility, not the storefront switch (SFT-16), so it keeps working with the
-// storefront off. Kept at Cloudflare's edge whatever its query, where ads land, and never counted (Slice 9.10, D9-32,
-// amending LND-14); rendered for each shopper who is signed in or reads English.
+// LND-01, LND-02 as amended by the owner, 2026-11-24 ("the landing page is product detail page"): every active product's
+// link at /l/<slug> opens the one product page, in the shop's own frame with its header and categories, and its orders
+// are counted as the landing link's (LND-09). It follows the shop's visibility, not the storefront switch (SFT-16): with
+// the storefront off it still works, showing only this product, with no cart and no way into the shop. Kept at
+// Cloudflare's edge whatever its query, where ads land, and never counted (Slice 9.10, D9-32, amending LND-14); rendered
+// for each shopper who is signed in or reads English.
 export const dynamic = 'force-dynamic';
 
 interface Props {
@@ -38,6 +43,35 @@ export const generateMetadata = withBusyMetadata(async ({ params }: Props): Prom
   );
 });
 
+/** LND-15: the shop's pixel, with the IDs the catalog feed lists: the linked variant, or every variant the page offers. */
+function pixelFor(
+  pixelId: string | null,
+  product: PublicProduct,
+  linkedVariantId: string | null,
+  openInBrowser: boolean,
+) {
+  if (!pixelId) return null;
+  const choice = new VariantChoice(product.options, product.variants);
+  const opened = choice.variantFor(choice.initial(linkedVariantId));
+  const contentIds =
+    linkedVariantId !== null && opened
+      ? [opened.id]
+      : product.variants.map((variant) => variant.id);
+  const value = opened
+    ? Number(opened.price)
+    : product.minPrice === null
+      ? null
+      : Number(product.minPrice);
+  return (
+    <MetaPixel
+      pixelId={pixelId}
+      contentIds={contentIds}
+      value={value}
+      {...(openInBrowser ? { linkable: product.variants } : {})}
+    />
+  );
+}
+
 export default withBusyPage(async function LandingPage({ params, searchParams }: Props) {
   const [{ slug: segment }, { v }] = await Promise.all([params, searchParams]);
   const slug = slugOfSegment(segment);
@@ -49,25 +83,29 @@ export default withBusyPage(async function LandingPage({ params, searchParams }:
   if (read.kind === 'moved') permanentRedirect(`${pathOfSlug('/l', read.slug)}${keptQuery(v)}`);
 
   const { product } = read;
-  const opening = await productOpening(page, product, v);
-  // WAL-06: only a product paid for first needs to know how this shop can be paid.
-  const methods =
+  if (page.shop.storefrontEnabled) {
+    const data = await loadOnePage(page, product, v);
+    return (
+      <>
+        <OnePageInShop page={page} data={data} source="landing_page" linkedDesignId={null} />
+        {pixelFor(
+          page.info.metaPixelId,
+          product,
+          data.opening.linkedVariantId,
+          data.opening.openInBrowser,
+        )}
+      </>
+    );
+  }
+
+  // SFT-16: the storefront is off -- this product only, in the shop's bare frame.
+  const [opening, methods] = await Promise.all([
+    productOpening(page, product, v),
     product.paymentPolicy === PaymentPolicy.None
-      ? []
-      : await storefrontApi.paymentMethods(page.shop, page.shopper);
+      ? Promise.resolve([])
+      : storefrontApi.paymentMethods(page.shop, page.shopper),
+  ]);
   const language = page.words.language;
-  // LND-15: the IDs the catalog feed lists: the linked variant, or every variant the page offers.
-  const choice = new VariantChoice(product.options, product.variants);
-  const opened = choice.variantFor(choice.initial(opening.linkedVariantId));
-  const contentIds =
-    opening.linkedVariantId !== null && opened
-      ? [opened.id]
-      : product.variants.map((variant) => variant.id);
-  const value = opened
-    ? Number(opened.price)
-    : product.minPrice === null
-      ? null
-      : Number(product.minPrice);
   return (
     <>
       <EdgeMark page={page} products={[product]} />
@@ -75,36 +113,27 @@ export default withBusyPage(async function LandingPage({ params, searchParams }:
         brand={page.info.brand}
         language={language}
         header={<Header shop={page.info} language={language} variant="minimal" />}
-        footer={
-          <Footer
-            shop={page.info}
-            language={language}
-            landing
-            storefrontOn={page.shop.storefrontEnabled}
-          />
-        }
+        footer={<Footer shop={page.info} language={language} landing storefrontOn={false} />}
       >
-        <LandingView
+        <OnePageView
           language={language}
           shopName={page.info.name}
           shopPhone={page.info.contact.phone}
           product={product}
+          category={null}
           zones={page.info.deliveryZones}
+          chat={shopChatOf(page.info.contact)}
           linkedVariantId={opening.linkedVariantId}
           areaId={opening.areaId}
           initialEstimate={opening.estimate}
           openInBrowser={opening.openInBrowser}
           methods={methods}
+          source="landing_page"
+          storefrontOn={false}
+          shareUrl={`${page.shop.publicOrigin}/l/${product.slug}`}
         />
       </Shell>
-      {page.info.metaPixelId ? (
-        <MetaPixel
-          pixelId={page.info.metaPixelId}
-          contentIds={contentIds}
-          value={value}
-          {...(opening.openInBrowser ? { linkable: product.variants } : {})}
-        />
-      ) : null}
+      {pixelFor(page.info.metaPixelId, product, opening.linkedVariantId, opening.openInBrowser)}
     </>
   );
 });

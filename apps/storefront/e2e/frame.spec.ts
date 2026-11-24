@@ -103,9 +103,9 @@ test.describe('cards (SFT-03)', () => {
 
     await page.goto(shop.url('/p/chiffon-hijab'));
     await expect(page.locator('.pricerow .st.ok')).toHaveText('In stock');
-    // UI/UX batch 2 (2.2): a shopper asks the shop on WhatsApp or Messenger, right under the buttons.
-    const ask = page.locator('.ask');
-    await expect(ask.locator('.ask-t')).toHaveText('A question? Message the shop directly');
+    // UI/UX batch 2 (2.2), the one product page (SB-31): WhatsApp and Messenger beside Add to cart.
+    const ask = page.locator('.pp-alt');
+    await expect(ask.getByRole('button', { name: 'Add to cart' })).toBeVisible();
     await expect(ask.getByRole('link', { name: 'WhatsApp' })).toHaveAttribute(
       'href',
       'https://wa.me/8801711223344',
@@ -120,6 +120,31 @@ test.describe('cards (SFT-03)', () => {
 });
 
 test.describe('header and footer (SFT-13, SFT-21, TEN-18)', () => {
+  test('on a wide screen the header box takes the typing, Enter searches, and a click on the page closes its list (CCH-12)', async ({
+    page,
+  }, testInfo) => {
+    test.skip(
+      testInfo.project.name !== 'desktop',
+      "a phone opens search from its icon, into the overlay's own field",
+    );
+    const shop = await openShop(page);
+    await page.goto(shop.url('/'));
+    const box = page
+      .locator('.dsearch')
+      .getByRole('textbox', { name: 'What are you looking for? e.g. panjabi, saree' });
+    await box.click();
+    await expect(page.locator('.sover')).toBeVisible();
+    await page.keyboard.type('panjabi');
+    await expect(box).toBeFocused();
+    await expect(box).toHaveValue('panjabi');
+    // The dimmed page beside the list closes it; what was typed stays in the box.
+    await page.locator('.sover').click({ position: { x: 10, y: 400 } });
+    await expect(page.locator('.sover')).toHaveCount(0);
+    await expect(box).toHaveValue('panjabi');
+    await box.press('Enter');
+    await expect(page).toHaveURL(/\/search\?q=panjabi$/);
+  });
+
   test("the footer carries the shop's contact, its links and Powered by Lytro", async ({
     page,
   }) => {
@@ -193,20 +218,16 @@ test.describe('header and footer (SFT-13, SFT-21, TEN-18)', () => {
 });
 
 test.describe('a landing page (LND-01, LND-02, LND-14)', () => {
-  test('shows one product in a bare frame: no categories, no search, no cart', async ({ page }) => {
+  test("opens the one product page in the shop's own frame: its header, cart and the order form (SB-31)", async ({
+    page,
+  }) => {
+    // The owner, 2026-11-24: "the landing page is product detail page. so we should include website header and category".
     const shop = await openShop(page);
     await page.goto(shop.url('/l/cotton-panjabi'));
     await expect(page.getByRole('heading', { name: 'Cotton Panjabi', level: 1 })).toBeVisible();
-    await expect(page.locator('.hdr.minimal')).toBeVisible();
-    await expect(page.locator('.hdr nav')).toHaveCount(0);
-    await expect(page.locator('.hdr').getByRole('button', { name: 'Cart' })).toHaveCount(0);
-    await expect(page.locator('.hdr').getByRole('link')).toHaveCount(0);
-    await expect(
-      page.locator('footer.foot').getByRole('link', { name: 'Browse the whole shop' }),
-    ).toBeVisible();
-    await expect(page.locator('footer.foot').getByRole('link', { name: 'Categories' })).toHaveCount(
-      0,
-    );
+    await expect(page.locator('.hdr.minimal')).toHaveCount(0);
+    await expect(page.locator('.hdr').getByRole('button', { name: 'Cart' })).toBeVisible();
+    await expect(page.locator('#order-name')).toBeVisible();
     await expect(page.locator('footer.foot .pb svg')).toHaveAttribute(
       'aria-label',
       /Powered by Lytro/,
@@ -220,6 +241,11 @@ test.describe('a landing page (LND-01, LND-02, LND-14)', () => {
     const landing = await page.goto(shop.url('/l/cotton-panjabi'));
     expect(landing?.status()).toBe(200);
     await expect(page.getByRole('heading', { name: 'Cotton Panjabi', level: 1 })).toBeVisible();
+    // The product alone, in a bare frame: no categories, no search, no cart.
+    await expect(page.locator('.hdr.minimal')).toBeVisible();
+    await expect(page.locator('.hdr nav')).toHaveCount(0);
+    await expect(page.locator('.hdr').getByRole('button', { name: 'Cart' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Add to cart' })).toHaveCount(0);
     await expect(page.getByRole('link', { name: 'Browse the whole shop' })).toHaveCount(0);
     for (const path of ['/', '/p/cotton-panjabi', '/checkout']) {
       const answer = await page.goto(shop.url(path));
@@ -239,7 +265,8 @@ test.describe('a landing page (LND-01, LND-02, LND-14)', () => {
 
 test.describe('Bangla first (I18N-01, LND-14)', () => {
   test('a new visitor reads Bangla; English sticks once chosen', async ({ page }) => {
-    const shop = await openShop(page, () => ({}), 'bn');
+    // A landing link with the storefront off keeps the language pill in its bare header.
+    const shop = await openShop(page, () => ({ storefrontEnabled: false }), 'bn');
     await page.goto(shop.url('/l/cotton-panjabi'));
     await expect(page.locator('.frame')).toHaveAttribute('lang', 'bn');
     await expect(page.getByRole('button', { name: 'অর্ডার কনফার্ম করুন' })).toBeVisible();

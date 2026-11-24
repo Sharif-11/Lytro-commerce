@@ -97,7 +97,8 @@ test.describe('choosing a design by its photo (PD-4, PD-5, PD-17)', () => {
     // The shake ends, and a second try shakes again.
     await expect(page.locator('.pcards')).not.toHaveClass(/\bnudge\b/);
     if (test.info().project.name === 'desktop') {
-      await button(page, 'Buy now').click();
+      // The one product page (SB-31): ordering before choosing shakes them too.
+      await page.getByRole('button', { name: 'Confirm order' }).click();
       await expect(page.locator('.pcards')).toHaveClass(/\bnudge\b/);
       expect(new URL(page.url()).pathname).toBe('/p/irani-burka');
     }
@@ -326,10 +327,15 @@ test.describe('the cart (PD-21, PD-25, PD-26)', () => {
     );
   });
 
-  test("asks for the shopper's address in those words on the product page", async ({ page }) => {
+  test("asks for the shopper's thana in the order summary's words on the product page", async ({
+    page,
+  }) => {
+    // The one product page (SB-31): the order form asks for the area, and its summary says why.
     const shop = await openShop(page, withDesigns());
     await page.goto(shop.url('/p/cotton-panjabi'));
-    await expect(page.getByRole('button', { name: 'Set your address', exact: true })).toBeVisible();
+    await expect(
+      page.locator('.sum').getByText('Choose your thana to see the exact delivery charge'),
+    ).toBeVisible();
   });
 });
 

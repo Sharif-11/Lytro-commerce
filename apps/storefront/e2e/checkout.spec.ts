@@ -571,6 +571,7 @@ test.describe('around it', () => {
   }) => {
     const shop = await openShop(page, (language) => ({ products: [threePiece(language)] }));
     await page.goto(shop.url('/p/lawn-three-piece'));
-    await expect(page.locator('.buy .line', { hasText: '৳200 advance' })).toBeVisible();
+    // The one product page (SB-31): how it is paid is a chip under the price.
+    await expect(page.locator('.pp-chip', { hasText: '৳200 advance' })).toBeVisible();
   });
 });

@@ -356,6 +356,62 @@ describeIfDatabase("a shop's storefront design (SB-11 to SB-16)", () => {
   );
 
   it(
+    'starts with a row for each of its first three categories holding stock, until it publishes its own page (SB-30)',
+    async () => {
+      const shop = await openShop(port, texts, 'sf-cat-rows');
+      const made = async (name: string, body: Record<string, unknown>) => {
+        const created = await shop.post('/categories', { name, ...body });
+        expect(created.status, JSON.stringify(created.body)).toBe(201);
+        return created.body as { id: string; slug: string };
+      };
+      // In the shop's order: one with nothing in it, one hidden, one sold out, then three that sell -- the second of
+      // them through its sub-category -- and a fourth that sells, left out.
+      await made('Empty', { sortOrder: 1 });
+      const hidden = await made('Hidden', { sortOrder: 2, visible: false });
+      const soldOut = await made('Sold out', { sortOrder: 3 });
+      const kurti = await made('Kurti', { sortOrder: 4 });
+      const women = await made('Women', { sortOrder: 5 });
+      const saree = await made('Saree', { sortOrder: 1, parentId: women.id });
+      const shoes = await made('Shoes', { sortOrder: 6 });
+      const bags = await made('Bags', { sortOrder: 7 });
+      await product(shop, 'Hidden kurti', { categoryIds: [hidden.id] });
+      const gone = await product(shop, 'Gone', {
+        categoryIds: [soldOut.id],
+        variants: [{ optionIds: [], openingStock: 0 }],
+      });
+      expect((await shop.get(`/products/${gone.id}`)).body).toMatchObject({ stockState: 'out' });
+      await product(shop, 'Kurti', { categoryIds: [kurti.id] });
+      await product(shop, 'Saree', { categoryIds: [saree.id] });
+      await product(shop, 'Sneaker', { categoryIds: [shoes.id] });
+      await product(shop, 'Tote', { categoryIds: [bags.id] });
+
+      const editor = await editorOf(shop);
+      const start = startingDesign(editor.startingTheme, [kurti.id, women.id, shoes.id]);
+      expect(editor.design).toEqual(start);
+      expect(editor.live).toEqual(start);
+      expect(editor.broken).toEqual([]);
+
+      const key = await keyFor(shop);
+      const shown = await publicShop(key);
+      expect(shown.design.sections.map((section) => section.id)).toEqual(
+        start.sections.map((section) => section.id),
+      );
+      expect(shown.design.categories.map((category) => category.id).sort()).toEqual(
+        [kurti.id, women.id, shoes.id].sort(),
+      );
+
+      // A page the shop published is its own: categories never add rows to it.
+      const own = startingDesign(editor.startingTheme);
+      expect((await shop.put('/storefront/design', { design: own })).status).toBe(200);
+      expect((await shop.post('/storefront/design/publish', {})).status).toBe(200);
+      expect((await publicShop(key)).design.sections.map((section) => section.id)).toEqual(
+        own.sections.map((section) => section.id),
+      );
+    },
+    SLOW,
+  );
+
+  it(
     'saves a draft shoppers never see, publishes it within a minute, and goes back and forth (SB-12, SB-13)',
     async () => {
       const shop = await openShop(port, texts, 'sf-publish');

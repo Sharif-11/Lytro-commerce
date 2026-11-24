@@ -501,6 +501,130 @@ img{display:block}
   .hero.split .tx{padding:48px 44px}
   .hero.split h1{font-size:44px}
 }
+/* ---------- the one product page (the owner, 2026-11-24): Lytro's product page and Bonik's, merged ---------- */
+.pp{padding:0 0 96px}
+.pp-gal{position:relative;background:var(--img-bg)}
+.pp-gal .main{aspect-ratio:4/5;overflow:hidden}
+.pp-gal .main img{width:100%;height:100%;object-fit:cover;display:block}
+.pp-gal .badge{position:absolute;top:12px;left:12px;background:var(--sale);color:#fff;font-weight:700;font-size:13px;border-radius:99px;padding:4px 10px}
+.pp-gal .count{position:absolute;bottom:12px;right:12px;background:rgba(0,0,0,.62);color:#fff;font-size:12.5px;font-weight:600;border-radius:99px;padding:3px 10px}
+.pp-gal .fav{position:absolute;top:12px;right:12px;width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.92);display:flex;align-items:center;justify-content:center}
+.pp-gal .fav .ico{width:19px;height:19px}
+.pp-thumbs{display:flex;gap:8px;padding:10px 16px 0;overflow-x:auto}
+.pp-thumbs img{width:58px;height:58px;object-fit:cover;border-radius:8px;border:2px solid transparent;flex:none}
+.pp-thumbs img.on{border-color:var(--main)}
+.pp-buy{display:flex;flex-direction:column;gap:14px;padding:14px 16px 0}
+.pp-cat{align-self:flex-start;font-size:12.5px;font-weight:700;color:var(--chip-fg);background:var(--chip-bg);border-radius:99px;padding:3px 11px}
+.pp-name{font-family:var(--fh);font-size:24px;line-height:1.25;color:var(--text)}
+.pp-price{display:flex;align-items:baseline;flex-wrap:wrap;gap:8px 10px}
+.pp-price b{font-size:27px;color:var(--price)}
+.pp-price s{color:var(--muted);font-size:15px}
+.pp-save{font-size:12.5px;font-weight:700;color:var(--sale);background:color-mix(in srgb,var(--sale) 12%,#fff);border-radius:99px;padding:3px 9px}
+.pp-stock{font-size:12.5px;font-weight:600;color:#1b7a43;background:#e3f3e9;border-radius:99px;padding:3px 9px}
+.pp-chips{display:flex;flex-wrap:wrap;gap:8px}
+.pp-chip{display:inline-flex;align-items:center;gap:6px;font-size:13px;border-radius:8px;padding:5px 10px;background:color-mix(in srgb,var(--line) 55%,#fff);color:var(--muted)}
+.pp-chip.ok{background:#e3f3e9;color:#1b7a43;font-weight:600}
+.pp-chip .ico{width:15px;height:15px}
+.pp-chip a{color:var(--link);font-weight:700}
+.pp-opt{display:flex;flex-direction:column;gap:8px}
+.pp-lb{display:flex;justify-content:space-between;align-items:center;font-size:14px;color:var(--muted)}
+.pp-lb b{color:var(--text)}
+.pp-lb a{color:var(--link);font-weight:600;font-size:13.5px}
+.pp-designs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.pp-designs span{display:block;border:1.5px solid var(--line);border-radius:10px;padding:3px;background:var(--card-bg)}
+.pp-designs span.on{border-color:var(--main);box-shadow:inset 0 0 0 1px var(--main);font-weight:700}
+.pp-designs img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:7px}
+.pp-sizes{display:flex;flex-wrap:wrap;gap:8px}
+.pp-sizes span{min-width:46px;height:42px;padding:0 12px;border:1.5px solid var(--line-strong);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:600;background:var(--card-bg)}
+.pp-sizes span.on{background:var(--main);border-color:var(--main);color:var(--on-main)}
+.pp-sizes span.off{color:var(--muted);text-decoration:line-through;opacity:.6}
+.pp-qty{display:inline-flex;align-items:center;border:1.5px solid var(--line-strong);border-radius:10px;height:44px;align-self:flex-start;background:var(--card-bg)}
+.pp-qty i{width:44px;display:flex;align-items:center;justify-content:center;font-style:normal;font-size:20px}
+.pp-qty b{min-width:60px;text-align:center}
+.pp-more{display:flex;align-items:center;justify-content:center;gap:8px;height:46px;border:1.5px dashed var(--main);border-radius:10px;color:var(--main);font-weight:700;font-size:14.5px;background:color-mix(in srgb,var(--main) 6%,#fff)}
+.pp-more .ico{width:17px;height:17px}
+.pp-line2{border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:12px;background:var(--card-bg)}
+.pp-line2 .hd2{display:flex;justify-content:space-between;font-weight:700;font-size:14px}
+.pp-line2 .hd2 a{color:var(--sale);font-weight:600;font-size:13.5px}
+.pp-form{margin:22px 16px 0;padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--card-bg);display:flex;flex-direction:column;gap:14px}
+.pp-fh{display:flex;flex-direction:column;gap:2px}
+.pp-fh h2{font-size:20px;color:var(--sec-h)}
+.pp-fh p{font-size:13.5px;color:var(--muted)}
+.pp-f{display:flex;flex-direction:column;gap:6px;font-size:13.5px;font-weight:600}
+.pp-in{height:46px;border:1.5px solid var(--line-strong);border-radius:10px;display:flex;align-items:center;padding:0 12px;color:var(--muted);font-weight:400;background:#fff;font-size:15px;gap:8px}
+.pp-in.ta{height:72px;align-items:flex-start;padding-top:10px}
+.pp-in.set{color:var(--text)}
+.pp-in .pre{color:var(--text);font-weight:600;border-right:1px solid var(--line);padding-right:10px}
+.pp-in .ico{width:16px;height:16px;margin-left:auto}
+.pp-two2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.shop .pp-note{color:var(--link);font-weight:700;font-size:14px}
+.pp-sum{border-top:1px dashed var(--line-strong);padding-top:12px;display:flex;flex-direction:column;gap:8px;font-size:14px}
+.pp-sum .r{display:flex;justify-content:space-between;gap:10px}
+.pp-sum .r span:first-child{color:var(--muted)}
+.pp-sum .pp-l span:first-child{display:flex;align-items:center;gap:8px}
+.pp-sum .pp-l img.th{width:34px;height:34px;border-radius:6px;object-fit:cover}
+.pp-sum .hint{font-size:12.5px;color:var(--muted)}
+.pp-sum .tot{border-top:1px solid var(--line);padding-top:10px;font-weight:700;font-size:17px}
+.pp-sum .tot span:first-child{color:var(--text)}
+.shop .pp-cta{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:56px;border-radius:var(--r-btn);background:var(--btn-bg);color:var(--btn-fg);font-weight:700;font-size:17px;padding:8px 14px}
+.shop .pp-cta small{font-weight:500;font-size:13px;opacity:.92}
+.pp-track{display:flex;justify-content:center;align-items:center;gap:6px;font-size:13px;color:#1b7a43}
+.pp-track .ico{width:15px;height:15px}
+.pp-alt{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pp-alt span{height:46px;border-radius:var(--r-btn);border:1.5px solid var(--line-strong);display:flex;align-items:center;justify-content:center;gap:8px;font-weight:700;background:var(--card-bg)}
+.pp-alt span.wa{background:#e9f7ef;border-color:#bfe5cd;color:#127c3f}
+.pp-alt span .ico{width:18px;height:18px}
+.pp-alt.one{grid-template-columns:1fr}
+.pp-trust{margin:20px 16px 0;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:14px 0}
+.pp-trust span{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:13px;font-weight:700;line-height:1.3}
+.pp-trust small{font-weight:400;font-size:12px;color:var(--muted)}
+.pp-trust .ico{width:22px;height:22px;color:var(--main)}
+.pp-desc{font-size:14.5px;line-height:1.7;color:var(--muted);max-height:9.2em;overflow:hidden;position:relative}
+.pp-desc::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2.6em;background:linear-gradient(transparent,var(--bg))}
+.pp-desc ul{padding-left:18px}
+.shop .pp-btn2{margin-top:10px;height:44px;border:1.5px solid var(--line-strong);border-radius:var(--r-btn);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--link)}
+.pp-share{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.pp-share span{height:38px;padding:0 14px;border:1.5px solid var(--line-strong);border-radius:var(--r-btn);display:inline-flex;align-items:center;gap:7px;font-size:13.5px;font-weight:600}
+.pp-share .ico{width:16px;height:16px}
+.pp-photos{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pp-photos img{width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:var(--r-card)}
+.pp-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
+.pp-steps span{display:flex;flex-direction:column;align-items:center;gap:7px;font-size:13px;font-weight:700;line-height:1.35}
+.pp-steps b{width:32px;height:32px;border-radius:50%;background:var(--main);color:var(--on-main);display:flex;align-items:center;justify-content:center}
+.pp-faq details{border-bottom:1px solid var(--line)}
+.pp-faq summary{list-style:none;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:13px 0;font-size:15px;font-weight:600;cursor:pointer}
+.pp-faq summary::-webkit-details-marker{display:none}
+.pp-faq summary .ico{width:18px;height:18px;color:var(--muted);flex:none}
+.pp-faq details[open] summary .ico{transform:rotate(180deg)}
+.pp-faq p{font-size:14px;color:var(--muted);line-height:1.6;padding:0 0 13px}
+.pp-facts p{font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:10px}
+.pp-facts dl{display:grid;grid-template-columns:minmax(100px,auto) 1fr;border-top:1px solid var(--line);font-size:14px}
+.pp-facts dt,.pp-facts dd{padding:9px 0;border-bottom:1px solid var(--line)}
+.pp-facts dt{color:var(--muted);padding-right:12px}
+.pp-facts dd{font-weight:700;margin:0}
+.pp-bar{position:sticky;bottom:0;z-index:5;display:flex;align-items:center;gap:12px;padding:10px 16px;background:var(--card-bg);border-top:1px solid var(--line);margin-top:-96px}
+.pp-bar .t{display:flex;flex-direction:column;line-height:1.2}
+.pp-bar .t b{font-size:20px;color:var(--price)}
+.pp-bar .t b s{font-size:13px;color:var(--muted);font-weight:500;margin-left:6px}
+.pp-bar .t small{color:#1b7a43;font-weight:700;font-size:12.5px}
+.shop .pp-bar .go{flex:1;height:50px;border-radius:var(--r-btn);background:var(--btn-bg);color:var(--btn-fg);font-weight:700;font-size:16px;display:flex;align-items:center;justify-content:center}
+.hd.pp-off .search,.hd.pp-off .icons .srch,.hd.pp-off .icons .cart,.hd.pp-off .icons a,.hd.pp-off .nav{display:none}
+@container (min-width:900px){
+  .pp-top{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:36px;max-width:1240px;margin:0 auto;padding:22px 16px 0}
+  .pp-gal .main{border-radius:var(--r-card)}
+  .pp-top > div:first-child{display:grid;grid-template-columns:72px minmax(0,1fr);gap:12px;align-items:start}
+  .pp-top .pp-gal{grid-column:2;grid-row:1}
+  .pp-thumbs{grid-column:1;grid-row:1;flex-direction:column;padding:0}
+  .pp-thumbs img{width:72px;height:90px}
+  .pp-buy{padding:0}
+  .pp-name{font-size:30px}
+  .pp-form{max-width:1208px;margin:28px auto 0;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:28px;align-items:start}
+  .pp-form .pp-fields{display:flex;flex-direction:column;gap:14px}
+  .pp-form .pp-side{display:flex;flex-direction:column;gap:14px;position:sticky;top:12px}
+  .pp-trust{max-width:1208px;margin:24px auto 0}
+  .pp-photos{grid-template-columns:repeat(4,1fr)}
+  .pp-bar{display:none}
+}
 </style>
 </head>
 <body>
@@ -1531,6 +1655,111 @@ Object.assign(EDITOR, {
   },
 });
 // ---------- end of Offers (sketch) ----------
+
+/* ---------- the one product page (the owner, 2026-11-24): the built product page and Bonik's, merged ---------- */
+Object.assign(P, {
+  share: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/>',
+  minus: '<path d="M5 12h14"/>', ruler: '<path d="M3 17L17 3l4 4L7 21z"/><path d="M7 13l2 2M10 10l2 2M13 7l2 2"/>',
+});
+const PPW = {
+  cat: ['ক্যাটাগরি', 'Category'], save: ['৳{n} সাশ্রয়', 'Save ৳{n}'], in_stock: ['স্টকে আছে', 'In stock'],
+  cod: ['ক্যাশ অন ডেলিভারি', 'Cash on delivery'], adv: ['৳{n} অগ্রিম, বাকিটা ডেলিভারিতে', '৳{n} advance, the rest on delivery'],
+  deliv: ['ঢাকা শহরে ৳70 · বাইরে ৳130', 'Dhaka city ৳70 · outside ৳130'],
+  design: ['ডিজাইন', 'Design'], size: ['সাইজ', 'Size'], size_chart: ['সাইজ চার্ট', 'Size chart'], qty: ['পরিমাণ', 'Quantity'], piece: ['পিস', 'piece'],
+  another: ['আরেকটা সাইজ বা ডিজাইন যোগ করুন', 'Add another size or design'], second: ['দ্বিতীয়টি', 'The second one'], remove: ['সরান', 'Remove'],
+  form_t: ['অর্ডার করতে তথ্য দিন', 'Your details to order'], form_s: ['30 সেকেন্ডে অর্ডার, এখন কোনো টাকা লাগবে না', 'Order in 30 seconds; nothing to pay now'],
+  form_s_adv: ['30 সেকেন্ডে অর্ডার; কনফার্ম করতে ৳{n} অগ্রিম', 'Order in 30 seconds; ৳{n} in advance confirms it'],
+  name: ['নাম', 'Name'], name_ph: ['যেমন: রুমানা আক্তার', 'e.g. Rumana Akter'], phone: ['মোবাইল নম্বর', 'Mobile number'],
+  district: ['জেলা', 'District'], thana: ['থানা / উপজেলা', 'Thana / upazila'], address: ['পুরো ঠিকানা', 'Full address'],
+  address_ph: ['বাসা/রোড/এলাকা, যেন কুরিয়ার খুঁজে পায়', 'House, road, area, so the courier can find you'],
+  note: ['+ দোকানকে কিছু বলতে চাইলে লিখুন', '+ A note for the shop'],
+  item_total: ['পণ্যের দাম', 'Item total'], delivery: ['ডেলিভারি', 'Delivery'], exact: ['থানা বাছলে সঠিক ডেলিভারি চার্জ দেখা যাবে', 'Pick your thana for the exact delivery charge'],
+  grand: ['সর্বমোট', 'Grand total'], confirm: ['অর্ডার কনফার্ম করুন', 'Confirm order'],
+  pay_arrive: ['পণ্য হাতে পেয়ে দেবেন {n}', 'Pay {n} when it arrives'], pay_adv: ['এখন ৳{a}, বাকি {n} হাতে পেয়ে', '৳{a} now, {n} when it arrives'],
+  track: ['অর্ডারের পর একটা ট্র্যাকিং লিংক পাবেন', 'You get a tracking link after ordering'],
+  add: ['কার্টে রাখুন', 'Add to cart'],
+  t1: ['হাতে পেয়ে টাকা', 'Pay on delivery'], t1s: ['অগ্রিম লাগবে না', 'Nothing in advance'], t1a: ['অল্প অগ্রিম', 'A small advance'], t1as: ['বাকিটা হাতে পেয়ে', 'The rest on delivery'],
+  t2: ['সারাদেশে ডেলিভারি', 'Delivery nationwide'], t2s: ['ঘরে বসে পাবেন', 'To your door'], t3: ['সহজে অর্ডার', 'Easy ordering'], t3s: ['30 সেকেন্ডেই হয়ে যায়', 'Done in 30 seconds'],
+  desc: ['বর্ণনা', 'Description'], read_more: ['পুরো বিবরণ পড়ুন', 'Read the full description'], share: ['শেয়ার', 'Share'],
+  photos: ['আরও ছবি', 'More photos'], how: ['অর্ডার যেভাবে হয়', 'How ordering works'],
+  s1: ['ফর্মে তথ্য দিন', 'Fill in the form'], s2: ['দোকান ফোন করে কনফার্ম করবে', 'The shop calls to confirm'], s3: ['পণ্য হাতে পেয়ে টাকা দিন', 'Pay when it arrives'], s3a: ['অগ্রিম দিন, বাকিটা হাতে পেয়ে', 'Pay the advance, the rest on arrival'],
+  faq: ['সাধারণ প্রশ্ন', 'Common questions'],
+  q1: ['ডেলিভারি চার্জ কত?', 'What does delivery cost?'], a1: ['ঢাকা শহরে ৳70, ঢাকার বাইরে ৳130। থানা বাছলে সঠিক চার্জ দেখা যায়।', 'Dhaka city ৳70, outside Dhaka ৳130. Pick your thana to see the exact charge.'],
+  q2: ['টাকা কখন দিতে হবে?', 'When do I pay?'], a2: ['পণ্য হাতে পেয়ে ডেলিভারি ম্যানকে টাকা দেবেন। অগ্রিম কিছু লাগবে না।', 'Pay the delivery person when it arrives. Nothing in advance.'],
+  a2a: ['অর্ডার কনফার্ম করতে ৳{n} অগ্রিম bKash বা Nagad-এ, বাকিটা পণ্য হাতে পেয়ে।', '৳{n} in advance by bKash or Nagad confirms the order; the rest when it arrives.'],
+  q3: ['অর্ডারের পর কী হবে?', 'What happens after I order?'], a3: ['দোকান আপনাকে ফোন করে অর্ডার কনফার্ম করবে, তারপর কুরিয়ারে পাঠাবে। ট্র্যাকিং লিংকে দেখবেন পার্সেল কোথায় আছে।', 'The shop calls you to confirm, then sends it by courier. The tracking link shows where the parcel is.'],
+  q4: ['একসাথে কয়েকটা সাইজ বা ডিজাইন নেওয়া যাবে?', 'Can I order several sizes or designs together?'], a4: ['হ্যাঁ। "আরেকটা সাইজ বা ডিজাইন যোগ করুন" চাপুন; সব এক অর্ডারে, এক ডেলিভারি চার্জে আসবে।', 'Yes. Tap "Add another size or design"; they all come in one order, for one delivery charge.'],
+  facts: ['পণ্যের তথ্য', 'Product facts'], facts_p: ['{p} এখন পাচ্ছেন {n}-এ। {s} থেকে অনলাইনে অর্ডার করুন: {pay}।', '{p} is now {n}. Order online from {s}: {pay}.'],
+  f_cod: ['ক্যাশ অন ডেলিভারি, অগ্রিম টাকা লাগবে না', 'cash on delivery, nothing in advance'],
+  price: ['দাম', 'Price'], regular: ['আগের দাম', 'Regular price'], regular_v: ['{n} ({p}% ছাড়)', '{n} ({p}% off)'], designs: ['ডিজাইন', 'Designs'], sizes: ['সাইজ', 'Sizes'],
+  fabric: ['কাপড়', 'Fabric'], shop: ['দোকান', 'Shop'], dcharge: ['ডেলিভারি চার্জ', 'Delivery charge'], payment: ['পেমেন্ট', 'Payment'], code: ['পণ্য কোড', 'Product code'],
+  more_shop: ['এই দোকানের আরও পণ্য', 'More from this shop'], all: ['সব পণ্য দেখুন', 'See every product'], order: ['অর্ডার করুন', 'Order now'], out: ['স্টক শেষ', 'Sold out'],
+};
+const pw = (k, v) => { let x = T(PPW[k]); if (v) for (const [a, b] of Object.entries(v)) x = x.split('{' + a + '}').join(b); return x; };
+// The kurti in its four designs: one photo shoot, each design's own colour (as a shop's real design photos would be).
+const PP_DESIGNS = [[0, ['গোলাপি', 'Pink']], [150, ['সবুজ', 'Green']], [215, ['নীল', 'Blue']], [285, ['বেগুনি', 'Purple']]];
+const ppImg = (name, hue = 0, cls = '') => { if (Array.isArray(name)) [name, hue] = name; return `<img class="${cls}" src="${img(name)}" alt="" style="${hue ? `filter:hue-rotate(${hue}deg)` : ''}">`; };
+const PP = {
+  studio: { n: ['চিকনকারি কুর্তি', 'Chikankari kurti'], cat: ['কুর্তি', 'Kurti'], photos: ['fashion-5-tall', 'fashion-5', 'fashion-5-wide', ['fashion-5-tall', 150]], price: 1250, was: 1450, sizes: ['S', 'M', 'L', 'XL', 'XXL'], off: ['XXL'], designs: true, fabric: ['সুতি, হাতের চিকনকারি কাজ', 'Cotton, hand chikankari'], code: 'KT-CK-M',
+    desc: [['হাতের কাজের চিকনকারি কুর্তি, নরম সুতি কাপড়ে। ঈদ আর অফিস দুটোতেই মানায়।', 'Hand-worked chikankari kurti in soft cotton, fit for Eid and the office alike.'], ['ধোয়ার পর রং বা সাইজ বদলায় না', 'Keeps its colour and size after washing'], ['সাইজ M: বুক 38", লম্বা 44"', 'Size M: chest 38", length 44"'], ['ফুল হাতা, সাইড স্লিট', 'Full sleeves, side slits'], ['প্রি-শ্রাঙ্ক সুতি', 'Pre-shrunk cotton']] },
+  royal: { n: ['উদ রয়্যাল, ১০০ মিলি', 'Oud Royale, 100 ml'], cat: ['পুরুষদের পারফিউম', "Men's perfume"], photos: ['perfume-2', 'perfume-4', 'perfume-7', 'perfume-8'], price: 4500, was: 5500, sizes: null, designs: false, fabric: null, code: 'OUD-100',
+    desc: [['গভীর উদ আর অ্যাম্বারের সুবাস, সারাদিন থাকে।', 'Deep oud and amber, lasting all day.'], ['১০০ মিলি, স্প্রে বোতল', '100 ml spray bottle'], ['উপহারের বাক্সে আসে', 'Comes in a gift box']] },
+};
+
+/* o.theme: the shop's theme (and its sample product). o.another: a second size and design added, the thana chosen.
+   o.adv: the product needs an advance. o.out: sold out. o.off: opened from /l/ with the storefront off (SFT-16) -- the
+   header keeps the shop's name only, and there is no cart or way into the shop. o.payg: no WhatsApp (PF-15). */
+function ppPage(o) {
+  o = o || {}; const theme = o.theme || 'studio'; const shop = SHOPS[theme]; const p = PP[theme]; const adv = o.adv || 0;
+  const pctOff = p.was ? Math.floor(((p.was - p.price) * 100) / p.was) : 0;
+  const lines = o.another ? [['M', 0], ['L', 2]] : [['M', 0]];
+  const items = p.price * lines.length; const deliv = o.another ? 70 : 130; const total = items + deliv;
+  const pay = adv ? pw('adv', { n: adv }) : pw('cod');
+  const hdr = SECTIONS.header(theme, shop).replace(`<span class="menu">${ic('menu')}</span>`, `<span class="menu">${ic('back')}</span>`).replace('<header class="hd ', `<header class="hd ${o.off ? 'pp-off ' : ''}`).replace('<a class="on">', '<a class="">').replace(`<a class="">${T(p.cat)}</a>`, `<a class="on">${T(p.cat)}</a>`);
+  const gal = `<div><div class="pp-gal"><div class="main">${ppImg(p.photos[0])}</div>${p.was ? `<span class="badge">−${pctOff}%</span>` : ''}<span class="fav">${ic('heart')}</span><span class="count">1 / ${p.photos.length}</span></div>
+    <div class="pp-thumbs">${p.photos.map((ph, i) => ppImg(ph, 0, i === 0 ? 'on' : '')).join('')}</div></div>`;
+  const designs = p.designs ? `<div class="pp-opt"><div class="pp-designs">${PP_DESIGNS.map(([h], i) => `<span class="${i === 0 ? 'on' : ''}">${ppImg(p.photos[0], h)}</span>`).join('')}</div></div>` : '';
+  const sizes = (on) => p.sizes ? `<div class="pp-opt"><div class="pp-lb"><span>${pw('size')}: <b>${on}</b></span><a>${ic('ruler')} ${pw('size_chart')}</a></div><div class="pp-sizes">${p.sizes.map((x) => `<span class="${x === on ? 'on' : ''} ${p.off && p.off.includes(x) ? 'off' : ''}">${x}</span>`).join('')}</div></div>` : '';
+  const qty = `<div class="pp-opt"><div class="pp-lb"><span>${pw('qty')}</span></div><span class="pp-qty"><i>−</i><b>1 ${pw('piece')}</b><i>+</i></span></div>`;
+  const second = o.another ? `<div class="pp-line2"><div class="hd2"><span>${pw('second')}</span><a>${pw('remove')}</a></div><div class="pp-opt"><div class="pp-designs">${PP_DESIGNS.map(([h], i) => `<span class="${i === 2 ? 'on' : ''}">${ppImg(p.photos[0], h)}</span>`).join('')}</div></div>${sizes('L')}${qty}</div>` : '';
+  const buy = `<div class="pp-buy"><span class="pp-cat">${T(p.cat)}</span><h1 class="pp-name">${T(p.n)}</h1>
+      <div class="pp-price"><b>${money(p.price)}</b>${p.was ? `<s>${money(p.was)}</s><span class="pp-save">${pw('save', { n: (p.was - p.price).toLocaleString('en-US') })}</span>` : ''}${o.out ? `<span class="pp-save">${pw('out')}</span>` : `<span class="pp-stock">● ${pw('in_stock')}</span>`}</div>
+      <div class="pp-chips"><span class="pp-chip ok">${ic('check')}${pay}</span><span class="pp-chip">${ic('truck')}${pw('deliv')}</span></div>
+      ${o.out ? '' : `${designs}${sizes('M')}${qty}${second}${p.sizes || p.designs ? `<span class="pp-more">${ic('plus')}${pw('another')}</span>` : ''}`}</div>`;
+  const field = (label, val, cls = '', extra = '') => `<label class="pp-f">${label}<span class="pp-in ${cls} ${val && !String(val).startsWith('<') ? 'set' : ''}">${extra}${val}</span></label>`;
+  const lineRow = ([size, d]) => `<div class="r pp-l"><span>${p.designs ? ppImg(p.photos[0], PP_DESIGNS[d][0], 'th') : ''}${T(p.n)}${p.sizes ? ` · ${size}` : ''} × 1</span><span>${money(p.price)}</span></div>`;
+  const alt = o.off && o.payg ? '' : `<div class="pp-alt ${o.off || o.payg ? 'one' : ''}">${o.off ? '' : `<span>${pw('add')}</span>`}${o.payg ? '' : `<span class="wa">${ic('wa')}WhatsApp</span>`}</div>`;
+  const form = o.out ? '' : `<div class="pp-form"><div class="pp-fields" style="display:flex;flex-direction:column;gap:14px"><div class="pp-fh"><h2>${pw('form_t')}</h2><p>${adv ? pw('form_s_adv', { n: adv }) : pw('form_s')}</p></div>
+      ${field(pw('name'), o.another ? L('রুমানা আক্তার', 'Rumana Akter') : pw('name_ph'))}${field(pw('phone'), o.another ? '1711 234 567' : '01XXXXXXXXX', '', '<span class="pre">+88</span>')}
+      <div class="pp-two2">${field(pw('district'), (o.another ? L('ঢাকা', 'Dhaka') : '—') + ic('down'))}${field(pw('thana'), (o.another ? L('মিরপুর', 'Mirpur') : '—') + ic('down'))}</div>
+      ${field(pw('address'), o.another ? L('বাসা 5, রোড 10, মিরপুর 11', 'House 5, Road 10, Mirpur 11') : pw('address_ph'), 'ta')}<a class="pp-note">${pw('note')}</a></div>
+    <div class="pp-side"><div class="pp-sum">${lines.map(lineRow).join('')}<div class="r"><span>${pw('delivery')}${o.another ? ` · ${L('ঢাকা শহর', 'Dhaka city')}` : ''}</span><span>${money(deliv)}</span></div>${o.another ? '' : `<div class="hint">${pw('exact')}</div>`}<div class="r tot"><span>${pw('grand')}</span><span>${money(total)}</span></div></div>
+      <a class="pp-cta">${pw('confirm')}<small>${adv ? pw('pay_adv', { a: adv, n: money(total - adv) }) : pw('pay_arrive', { n: money(total) })}</small></a>
+      <div class="pp-track">${ic('check')}${pw('track')}</div>${alt}</div></div>`;
+  const trust = `<div class="pp-trust"><span>${ic('cash')}${adv ? pw('t1a') : pw('t1')}<small>${adv ? pw('t1as') : pw('t1s')}</small></span><span>${ic('truck')}${pw('t2')}<small>${pw('t2s')}</small></span><span>${ic('check')}${pw('t3')}<small>${pw('t3s')}</small></span></div>`;
+  const sec = (title, body, extra = '') => `<section class="sec ${extra}"><div class="wrap">${head(theme, title, false)}${body}</div></section>`;
+  const desc = sec(pw('desc'), `<div class="pp-desc"><p>${T(p.desc[0])}</p><ul>${p.desc.slice(1).map((d) => `<li>${T(d)}</li>`).join('')}</ul></div><a class="pp-btn2">${pw('read_more')}</a>
+      <div class="pp-share"><span>${ic('share')}${pw('share')}</span><span>${ic('wa')}WhatsApp</span><span>${ic('fb')}Facebook</span></div>`);
+  const photos = sec(pw('photos'), `<div class="pp-photos">${p.photos.map((ph) => ppImg(ph)).join('')}</div>`);
+  const how = sec(pw('how'), `<div class="pp-steps"><span><b>1</b>${pw('s1')}</span><span><b>2</b>${pw('s2')}</span><span><b>3</b>${adv ? pw('s3a') : pw('s3')}</span></div>`);
+  const q = (k, a, open) => `<details ${open ? 'open' : ''}><summary>${pw(k)}${ic('down')}</summary><p>${a}</p></details>`;
+  const faq = sec(pw('faq'), `<div>${q('q1', pw('a1'), o.another)}${q('q2', adv ? pw('a2a', { n: adv }) : pw('a2'), o.another)}${q('q3', pw('a3'))}${p.sizes ? q('q4', pw('a4')) : ''}</div>`, 'pp-faq');
+  const row = (k, v) => `<dt>${k}</dt><dd>${v}</dd>`;
+  const facts = sec(pw('facts'), `<p>${pw('facts_p', { p: T(p.n), n: money(p.price), s: T(shop.name), pay: adv ? pay : pw('f_cod') })}</p><dl>${row(pw('price'), money(p.price))}${p.was ? row(pw('regular'), pw('regular_v', { n: money(p.was), p: pctOff })) : ''}${row(pw('cat'), T(p.cat))}${p.sizes ? row(pw('sizes'), p.sizes.join(', ')) : ''}${p.fabric ? row(pw('fabric'), T(p.fabric)) : ''}${row(pw('shop'), T(shop.name))}${row(pw('dcharge'), pw('deliv'))}${row(pw('payment'), pay)}</dl>`, 'pp-facts');
+  const others = { ...shop, products: shop.products.filter((x) => T(x.n) !== T(p.n)) };
+  const more = o.off ? '' : SECTIONS.products(theme, others, 'latest', 'rail').replace(/<div class="sh[^"]*">[\s\S]*?<\/div>(?=<div class="rail">)/, head(theme, pw('more_shop'))).replace('</div></div></section>', `</div><a class="pp-btn2">${pw('all')}</a></div></section>`);
+  const bar = o.out ? '' : `<div class="pp-bar"><span class="t"><b>${money(p.price)}${p.was ? `<s>${money(p.was)}</s>` : ''}</b><small>${pay}</small></span><a class="go">${pw('order')}</a></div>`;
+  const vars = Object.entries(THEMES[theme].v).map(([k, v]) => `--${k}:${v}`).join(';');
+  return `<div class="shop" style="${vars}">${o.off ? '' : SECTIONS.announce(theme, shop)}${hdr}<main class="pp"><div class="pp-top">${gal}${buy}</div>${form}${trust}${desc}${photos}${how}${o.out ? '' : faq}${facts}${more}</main>${bar}${o.off ? '' : SECTIONS.footer(theme, shop)}</div>`;
+}
+Object.assign(EDITOR, {
+  'pp-page': { label: ['পণ্যের পেজ: এক পেজে', 'Product page: all in one'], note: ['মালিকের সিদ্ধান্ত (২০২৬-১১-২৪): পণ্যের পেজেই অর্ডার ফর্ম; /l/ লিংকও এই পেজ খোলে। দোকানের হেডার আর ক্যাটাগরি থাকে, Bonik-এর মতো অফার, সাশ্রয়, আরেকটা যোগ, বিশ্বাসের চিহ্ন, প্রশ্ন, পণ্যের তথ্য।', "The owner's call (2026-11-24): the order form on the product page; /l/ links open this page too. The shop's header and categories stay; from Bonik: the offer, the saving, add another, the trust strip, questions and product facts."], render: () => ppPage() },
+  'pp-another': { label: ['পণ্যের পেজ: আরেকটা যোগ', 'Product page: another added'], note: ['দ্বিতীয় সাইজ আর ডিজাইন যোগ করা, থানা বাছা: সঠিক ডেলিভারি চার্জ আর সর্বমোট।', 'A second size and design added, the thana chosen: the exact delivery charge and total.'], render: () => ppPage({ another: true }) },
+  'pp-advance': { label: ['পণ্যের পেজ: অগ্রিম', 'Product page: advance'], note: ['৳200 অগ্রিম লাগে এমন পণ্য: চিপ, বোতাম, ধাপ আর প্রশ্ন সেটাই বলে।', 'A product needing ৳200 in advance: the chips, button, steps and questions say so.'], render: () => ppPage({ adv: 200 }) },
+  'pp-out': { label: ['পণ্যের পেজ: স্টক শেষ', 'Product page: sold out'], note: ['স্টক শেষ: ফর্ম আর প্রশ্ন নেই; দোকানের আরও পণ্য থাকে।', 'Sold out: no form and no questions; more from the shop stays.'], render: () => ppPage({ out: true }) },
+  'pp-perfume': { label: ['পণ্যের পেজ: অন্য থিমে', 'Product page: another theme'], note: ['রাজকীয় থিমে পারফিউম: সাইজ বা ডিজাইন ছাড়া একটা পণ্য; পেজ থিমের রং, ফন্ট আর কোণ নেয়।', 'Royal theme, a perfume with no sizes or designs: the page takes the theme\'s colours, fonts and corners.'], render: () => ppPage({ theme: 'royal' }) },
+  'pp-off': { label: ['পণ্যের পেজ: স্টোরফ্রন্ট বন্ধ', 'Product page: storefront off'], note: ['/l/ লিংক, স্টোরফ্রন্ট বন্ধ (SFT-16): শুধু দোকানের নাম; কার্ট, সার্চ, ক্যাটাগরি বা আরও পণ্য নেই।', '/l/ link with the storefront off (SFT-16): the shop\'s name only; no cart, search, categories or more products.'], render: () => ppPage({ off: true }) },
+});
 
 function render() {
   const theme = THEMES[STATE.screen];

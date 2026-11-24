@@ -205,7 +205,9 @@ test.describe("every page in the theme's header, footer and card (SB-8, SB-17, S
     const row = page.locator('.pricerow').first();
     await expect(row.locator('.price')).toHaveText('৳4,500');
     await expect(row.locator('.unit')).toHaveText('৳5,500');
-    await expect(row.locator('.st.sale')).toHaveText('18% off');
+    // The one product page (SB-31): the saving in taka beside the price, its percent on the photo.
+    await expect(row.locator('.st.sale')).toHaveText('Save ৳1,000');
+    await expect(page.locator('.gallery .pp-badge')).toHaveText('−18%');
   });
 });
 
