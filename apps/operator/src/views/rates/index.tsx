@@ -12,9 +12,11 @@ import { ConsolePage, PageTitle } from '@/components/ui/console-page';
 import { InlineForm } from '@/components/ui/inline-form';
 import { RowIcon, RowLines } from '@/components/ui/list-row';
 import { LoadFailed } from '@/components/ui/load-failed';
+import { NewBadge } from '@/components/ui/new-badge';
 import { INLINE_FIELD, LARGE_VALUE, QUIET_BUTTON, SMALL_BUTTON } from '@/components/ui/sizes';
 import { useToast } from '@/components/ui/use-toast';
 import { formatDay } from '@/lib/format';
+import { PAYG_NEW_RATES, paygStillNew } from '@/lib/payg-new';
 import type { RateValue } from '@/types/operator';
 import { RATE_UNITS, rateWords } from './rate-words';
 
@@ -219,6 +221,7 @@ export function Rates(): React.JSX.Element {
   const fairUseOn =
     settings.data?.some((each) => each.key === FAIR_USE_KEY && each.value === FAIR_USE_ON) === true;
   const retired = (key: RateKey): boolean => fairUseOn && RETIRED_WITH_FAIR_USE.includes(key);
+  const stillNew = paygStillNew(settings.data);
   return (
     <ConsolePage>
       <PageTitle title={t('nav.rates')} lead={t('rates.lead')} />
@@ -245,7 +248,12 @@ export function Rates(): React.JSX.Element {
                 <RowLines
                   wrap
                   className={ROW_WORDS}
-                  title={t(`rateNames.${rate.key}`, { defaultValue: rate.key })}
+                  title={
+                    <>
+                      {t(`rateNames.${rate.key}`, { defaultValue: rate.key })}
+                      {stillNew && PAYG_NEW_RATES.has(rate.key) ? <NewBadge /> : null}
+                    </>
+                  }
                   detail={
                     retired(rate.key)
                       ? t('rates.retired')

@@ -1,6 +1,7 @@
 {
   "common": {
     "appName": "Lytro Operator",
+    "new": "New",
     "loading": "Loading…",
     "somethingWentWrong": "Something went wrong. Please try again.",
     "language": "Language",

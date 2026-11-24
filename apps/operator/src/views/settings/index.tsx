@@ -7,9 +7,11 @@ import { chipClass } from '@/components/ui/chip-class';
 import { ConsolePage, PageTitle, SectionTitle } from '@/components/ui/console-page';
 import { RowLines } from '@/components/ui/list-row';
 import { LoadFailed } from '@/components/ui/load-failed';
+import { NewBadge } from '@/components/ui/new-badge';
 import { NOTE, SMALL_BUTTON } from '@/components/ui/sizes';
 import { useToast } from '@/components/ui/use-toast';
 import { formatDay } from '@/lib/format';
+import { PAYG_NEW_SETTINGS, paygStillNew } from '@/lib/payg-new';
 import { SETTING_GROUPS, SETTING_SHAPES, VAT_GROUP, type SettingShape } from '@/lib/setting-shapes';
 import { settingWords } from '@/lib/setting-words';
 import type { PlatformSetting } from '@/types/operator';
@@ -53,7 +55,12 @@ function SettingRow({
       <RowLines
         wrap
         className="basis-full sm:basis-0"
-        title={name}
+        title={
+          <>
+            {name}
+            {PAYG_NEW_SETTINGS.has(setting.key) && paygStillNew(rows) ? <NewBadge /> : null}
+          </>
+        }
         detail={`${setting.description}${
           setting.updatedByEmail
             ? ` · ${t('settings.updated', { d: formatDay(setting.updatedAt) })} · ${setting.updatedByEmail}`

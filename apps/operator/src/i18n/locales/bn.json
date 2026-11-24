@@ -1,6 +1,7 @@
 {
   "common": {
     "appName": "Lytro Operator",
+    "new": "নতুন",
     "loading": "লোড হচ্ছে…",
     "somethingWentWrong": "কিছু একটা সমস্যা হয়েছে। আবার চেষ্টা করুন।",
     "language": "ভাষা",
