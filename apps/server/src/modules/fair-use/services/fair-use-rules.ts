@@ -38,6 +38,15 @@ export function contactHidden(fairUseOn: boolean, state: TenantState): boolean {
   return fairUseOn && state === TenantState.PayAsYouGo;
 }
 
+/**
+ * PFQ-5: whether a shopper's tracking page shows the shop's phone, on a shop whose storefront hides it (PF-40). It shows
+ * once the seller has seen the shopper's phone (step 1), so the shopper may call back the shop that is calling them;
+ * a locked order still hides it.
+ */
+export function trackingShowsShopPhone(contactIsHidden: boolean, access: OrderAccess): boolean {
+  return contactIsHidden && access !== OrderAccess.Locked;
+}
+
 /** PYG-22: an order whose customer the shop hasn't reached through Lytro yet: its name, phone and address held back. */
 export function isLocked(access: OrderAccess): boolean {
   return access === OrderAccess.Locked;

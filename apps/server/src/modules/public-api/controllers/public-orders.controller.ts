@@ -4,11 +4,13 @@ import { createZodDto, ZodResponse } from 'nestjs-zod';
 import { z } from 'zod';
 import {
   AttributeDataType,
+  type OrderAccess,
   OrderStatus,
   PaymentSessionState,
   publicOrderSchema,
   StockUnit,
   type PublicOrderInput,
+  type TenantState,
   coercedDateField,
 } from '@lytronix/validators';
 import { ApiError } from '../../../common/api-error';
@@ -18,8 +20,11 @@ import { ResponseMessage } from '../../../common/decorators/response-message';
 import { headerValue, type HttpResponse } from '../../../common/http';
 import { apiKeyCaller, requestHashOf } from '../../../common/idempotency/idempotency.service';
 import { ZodValidationPipe } from '../../../common/pipes/validation.pipe';
+import { contactHidden, trackingShowsShopPhone } from '../../fair-use/services/fair-use-rules';
+import { FairUseSwitch } from '../../fair-use/services/fair-use-switch';
 import { OrderTracking } from '../../orders/services/order-tracking';
 import type { TrackedOrderView } from '../../orders/types/orders';
+import { TenantService } from '../../tenancy/services/tenant.service';
 import type { PublicApiRequest } from '../guards/public-key.guard';
 import { OrderLimits } from '../services/order-limits';
 import { PaymentSessions } from '../../payment-sessions/services/payment-sessions';
@@ -114,6 +119,8 @@ class TrackedOrderDto extends createZodDto(
     // Slice 6.7: the courier says the parcel is going back to the shop.
     courierReturning: z.boolean(),
     payment: openedPaymentSchema.extend({ state: z.enum(PaymentSessionState) }).nullable(),
+    // PFQ-5: a pay-as-you-go shop's phone, for this order's tracking page once the seller has seen the shopper's phone.
+    shopPhone: z.string().nullable(),
   }),
 ) {}
 
@@ -130,6 +137,8 @@ export class PublicOrdersController {
     @Inject(ClientIp) private readonly clientIp: ClientIp,
     @Inject(API_CLOCK) private readonly clock: () => Date,
     @Inject(PaymentSessions) private readonly sessions: PaymentSessions,
+    @Inject(FairUseSwitch) private readonly fairUse: FairUseSwitch,
+    @Inject(TenantService) private readonly tenants: TenantService,
   ) {}
 
   @TakesOrders()
@@ -187,6 +196,24 @@ export class PublicOrdersController {
     if (!TRACKING_ID.test(id)) throw new ApiError('not_found', 'OrderNotFound', {});
     const tracked = await this.tracking.track(shop.row.id, id);
     // Slice 5.2: an unverified order's open payment, so the shopper can go back to it.
-    return { ...tracked, payment: await this.sessions.ofTracked(shop.row.id, id, now) };
+    const payment = await this.sessions.ofTracked(shop.row.id, id, now);
+    return {
+      ...tracked.view,
+      payment,
+      shopPhone: await this.shopPhoneFor(shop.row, tracked.access),
+    };
+  }
+
+  /** PFQ-5: the shop's phone a tracking page may show where its storefront hides it (PF-40); null everywhere else. */
+  private async shopPhoneFor(
+    shop: { id: string; state: TenantState },
+    access: OrderAccess,
+  ): Promise<string | null> {
+    const hidden = contactHidden(await this.fairUse.isOn(), shop.state);
+    if (!trackingShowsShopPhone(hidden, access)) return null;
+    const contact = await this.tenants.runStandalone((tx) =>
+      this.tenants.findContactDetails(tx, shop.id),
+    );
+    return contact?.contactPhone ?? null;
   }
 }

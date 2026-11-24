@@ -469,6 +469,11 @@ export interface TrackedOrder extends ShopperTotals {
   courierMessage: { en: string | null; bn: string | null; at: string } | null;
   /** Slice 6.7 (STOREFRONT-DESIGN §7e): the courier says the parcel is going back, and the shop hasn't recorded it yet. */
   courierReturning: boolean;
+  /**
+   * PFQ-5: a pay-as-you-go shop's phone, which its pages hide (PF-40), for this order's tracking page once the seller has
+   * seen the shopper's phone; absent from an API released before it.
+   */
+  shopPhone?: string | null;
 }
 export type TrackingRead =
   | { kind: 'found'; order: TrackedOrder }

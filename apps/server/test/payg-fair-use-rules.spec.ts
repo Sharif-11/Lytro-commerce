@@ -4,6 +4,7 @@ import {
   accessForNewOrder,
   contactHidden,
   storefrontPaused,
+  trackingShowsShopPhone,
 } from '../src/modules/fair-use/services/fair-use-rules';
 import {
   admitsNext,
@@ -57,6 +58,15 @@ describe('the paused storefront and hidden contact (PF-13, PF-15)', () => {
     expect(contactHidden(true, TenantState.PayAsYouGo)).toBe(true);
     expect(contactHidden(true, TenantState.Active)).toBe(false);
     expect(contactHidden(false, TenantState.PayAsYouGo)).toBe(false);
+  });
+
+  it("shows a hidden shop's phone on tracking once the order is past step 1 (PFQ-5)", () => {
+    expect(trackingShowsShopPhone(true, OrderAccess.Locked)).toBe(false);
+    for (const access of [OrderAccess.Phone, OrderAccess.Confirmed, OrderAccess.Open]) {
+      expect(trackingShowsShopPhone(true, access)).toBe(true);
+    }
+    // A shop that shows its contact shows it on every page; tracking adds none.
+    expect(trackingShowsShopPhone(false, OrderAccess.Open)).toBe(false);
   });
 });
 

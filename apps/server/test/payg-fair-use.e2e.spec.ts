@@ -439,6 +439,33 @@ describeIfDatabase('the paused storefront and its activation (PF-13, PF-15, PF-3
     const open = (await call(sf, 'GET', '/v1/shop')).body as { contact: { phone: string | null } };
     expect(open.contact.phone).toBe('01811112222');
   });
+
+  it("shows the shop's phone on an order's tracking once the seller has seen the shopper's (PFQ-5)", async () => {
+    const { shop, variantId } = await payAsYouGoShop('100.00');
+    await admin.query(`UPDATE control.tenants SET contact_phone = '01811112222' WHERE id = $1`, [
+      shop.tenantId,
+    ]);
+    const order = await storefrontOrder(shop, variantId);
+    const { rows } = await admin.query<{ tracking_id: string }>(
+      'SELECT tracking_id FROM tenant.orders WHERE id = $1',
+      [order.id],
+    );
+    const sf = await storefrontKey(shop);
+    const tracked = async (): Promise<string | null> => {
+      const read = await call(sf, 'GET', `/v1/track/${rows[0]?.tracking_id ?? ''}`);
+      return (read.body as { shopPhone: string | null }).shopPhone;
+    };
+    // Locked: the shopper's page shows no way to reach the shop.
+    expect(await tracked()).toBeNull();
+    expect((await shop.post(`/orders/${order.id}/unlock-phone`, {})).status).toBe(200);
+    expect(await tracked()).toBe('01811112222');
+    // PF-40: every other page still hides it.
+    const page = (await call(sf, 'GET', '/v1/shop')).body as { contact: { phone: string | null } };
+    expect(page.contact.phone).toBeNull();
+    // With fair use off the shop's pages show its phone, so tracking adds none of its own.
+    await fairUse(false);
+    expect(await tracked()).toBeNull();
+  });
 });
 
 describeIfDatabase("the shop's own website's API on pay-as-you-go (PF-14, PF-36, PF-37)", () => {

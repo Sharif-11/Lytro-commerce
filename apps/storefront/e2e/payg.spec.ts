@@ -1,5 +1,5 @@
 import { expect, type Page, test } from '@playwright/test';
-import { meghShop } from './support/fixtures';
+import { meghShop, trackedOrder } from './support/fixtures';
 import { openShop } from './support/shop';
 
 // PAYG-FAIR-USE-PLAN (the sketch's `pf-paused` and `pf-product`): a pay-as-you-go storefront waiting for its first
@@ -87,6 +87,34 @@ test.describe("a pay-as-you-go shop's pages without direct contact (pf-product)"
     ).toBeAttached();
 
     await page.goto(shop.url('/sign-in'));
+    await expect(page.locator('a[href^="tel:"]')).toHaveCount(0);
+  });
+});
+
+test.describe("a pay-as-you-go order's tracking (PFQ-5)", () => {
+  test("shows the shop's phone once the seller has seen the shopper's, and not before", async ({
+    page,
+  }) => {
+    const shop = await openShop(page, (language) => {
+      const info = meghShop(language).info;
+      return {
+        info: {
+          ...info,
+          contact: { ...info.contact, phone: null, email: null, whatsapp: null, messenger: null },
+        },
+        tracked: {
+          // The server sends the shop's phone only once the seller has seen the shopper's.
+          K7F2M9QX: { ...trackedOrder(language, 'confirmed'), shopPhone: '01811112222' },
+          L8G3N4RY: { ...trackedOrder(language, 'placed'), shopPhone: null },
+        },
+      };
+    });
+    await page.goto(shop.url('/track/K7F2M9QX'));
+    await expect(page.getByRole('heading', { name: '#261031-0047' })).toBeVisible();
+    await expect(page.locator('a[href="tel:01811112222"]').first()).toBeVisible();
+
+    await page.goto(shop.url('/track/L8G3N4RY'));
+    await expect(page.locator('.tl .s').first()).toBeVisible();
     await expect(page.locator('a[href^="tel:"]')).toHaveCount(0);
   });
 });

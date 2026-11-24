@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { withBusyMetadata, withBusyPage } from '@/components/busy-page';
-import { loadTrackFrame, TrackFrame } from '@/components/order/track-frame';
+import { loadTrackFrame, TrackFrame, withShopPhone } from '@/components/order/track-frame';
 import { TrackingRefused, TrackingView } from '@/components/order/tracking-view';
 import { OfflinePage } from '@/components/pages';
 import { loadShopPageWhilePaused as loadShopPage, storefrontApi } from '@/lib/storefront';
@@ -34,8 +34,9 @@ export default withBusyPage(async function TrackedOrderPage({ params }: Props) {
     storefrontApi.track(page.shop, page.shopper, trackingId),
     loadTrackFrame(page),
   ]);
+  const framed = read.kind === 'found' ? withShopPhone(page, read.order.shopPhone) : page;
   return (
-    <TrackFrame page={page} frame={frame}>
+    <TrackFrame page={framed} frame={frame}>
       {read.kind === 'found' ? (
         <TrackingView
           order={read.order}

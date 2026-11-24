@@ -561,4 +561,9 @@ export interface TrackedOrderView extends ShopperTotals {
   courierReturning: boolean;
   /** Slice 5.2: an unverified order's open payment, to go back to; null for none. */
   payment: (OrderPaymentLink & { state: PaymentSessionState }) | null;
+  /**
+   * PFQ-5: the shop's phone for this order's tracking page, on a shop whose storefront hides it (PF-40), once the
+   * seller has seen the shopper's phone; null otherwise (a shop that shows its contact shows it on every page anyway).
+   */
+  shopPhone: string | null;
 }
