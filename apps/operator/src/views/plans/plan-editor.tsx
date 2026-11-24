@@ -14,6 +14,7 @@ import { problemsOf } from '@/lib/form-problems';
 import { formatDay } from '@/lib/format';
 import { canBeUnlimited, LIMIT_KEYS, limitLabelKey, type LimitKey } from '@/lib/limit-keys';
 import type { OperatorPlan } from '@/types/operator';
+import { flagsShown } from './plan-flags';
 import { shopsOn, versionLines } from './plan-history';
 import { suggestionSwitch } from './suggestion';
 
@@ -253,7 +254,7 @@ export function PlanEditor({
       </div>
       <h3 className="text-[15px] font-semibold">{t('plans.features')}</h3>
       <TagLine>
-        {Object.entries(features).map(([key, on]) => (
+        {flagsShown(features, allPlans).map(([key, on]) => (
           <TagButton
             key={key}
             tone={on ? 'on' : 'strike'}

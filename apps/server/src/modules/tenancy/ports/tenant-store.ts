@@ -7,7 +7,9 @@ import type {
   DeletedShopRow,
   LapsingCandidateRow,
   LifecycleFactsRow,
+  NewTenantValues,
   PaygCandidateRow,
+  PlanSnapshotRow,
   RevocationCandidateRow,
   StageLengthsSnapshot,
   Transaction,
@@ -20,33 +22,17 @@ export interface TenantStore {
   /** Opens a transaction for a caller that doesn't have one yet. control.tenants has no RLS, so no tenant
    * context to set -- this is a plain transaction, unlike balance's tenant-scoped `run`. */
   run<T>(work: (tx: Transaction) => Promise<T>): Promise<T>;
-  findTrialPlan(tx: Transaction): Promise<{ id: string; limits: PlanLimits } | null>;
+  /** D3, TRL-03: the plan a new shop starts on, with what it snapshots (PLN-05). */
+  findTrialPlan(tx: Transaction): Promise<PlanSnapshotRow | null>;
   /** TRL-07: the plan a trial converts to at day 30 with no purchase. */
-  findPayAsYouGoPlan(tx: Transaction): Promise<{
-    id: string;
-    limits: PlanLimits;
-    version: number;
-    features: Record<string, boolean>;
-  } | null>;
+  findPayAsYouGoPlan(tx: Transaction): Promise<PlanSnapshotRow | null>;
   /** TRL-07: trials whose period has ended with no purchase. */
   findExpiredTrialIds(tx: Transaction, now: Date): Promise<string[]>;
   /** BIL-10/11: a transaction-scoped read for a purchase/renewal confirmation's extend-vs-restart decision. */
   findBillingInfo(tx: Transaction, tenantId: string): Promise<BillingInfoRow | null>;
   /** ADM-04, D8-12: the shop's period ends later; `restore` brings a lapsed shop back to active. */
   extendPeriod(tx: Transaction, tenantId: string, periodEnd: Date, restore: boolean): Promise<void>;
-  insertTenant(
-    tx: Transaction,
-    values: {
-      ownerIdentityId: string;
-      subscriberId: string;
-      shopName: string;
-      slug: string;
-      planId: string;
-      planSnapshot: PlanLimits;
-      periodStart: Date;
-      periodEnd: Date;
-    },
-  ): Promise<string>;
+  insertTenant(tx: Transaction, values: NewTenantValues): Promise<string>;
   /** Locks the tenant's balance row for the rest of the transaction (BAL-11). Null if the tenant does not exist. */
   lockBalanceForUpdate(tx: Transaction, tenantId: string): Promise<BalanceRow | null>;
   /** BAL-01: the balance as last committed, without a lock. Null if the tenant does not exist. */

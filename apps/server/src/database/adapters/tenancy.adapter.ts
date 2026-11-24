@@ -16,6 +16,7 @@ import {
   type LifecycleFactsRow,
   type StageLengthsSnapshot,
   type PaygCandidateRow,
+  type PlanSnapshotRow,
   type RevocationCandidateRow,
   type TenantOperatorFactsRow,
   type TenantSearchRow,
@@ -25,7 +26,6 @@ import {
   CUSTOM_DOMAIN_FEATURE,
   featureOn,
   TenantSort,
-  type PlanLimits,
   type TenantState,
 } from '@lytronix/validators';
 import { UniqueViolation } from '../../common/errors/unique-violation';
@@ -94,16 +94,11 @@ export class DrizzleTenantStore implements TenantStore {
     return this.transactions.run(this.database.handle.db, work);
   }
 
-  findTrialPlan(tx: Transaction): Promise<{ id: string; limits: PlanLimits } | null> {
+  findTrialPlan(tx: Transaction): Promise<PlanSnapshotRow | null> {
     return this.tenants.findPlanByName(tx, TRIAL_PLAN_NAME, false);
   }
 
-  findPayAsYouGoPlan(tx: Transaction): Promise<{
-    id: string;
-    limits: PlanLimits;
-    version: number;
-    features: Record<string, boolean>;
-  } | null> {
+  findPayAsYouGoPlan(tx: Transaction): Promise<PlanSnapshotRow | null> {
     return this.tenants.findPlanByName(tx, PAYG_PLAN_NAME, false);
   }
 

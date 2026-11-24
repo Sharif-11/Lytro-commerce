@@ -1211,6 +1211,13 @@ export const CUSTOM_DOMAIN_FEATURE = 'custom_domain';
 // WAL-20, WAL-21 (amended 2026-11-23, the owner): the plan feature that waives the payment-check fees -- the
 // listener's and a wallet checkout's -- for its shops. The Pilot plan carries it.
 export const VERIFICATION_FEES_WAIVED_FEATURE = 'verification_fees_waived';
+// PLN-02 (the owner, 2026-11-24): the plan features the platform itself reads (featureOn), brand identity among them
+// (BRN-05: an add-on, or a plan that includes it). The operator's plan editor offers each on every plan, off until set.
+export const PLAN_FEATURES: readonly string[] = [
+  CUSTOM_DOMAIN_FEATURE,
+  VERIFICATION_FEES_WAIVED_FEATURE,
+  BRAND_IDENTITY_ADDON,
+];
 
 // BRN-02 (agreed for Slice 11.2): the curated typefaces a brand identity's headings and its body text are set in, each
 // a Bangla face with the Latin face that suits it, all from Google Fonts. Galada with Playfair Display is for headings

@@ -159,6 +159,8 @@ describe('unique constraints surface as recognisable errors (AUTH-08, AUTH-11)',
       slug,
       planId: plan?.id ?? '',
       planSnapshot: plan?.limits ?? {},
+      planVersionSnapshot: plan?.version ?? 1,
+      featureSnapshot: plan?.features ?? {},
       periodStart: new Date(),
       periodEnd: new Date(),
     };
@@ -223,6 +225,8 @@ describe('one unit of work (AUTH-10)', () => {
         slug: newSlug(),
         planId: plan?.id ?? '',
         planSnapshot: plan?.limits ?? {},
+        planVersionSnapshot: plan?.version ?? 1,
+        featureSnapshot: plan?.features ?? {},
         periodStart: new Date(),
         periodEnd: new Date(),
       });
