@@ -29,6 +29,7 @@ import { PasswordService } from '../services/password.service';
 import { EmailSigninService } from '../services/email-signin.service';
 import { ForgotPasswordEmailDto, VerifyForgotPasswordEmailDto } from '../dto/forgot-email.dto';
 import { SigninService } from '../services/signin.service';
+import { AdVisitReader } from '../../platform-ads/services/ad-visit-reader';
 import type { NextStep } from '../types/signed-in';
 import { SessionService } from '../services/session.service';
 import type { CodeIssued } from '../types/code-issued';
@@ -57,6 +58,7 @@ export class AuthController {
     @Inject(SessionService) private readonly sessions: SessionService,
     @Inject(ClientIp) private readonly clientIp: ClientIp,
     @Inject(HumanCheck) private readonly humanCheck: HumanCheck,
+    @Inject(AdVisitReader) private readonly adVisits: AdVisitReader,
   ) {}
 
   @Post('phone/code')
@@ -89,10 +91,12 @@ export class AuthController {
     @Req() request: HttpRequest,
     @Res({ passthrough: true }) response: HttpResponse,
   ): Promise<PhoneSignedInBody> {
+    const context = this.clientIp.context(request);
     const result = await this.signin.verifyCode(
       body.phone,
       body.code,
-      this.clientIp.context(request),
+      context,
+      this.adVisits.read(request, context),
     );
     response.setHeader('Set-Cookie', result.cookie);
     return {

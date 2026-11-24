@@ -8,6 +8,7 @@ import './index.css';
 import './i18n';
 // TEN-17: catches the browser's install offer, which can come before the Menu opens.
 import './lib/install-prompt';
+import { adClickCookie } from './lib/ad-click-cookie';
 import { errorTracking } from './lib/error-tracking';
 import { createQueryClient } from './lib/query-client';
 import { serviceWorker } from './lib/service-worker';
@@ -16,6 +17,9 @@ import { tenantSession } from './session/tenant-session';
 
 // OBS-03 (Slice 9.6): before anything else runs, so an error at start is reported too.
 errorTracking.start();
+
+// MKT-03: an ad's click ID, kept for the server's sign-up events; the dashboard itself loads no Meta code.
+adClickCookie.remember();
 
 // D9-14 (Slice 9.9): it also hears a save refused while changes can't be saved, for the banner.
 const queryClient = createQueryClient();

@@ -25,6 +25,8 @@ import { SIGNUP_GATEWAY } from '../tokens';
 import type { SignupGateway } from '../ports/signup-gateway';
 import { LegalAcceptance } from './legal-acceptance';
 import { ShopUse } from './shop-use';
+import { PlatformAdEvents } from '../../platform-ads/services/platform-ad-events';
+import type { AdVisit } from '../../platform-ads/types/platform-ad';
 
 /** Sign-in and sign-up by one-time code (AUTH-01, AUTH-04, AUTH-08, AUTH-12). */
 @Injectable()
@@ -39,6 +41,7 @@ export class SigninService {
     @Inject(SignupRateLimiter) private readonly signupLimit: SignupRateLimiter,
     @Inject(LegalAcceptance) private readonly acceptance: LegalAcceptance,
     @Inject(ShopUse) private readonly shopUse: ShopUse,
+    @Inject(PlatformAdEvents) private readonly ads: PlatformAdEvents,
   ) {}
 
   async requestCode(rawPhone: string, asker: CodeAsker = { ip: null }) {
@@ -61,6 +64,7 @@ export class SigninService {
     rawPhone: string,
     code: string,
     context: SessionContext,
+    visit: AdVisit | null = null,
   ): Promise<SignedIn & { suggestPassword: boolean }> {
     const phone = this.requirePhone(rawPhone);
     const existing = await this.gateway.run((tx) => this.gateway.findSubscriberByPhone(tx, phone));
@@ -99,6 +103,8 @@ export class SigninService {
           ]);
         }
         const subscriberId = existing?.subscriberId ?? (await this.createAccount(tx, phone));
+        // MKT-02: a new account is Lytro's sign-up (Meta's Lead); a returning sign-in is not.
+        if (!existing) await this.ads.signedUpWithin(tx, { subscriberId, phone, visit });
         // The code proves the number, so a pending staff phone becomes verified here (AUTH-08).
         await this.gateway.markPhoneVerified(tx, { subscriberId, phone, at: new Date() });
         return this.signedIn.open(tx, {

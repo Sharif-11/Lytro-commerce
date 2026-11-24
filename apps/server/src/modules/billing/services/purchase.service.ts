@@ -9,6 +9,7 @@ import {
   TenantState,
 } from '@lytronix/validators';
 import type { BillingInfoRow, Transaction } from '@lytronix/db';
+import { PlatformAdEvents } from '../../platform-ads/services/platform-ad-events';
 import { ApiError } from '../../../common/api-error';
 import { addMonths, HOUR_MS } from '../../../common/time';
 import { AuditService } from '../../audit/services/audit.service';
@@ -96,6 +97,7 @@ export class PurchaseService {
     @Inject(DowngradeService) private readonly downgrade: DowngradeService,
     @Inject(AddonRenewalService) private readonly renewals: AddonRenewalService,
     @Inject(CLOCK) private readonly clock: () => Date,
+    @Inject(PlatformAdEvents) private readonly platformAds: PlatformAdEvents,
   ) {}
 
   /**
@@ -299,6 +301,8 @@ export class PurchaseService {
       result: AuditResult.Success,
       summary: { planId: plan.id, amount: payment.amount, invoiceNumber: invoice.number },
     });
+    // MKT-02, MKT-04: a shop's first paid plan is Lytro's subscriber (Meta's Subscribe), told once, with its amount.
+    await this.platformAds.planPaidWithin(tx, payment.tenantId, payment.amount);
 
     return invoice;
   }

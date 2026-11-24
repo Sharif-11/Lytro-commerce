@@ -37,6 +37,8 @@ import { IdempotencyPurgeTickWorker } from './services/idempotency-purge-tick-wo
 import { PublicApiModule } from '../../public-api/public-api.module';
 import { CardFactsTickWorker } from './services/card-facts-tick-worker';
 import { MetaPurchaseWorker } from './services/meta-purchase-worker';
+import { PlatformAdsModule } from '../../platform-ads/platform-ads.module';
+import { PlatformAdWorker } from './services/platform-ad-worker';
 import { SmsEventsModule } from '../../sms-events/sms-events.module';
 import { SmsEventWorker } from './services/sms-event-worker';
 import { FraudChecksModule } from '../../fraud-checks/fraud-checks.module';
@@ -82,6 +84,8 @@ import { RawMessagePurgeTickWorker } from './services/raw-message-purge-tick-wor
     InventoryModule,
     MediaModule,
     PublicApiModule,
+    // MKT-02: Lytro's own events to its Meta pixel.
+    PlatformAdsModule,
     UsageModule,
     DomainsModule,
     IdempotencyModule,
@@ -116,6 +120,7 @@ import { RawMessagePurgeTickWorker } from './services/raw-message-purge-tick-wor
     UsageNoticeWorker,
     PackAutoBuyWorker,
     MetaPurchaseWorker,
+    PlatformAdWorker,
     CardFactsTickWorker,
     DomainCheckTickWorker,
     IdempotencyPurgeTickWorker,

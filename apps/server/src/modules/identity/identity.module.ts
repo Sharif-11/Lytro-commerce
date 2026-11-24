@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ENV } from '../../config/tokens';
+import { PlatformAdEventsModule } from '../platform-ads/platform-ad-events.module';
 import type { Env } from '../../config/env';
 import { shopDashboardUrl, shopOrigin } from '../../common/shop-address';
 import {
@@ -91,6 +92,8 @@ import {
   // the leaf AuditModule, never IdentityModule back.
   imports: [
     PlatformSettingsModule,
+    // MKT-02: a sign-up and a shop made are told to Lytro's own Meta pixel.
+    PlatformAdEventsModule,
     LegalModule,
     TenancyModule,
     MessagingModule,

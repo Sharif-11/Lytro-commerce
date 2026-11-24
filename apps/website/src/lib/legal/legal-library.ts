@@ -6,6 +6,8 @@ import {
 } from '@lytronix/validators';
 import privacy20261120bn from '@/content/legal/privacy/2026-11-20.bn.md';
 import privacy20261120en from '@/content/legal/privacy/2026-11-20.en.md';
+import privacy20261125bn from '@/content/legal/privacy/2026-11-25.bn.md';
+import privacy20261125en from '@/content/legal/privacy/2026-11-25.en.md';
 import terms20261120bn from '@/content/legal/terms/2026-11-20.bn.md';
 import terms20261120en from '@/content/legal/terms/2026-11-20.en.md';
 import type { Bilingual } from '@/lib/i18n/copy';
@@ -22,6 +24,8 @@ const terms: Record<TermsVersion, Bilingual> = {
 };
 const privacy: Record<PrivacyVersion, Bilingual> = {
   '2026-11-20': { bn: privacy20261120bn, en: privacy20261120en },
+  // MKT-01 to MKT-03 (2026-11-24): Lytro's own advertising measurement and its cookies.
+  '2026-11-25': { bn: privacy20261125bn, en: privacy20261125en },
 };
 
 export class LegalLibrary {

@@ -4,7 +4,7 @@ import { type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import pg from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { PlatformSettingKey } from '@lytronix/validators';
+import { PlatformSettingKey, PUBLISHED_PRIVACY_VERSIONS } from '@lytronix/validators';
 import type * as Validators from '@lytronix/validators';
 import { AppModule } from '../src/app/app.module';
 import { PlatformSettingsService } from '../src/modules/platform-settings/services/platform-settings.service';
@@ -297,6 +297,8 @@ describeIfDatabase('sign-up by phone, end to end', () => {
 describeIfDatabase('what an account accepted (LEG-01)', () => {
   const FIRST = '2026-11-20';
   const LATER = '2027-01-15';
+  // The privacy policy in force: the newest published version, which the newest migration sets (2026-11-25, MKT).
+  const PRIVACY = PUBLISHED_PRIVACY_VERSIONS[PUBLISHED_PRIVACY_VERSIONS.length - 1];
 
   async function acceptedBy(phone: string) {
     const { rows } = await admin.query<{
@@ -331,7 +333,7 @@ describeIfDatabase('what an account accepted (LEG-01)', () => {
     const phone = texts.freshPhone();
     await enter(phone);
     const account = await acceptedBy(phone);
-    expect(account).toMatchObject({ terms_version: FIRST, privacy_version: FIRST });
+    expect(account).toMatchObject({ terms_version: FIRST, privacy_version: PRIVACY });
     const at = account.terms_accepted_at?.getTime() ?? 0;
     expect(at).toBeGreaterThanOrEqual(before - 1000);
     expect(at).toBeLessThanOrEqual(Date.now() + 1000);
@@ -346,7 +348,7 @@ describeIfDatabase('what an account accepted (LEG-01)', () => {
       await enter(newer);
       expect(await acceptedBy(newer)).toMatchObject({
         terms_version: LATER,
-        privacy_version: FIRST,
+        privacy_version: PRIVACY,
       });
       // Opening a shop accepts nothing new for an account with a record: re-accepting isn't built.
       const shop = await createShop(session, { ownerName: 'Rahim', shopName: 'Old Terms House' });
@@ -381,7 +383,7 @@ describeIfDatabase('what an account accepted (LEG-01)', () => {
     const own = await createShop(entered, { ownerName: 'Karim', shopName: 'Their Own House' });
     expect(own.status, JSON.stringify(own.body)).toBe(201);
     const account = await acceptedBy(phone);
-    expect(account).toMatchObject({ terms_version: FIRST, privacy_version: FIRST });
+    expect(account).toMatchObject({ terms_version: FIRST, privacy_version: PRIVACY });
     expect(account.terms_accepted_at).not.toBeNull();
   });
 

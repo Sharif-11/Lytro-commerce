@@ -73,6 +73,7 @@ export * from './control/addons';
 export * from './control/request-errors';
 export * from './control/shop-days';
 export * from './control/media-costs';
+export * from './control/platform-ad-events';
 export * from './control/payment-method-types';
 export * from './control/manual-payment-entries';
 export * from './control/limits';
