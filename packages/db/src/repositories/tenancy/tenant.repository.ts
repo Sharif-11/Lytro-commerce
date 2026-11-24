@@ -389,19 +389,7 @@ export class TenantRepository {
     return rows[0] ?? null;
   }
 
-  async insert(
-    db: Executor,
-    values: {
-      ownerIdentityId: string;
-      subscriberId: string;
-      shopName: string;
-      slug: string;
-      planId: string;
-      planSnapshot: PlanLimits;
-      periodStart: Date;
-      periodEnd: Date;
-    },
-  ): Promise<string> {
+  async insert(db: Executor, values: NewTenantValues): Promise<string> {
     const [row] = await db.insert(tenants).values(values).returning({ id: tenants.id });
     if (!row) throw new Error('insert returned no tenant');
     return row.id;
@@ -412,12 +400,7 @@ export class TenantRepository {
     db: Executor,
     name: string,
     forSale: boolean,
-  ): Promise<{
-    id: string;
-    limits: PlanLimits;
-    version: number;
-    features: Record<string, boolean>;
-  } | null> {
+  ): Promise<PlanSnapshotRow | null> {
     const rows = await db
       .select({
         id: plans.id,
@@ -1120,6 +1103,28 @@ export class TenantRepository {
       .set({ retentionFloorDays: floor.days, retentionFloorUntil: floor.until })
       .where(eq(tenants.id, tenantId));
   }
+}
+
+/** PLN-05: what a shop snapshots of the plan it is put on -- the plan's ID and version, all its limits and features. */
+export interface PlanSnapshotRow {
+  id: string;
+  limits: PlanLimits;
+  version: number;
+  features: Record<string, boolean>;
+}
+
+/** A new shop on its trial (D3, TRL-03): it holds the Trial plan's snapshot, as a purchase holds its plan's (PLN-05). */
+export interface NewTenantValues {
+  ownerIdentityId: string;
+  subscriberId: string;
+  shopName: string;
+  slug: string;
+  planId: string;
+  planSnapshot: PlanLimits;
+  planVersionSnapshot: number;
+  featureSnapshot: Record<string, boolean>;
+  periodStart: Date;
+  periodEnd: Date;
 }
 
 /** PYG-26, PF-38: a live pay-as-you-go shop, for the night's API charge and the operator's fair-use report. */

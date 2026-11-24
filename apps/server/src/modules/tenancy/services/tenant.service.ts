@@ -5,6 +5,7 @@ import type {
   BalanceRow,
   BillingInfoRow,
   ContactDetailsRow,
+  PlanSnapshotRow,
   RevocationCandidateRow,
   Transaction,
 } from '@lytronix/db';
@@ -54,8 +55,12 @@ export class TenantService {
       subscriberId: request.subscriberId,
       shopName: request.shopName,
       slug: request.slug,
+      // TRL-03 (amended 2026-11-24, the owner): the Trial plan's version, limits and features, as a purchase snapshots
+      // its plan's (PLN-05); the trial-end conversion replaces them with pay-as-you-go's own (TRL-07).
       planId: plan.id,
       planSnapshot: plan.limits,
+      planVersionSnapshot: plan.version,
+      featureSnapshot: plan.features,
       periodStart: now,
       periodEnd: new Date(now.getTime() + trialDays * DAY_MS),
     });
@@ -194,12 +199,7 @@ export class TenantService {
   }
 
   /** TRL-07: the plan a trial converts to at day 30 with no purchase. */
-  findPayAsYouGoPlan(tx: Transaction): Promise<{
-    id: string;
-    limits: PlanLimits;
-    version: number;
-    features: Record<string, boolean>;
-  } | null> {
+  findPayAsYouGoPlan(tx: Transaction): Promise<PlanSnapshotRow | null> {
     return this.store.findPayAsYouGoPlan(tx);
   }
 

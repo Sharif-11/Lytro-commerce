@@ -27,6 +27,8 @@ export {
   type DeletedShopRow,
   type ContactDetailsRow,
   type RevocationCandidateRow,
+  type PlanSnapshotRow,
+  type NewTenantValues,
 } from './repositories/tenancy/tenant.repository';
 export {
   TenantDomainRepository,

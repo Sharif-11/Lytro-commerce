@@ -17,6 +17,8 @@ const SHOP = {
   slug: 'fashion-house',
   planId: 'plan-trial',
   planSnapshot: { essential_sms_total: 8 },
+  planVersionSnapshot: 1,
+  featureSnapshot: {},
   periodStart: new Date('2026-10-04T00:00:00Z'),
   periodEnd: new Date('2026-11-03T00:00:00Z'),
 };

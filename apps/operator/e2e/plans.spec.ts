@@ -202,6 +202,52 @@ test('the editor shows what is set, and saves the next version', async ({ page }
   await expect(main(page).getByRole('row').nth(3)).toContainText('v4');
 });
 
+// PLN-02 (the owner, 2026-11-24): every plan's editor offers every flag the platform reads or a plan carries, the Trial's
+// too, off until set; only the plan's own flags and those switched are sent.
+const trialWith = (features: Record<string, boolean>) =>
+  drawnPlans().map((plan) => (plan.id === 'p-trial' ? { ...plan, features } : plan));
+const flagOf = (page: Page, key: string) =>
+  page.getByRole('dialog', { name: 'Edit Trial' }).getByRole('button', { name: key, exact: true });
+
+test("the Trial's editor offers every flag off, and sends only the one switched on", async ({
+  page,
+}) => {
+  const log = await open(page, { plans: trialWith({}) });
+  await editOf(page, 'Trial').click();
+  for (const key of ['verification_fees_waived', 'custom_domain', 'brand_identity', 'api']) {
+    await expect(flagOf(page, key)).toHaveAttribute('aria-pressed', 'false');
+  }
+  await flagOf(page, 'verification_fees_waived').click();
+  await expect(flagOf(page, 'verification_fees_waived')).toHaveAttribute('aria-pressed', 'true');
+  await page
+    .getByRole('dialog', { name: 'Edit Trial' })
+    .getByRole('button', { name: 'Save as v3' })
+    .click();
+
+  await expect(page.getByText('Trial saved as v3.')).toBeVisible();
+  const sent = log.sent('PATCH', '/operator/plans/p-trial') as { features: unknown };
+  expect(sent.features).toEqual({ verification_fees_waived: true });
+});
+
+test("a plan's own flags still show as set, beside the ones it lacks", async ({ page }) => {
+  const own = { api: true, payment_page: true, priority_support: true, custom_domain: false };
+  const log = await open(page, { plans: trialWith(own) });
+  await editOf(page, 'Trial').click();
+  for (const [key, on] of Object.entries(own)) {
+    await expect(flagOf(page, key)).toHaveAttribute('aria-pressed', String(on));
+  }
+  await expect(flagOf(page, 'verification_fees_waived')).toHaveAttribute('aria-pressed', 'false');
+  await flagOf(page, 'verification_fees_waived').click();
+  await page
+    .getByRole('dialog', { name: 'Edit Trial' })
+    .getByRole('button', { name: 'Save as v3' })
+    .click();
+
+  await expect(page.getByText('Trial saved as v3.')).toBeVisible();
+  const sent = log.sent('PATCH', '/operator/plans/p-trial') as { features: unknown };
+  expect(sent.features).toEqual({ ...own, verification_fees_waived: true });
+});
+
 test('retention is never unlimited', async ({ page }) => {
   await open(page);
   await editOf(page, 'Starter').click();

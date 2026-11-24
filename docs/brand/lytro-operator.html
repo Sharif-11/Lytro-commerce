@@ -1062,6 +1062,10 @@ function plansPage(opts) {
   <div class="note">${t('pl_rule1')} ${t('pl_rule2')}</div>`;
 }
 def('plans', { nav: 'plans', label: 'Plans and prices · matrix', group: 'Pricing', url: 'admin.lytro.app/plans', bandTitle: 'plans', render: plansPage });
+// PLN-02 (the owner, 2026-11-24): the editor lists the plan's own flags, then every other flag the platform reads or a plan
+// carries, off.
+const PLAN_FLAGS_KNOWN = ['custom_domain', 'verification_fees_waived', 'brand_identity'];
+const planFlagsShown = (own) => [...new Set([...Object.keys(own), ...PLAN_FLAGS_KNOWN, ...PLANS.flatMap((x) => Object.keys(x.features))])].map((k) => [k, own[k] === true]);
 function planEditor(p, isNew) {
   const keys = ['products', 'orders_total', 'orders_handled_monthly', 'orders_handled_daily', 'staff', 'paired_devices', 'storage_mb', 'essential_sms_total', 'essential_sms_monthly', 'activity_retention_days', 'requests_monthly'];
   return sheet(isNew ? t('pe_new') : t('pe_title', { name: p.name }), isNew ? null : `v${p.version} · ${t('rank')} ${p.rank}`, `
@@ -1073,7 +1077,7 @@ function planEditor(p, isNew) {
     <div class="sechead"><h3 style="font-size:15px;font-weight:600">${t('limits')}</h3></div>
     <div class="list" style="border:1px solid var(--line);border-radius:8px">${keys.map((k) => { const v = isNew ? undefined : p.limits[k]; return `<div class="row" style="min-height:48px;padding:8px 12px"><span class="body"><span class="l1" style="font-size:14px">${limitLabel(k)}</span></span><input class="input inline mono" value="${v === null || v === undefined ? '' : v}" placeholder="${v === null ? '' : t('pl_notset')}" ${v === null ? 'disabled' : ''}>${k === 'activity_retention_days' ? '' : chk(v === null && !isNew, t('unlimited'))}</div>`; }).join('')}</div>
     <div class="sechead"><h3 style="font-size:15px;font-weight:600">${t('features')}</h3></div>
-    <div class="tagline">${Object.entries(isNew ? PLANS[2].features : p.features).map(([k, on]) => `<span class="tag ${on ? 'on' : 'strike'}">${k}</span>`).join('')}<span class="tag">${I.plus}</span></div>
+    <div class="tagline">${planFlagsShown(isNew ? PLANS[2].features : p.features).map(([k, on]) => `<span class="tag ${on ? 'on' : 'strike'}">${k}</span>`).join('')}<span class="tag">${I.plus}</span></div>
     ${isNew ? '' : `<div class="note">${t('pe_version', { v: p.version, d: dateS('2026-09-29'), n: p.version + 1 })}</div><div class="toolbar2"><span class="lnk" onclick="go('plan-versions')">${I.history}${t('versions')}</span><span style="flex:1"></span>${btn(I.trash + t('pe_del'), 'quiet sm', "go('plan-delete')", p.refs ? 'disabled' : '')}${p.refs ? `<span class="note">${t('pe_del_blocked', { n: p.refs })}</span>` : ''}</div>`}`,
     `${btn(t('cancel'), 'ghost', "go('plans')")}${btn(isNew ? t('pe_create') : t('pe_save', { n: p.version + 1 }), 'primary', "go('plans')")}`, { row: true, close: 'plans' });
 }

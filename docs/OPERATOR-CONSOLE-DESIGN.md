@@ -302,7 +302,9 @@ PLN-16). "New plan" opens the editor.
 and an Unlimited tick (PLN-19; retention has no tick; the two API limits from Slice 8 are in the list), the
 feature flags as chips with strike-through for off, the version sentence ("v3 recorded 29 Sept 2026. Saving
 records v4; shops already on v3 keep it until they renew", PLN-02), a link to the version history, Delete
-disabled with the reference count. The button is "Save as v4", or "Create plan".
+disabled with the reference count. The button is "Save as v4", or "Create plan". Amended 2026-11-24 (the owner):
+every plan's flags, the Trial's included, list the plan's own first, then every other flag the platform reads or a
+plan carries, off; saving sends only the plan's own flags and those switched.
 
 **Suggested plan** (small fixes, 2026-11-13): under the for-sale switch, a "Suggested plan" switch (সাজেস্টেড
 প্ল্যান) that saves the moment it is flipped (`PUT /operator/plans/:id/suggested`) and records no new version: it
