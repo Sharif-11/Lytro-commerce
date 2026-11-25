@@ -297,6 +297,8 @@ export function makeProduct(spec: ProductSpec): ProductFixture {
     categoryIds: spec.categoryId ? [spec.categoryId] : [],
     images: [],
     video: null,
+    // STO-09: the server's cover -- its first photo, else its video's poster.
+    cover: null,
     options,
     attributes: [],
     variants,
@@ -494,6 +496,11 @@ export function designed(
       height: 900,
       designId: designId(n),
     })),
+    // STO-09: the cover the server sends, its first photo.
+    cover:
+      photos.length === 0
+        ? null
+        : { id: 'designed-photo-1', urls: { main: designPhoto(0), thumbnail: designPhoto(0) } },
     options: [
       {
         attributeId: 'designed-design',

@@ -215,6 +215,8 @@ export interface PublicProduct {
   categoryIds: string[];
   images: ProductImage[];
   video: { id: string; urls: { video: string; poster: string } } | null;
+  /** STO-09: the one picture shown for it -- its first photo, else its video's poster (the server decides). */
+  cover: ImageView | null;
   options: ProductOption[];
   attributes: ProductAttribute[];
   variants: ProductVariant[];

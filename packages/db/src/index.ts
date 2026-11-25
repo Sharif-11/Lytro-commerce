@@ -304,6 +304,7 @@ export {
   type FeedAttributeRow,
   type FeedImageRow,
   type FeedVariantRow,
+  type FeedVideoRow,
   type PublicProductFilter,
   type PublicProductRow,
   type PublicCardFacts,

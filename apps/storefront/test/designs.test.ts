@@ -56,7 +56,7 @@ const variants = [
   variant('d3-52', ['d3', '52'], false),
   variant('d3-54', ['d3', '54'], false),
 ];
-const burka = { images, options, variants };
+const burka = { images, options, variants, cover: images[0] ?? null };
 
 describe('photo cards (PD-4, PD-12)', () => {
   it('are every design photo, in the gallery order, plain photos left out', () => {
@@ -89,8 +89,21 @@ describe('the photo an order line keeps (PD-6, PD-7)', () => {
 
   it("is the product's first photo for a product without designs, or before a variant", () => {
     const plain = { images: [photo('a', null), photo('b', null)], options: [sizes] };
-    expect(lineImageOf(plain, variant('52', ['52']))).toBe('https://cdn.test/a-t.jpg');
+    const withCover = { ...plain, cover: plain.images[0] ?? null };
+    expect(lineImageOf(withCover, variant('52', ['52']))).toBe('https://cdn.test/a-t.jpg');
     expect(lineImageOf(burka, null)).toBe('https://cdn.test/p1-t.jpg');
+  });
+
+  // STO-09 (the owner, 2026-11-25): a product with only a video shows its video's poster, not an empty picture.
+  it("is the video's poster for a product with only a video", () => {
+    const poster = 'https://cdn.test/v1.poster.webp';
+    const filmed = {
+      images: [],
+      options: [sizes],
+      cover: { id: 'v1', urls: { main: poster, thumbnail: poster } },
+    };
+    expect(lineImageOf(filmed, variant('52', ['52']))).toBe(poster);
+    expect(lineImageOf({ ...filmed, cover: null }, null)).toBeNull();
   });
 });
 

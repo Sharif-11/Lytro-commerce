@@ -11,6 +11,7 @@ import {
   type FeedAttributeRow,
   type FeedImageRow,
   type FeedVariantRow,
+  type FeedVideoRow,
   type PublicProductFilter,
   type PublicProductRow,
   type PublicSwatchRow,
@@ -111,6 +112,10 @@ export class DrizzlePublicCatalogueStore implements PublicCatalogueStore {
 
   listFeedImages(tx: Transaction, tenantId: string): Promise<FeedImageRow[]> {
     return this.catalogue.listFeedImages(tx, tenantId);
+  }
+
+  listFeedVideos(tx: Transaction, tenantId: string): Promise<FeedVideoRow[]> {
+    return this.catalogue.listFeedVideos(tx, tenantId);
   }
 
   listFeedAttributes(

@@ -25,6 +25,22 @@ export interface VideoView {
 }
 
 /**
+ * STO-09 (the owner, 2026-11-25): a product's cover -- the one picture a card, a link preview, a cart or order line and
+ * the catalogue feed show for it: its first photo, else its video's poster, so a product with only a video never shows
+ * an empty picture. The gallery itself still shows the photos and the video as they are.
+ */
+export function coverOf(
+  photos: readonly ImageView[],
+  video: Pick<VideoView, 'id' | 'urls'> | null,
+): ImageView | null {
+  const first = photos[0];
+  if (first) return { id: first.id, urls: first.urls };
+  return video === null
+    ? null
+    : { id: video.id, urls: { main: video.urls.poster, thumbnail: video.urls.poster } };
+}
+
+/**
  * MED-01, MED-08: the stored names of a ready item -- under its shop's prefix, and named by its content's
  * fingerprint, so other content always gets another link. An image is a WebP and its thumbnail; a video is an MP4 and
  * its WebP poster (STO-09). The one place these names are made: the processing job writes them and every screen
