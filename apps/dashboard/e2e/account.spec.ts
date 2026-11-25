@@ -42,7 +42,7 @@ test('shows each way to sign in with its one action, then language and Sign out'
   page,
 }) => {
   await open(page);
-  await expect(main(page).getByText('+880 1711 234 567')).toBeVisible();
+  await expect(main(page).getByText('+8801711234567')).toBeVisible();
   await expect(main(page).getByText('rumana@gmail.com')).toBeVisible();
   await expect(main(page).getByRole('button', { name: 'Connect' })).toBeVisible();
   await expect(main(page).getByRole('button', { name: 'Add email' })).toBeVisible();
@@ -163,7 +163,7 @@ test('a staff sign-in shows its phone and password only, and its own password ro
   await expect(
     main(page).getByRole('heading', { name: 'Signed in as staff of Megh Fashion' }),
   ).toBeVisible();
-  await expect(main(page).getByText('+880 1611 222 333')).toBeVisible();
+  await expect(main(page).getByText('+8801611222333')).toBeVisible();
   await expect(main(page).getByText('Google', { exact: true })).toHaveCount(0);
   await expect(main(page).getByRole('button', { name: 'Add email' })).toHaveCount(0);
   // Its own ways in are never read on a staff sign-in (KNOWN-GAPS §96).

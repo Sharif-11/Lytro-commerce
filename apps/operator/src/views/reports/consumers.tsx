@@ -1,11 +1,11 @@
 import { useTranslation } from 'react-i18next';
-import { ConsumerMetric } from '@lytronix/validators';
+import { ConsumerMetric, phoneShown } from '@lytronix/validators';
 import { useConsumersReport } from '@/api/reports';
 import { DataTable, EmptyBox, type Column } from '@/components/ui/data-table';
 import { LoadFailed } from '@/components/ui/load-failed';
 import { CELL_NOTE } from '@/components/ui/sizes';
 import type { ConsumersReport } from '@/types/records';
-import { bytesWords, countWords, phoneWords } from '@/views/records/numbers';
+import { bytesWords, countWords } from '@/views/records/numbers';
 import type { Period } from './period';
 
 type Row = ConsumersReport['shops'][number] & { rank: number };
@@ -53,7 +53,7 @@ export function ConsumersReportView({
       label: t('records.ownerPhone'),
       width: '120px',
       cell: (row) => (
-        <span className="mono">{row.ownerPhone ? phoneWords(row.ownerPhone) : '—'}</span>
+        <span className="mono">{row.ownerPhone ? phoneShown(row.ownerPhone) : '—'}</span>
       ),
     },
     {

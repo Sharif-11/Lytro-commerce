@@ -128,7 +128,7 @@ export function AddStaffSheet({
       { phone, password, name: trimmed === '' ? undefined : trimmed, roleIds },
       {
         onSuccess: () => {
-          onAdded(trimmed === '' ? bangladeshiPhone.grouped(phone) : trimmed);
+          onAdded(trimmed === '' ? bangladeshiPhone.display(phone) : trimmed);
         },
         onError: (error) => {
           if (refusedForSeat(error)) onSeatFull();
@@ -377,7 +377,7 @@ export function EditStaffSheet({
           label={t('phoneL')}
           name="phone"
           readOnly
-          value={member?.phone ? bangladeshiPhone.grouped(member.phone) : ''}
+          value={member?.phone ? bangladeshiPhone.display(member.phone) : ''}
           help={t('stPhoneFixed')}
         />
         <div className="flex flex-col gap-2">

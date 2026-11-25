@@ -1,4 +1,4 @@
-import { bdMobileNumber } from '@lytronix/validators';
+import { bdMobileNumber, phoneShown, phoneShownInternational } from '@lytronix/validators';
 
 // AUTH-02's format, read the way people write a number. The owner, 2026-11-25: "in mobile number input box the +88 is
 // fixed since customer intrinsically start with 0" -- so a phone field has no fixed +880 before it and takes the number
@@ -23,16 +23,12 @@ export class BangladeshiPhone {
     return this.localOf(value) ?? value;
   }
 
-  /** `+8801712345678` → `01712-345678` for display. */
+  /**
+   * `+8801712345678` → `01712345678`: how a number is shown, one run of digits with no spaces or dashes (the owner,
+   * 2026-11-25; @lytronix/validators `phoneShown`).
+   */
   display(value: string): string {
-    const local = this.localOf(value);
-    return local === null ? value : `${local.slice(0, 5)}-${local.slice(5)}`;
-  }
-
-  /** `+8801712345678` → `01712 345 678`, as a number to send money to is written. */
-  grouped(value: string): string {
-    const local = this.localOf(value);
-    return local === null ? value : `${local.slice(0, 5)} ${local.slice(5, 8)} ${local.slice(8)}`;
+    return phoneShown(value);
   }
 
   /** `01712345678` or `+8801712345678` → `8801712345678`, as a WhatsApp link wants it. */
@@ -41,12 +37,9 @@ export class BangladeshiPhone {
     return local === null ? value.replace(/\D/g, '') : `88${local}`;
   }
 
-  /** `+8801712345678` → `+880 1712 345 678`, as the number a code went to is written. */
+  /** `01712345678` → `+8801712345678`, as the number a code went to is written: one run of digits. */
   international(value: string): string {
-    const local = this.localOf(value);
-    return local === null
-      ? value
-      : `+880 ${local.slice(1, 5)} ${local.slice(5, 8)} ${local.slice(8)}`;
+    return phoneShownInternational(value);
   }
 }
 

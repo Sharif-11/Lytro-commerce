@@ -1,3 +1,4 @@
+import { phoneShown } from '@lytronix/validators';
 import { useTranslation } from 'react-i18next';
 import { usePaymentMethods } from '@/api/payment-methods';
 import { usePlatformWallets } from '@/api/platform-wallets';
@@ -11,9 +12,9 @@ export const FILTERS = 'grid grid-cols-2 gap-2 sm:grid-cols-[repeat(auto-fit,min
 export const PICK_CONTROL =
   'h-10 w-full min-w-0 rounded-control border border-control-line bg-field px-3 text-input text-fg focus:border-line-active focus:ring-2 focus:ring-field-ring focus:outline-none sm:text-[14px]';
 
-/** Lytro's number as the console writes it: bKash · 01711 000000. */
+/** Lytro's number as the console writes it: bKash · 01711000000. */
 export function walletLabel(wallet: PlatformWallet): string {
-  return `${wallet.provider} · ${wallet.number}`;
+  return `${wallet.provider} · ${phoneShown(wallet.number)}`;
 }
 
 /** Lytro's bank account, short: BRAC Bank · 1501 2045 6789 001. */

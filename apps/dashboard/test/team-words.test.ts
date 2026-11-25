@@ -119,7 +119,7 @@ describe('the people', () => {
 
   it('names a person by their name, else their phone as the sketch writes it', () => {
     expect(personLabel(memberOf({}))).toBe('Kamal');
-    expect(personLabel(memberOf({ name: null }))).toBe('01611 222 333');
+    expect(personLabel(memberOf({ name: null }))).toBe('01611222333');
   });
 });
 

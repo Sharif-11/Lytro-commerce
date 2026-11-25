@@ -118,7 +118,7 @@ export const COPY = {
   line_gone: ["আর বিক্রি হচ্ছে না, মোট দামে ধরা হয়নি", "No longer sold, not in the total"],
   ordering_soon: ["অনলাইনে অর্ডার শিগগিরই চালু হবে।", "Online ordering opens soon."],
   no_delivery: ["{a}-এ আমরা ডেলিভারি দিই না", "We do not deliver to {a}"],
-  no_delivery_hint: ["অন্য ঠিকানা দিন, বা ০১৭১১-২২৩৩৪৪-এ কথা বলুন।", "Try another address, or call 01711-223344."],
+  no_delivery_hint: ["অন্য ঠিকানা দিন।", "Try another address."],
   limited_hint: ["{p} এই ঠিকানায় ডেলিভারি হয় না।", "{p} can't be delivered to this address."],
   order_now: ["অর্ডার করুন", "Order now"],
   confirm_order: ["অর্ডার কনফার্ম করুন", "Confirm order"],

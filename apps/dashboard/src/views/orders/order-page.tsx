@@ -670,7 +670,7 @@ function CustomerCard({
           <span className="truncate text-[16px] font-medium">{name}</span>
           {order.customerPhone ? (
             <span className="num text-[14px] text-fg-muted">
-              {locked ? order.customerPhone : bangladeshiPhone.grouped(order.customerPhone)}
+              {locked ? order.customerPhone : bangladeshiPhone.display(order.customerPhone)}
             </span>
           ) : null}
         </span>
@@ -1107,7 +1107,7 @@ function PaymentRow({
           {auto && !payment.senderNumber ? null : (
             <span className="num text-[14px] text-fg-muted">
               {[
-                payment.senderNumber ? bangladeshiPhone.grouped(payment.senderNumber) : null,
+                payment.senderNumber ? bangladeshiPhone.display(payment.senderNumber) : null,
                 auto ? null : by,
               ]
                 .filter(Boolean)

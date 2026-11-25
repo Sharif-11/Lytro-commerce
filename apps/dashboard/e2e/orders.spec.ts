@@ -134,7 +134,7 @@ test("the order: who and where, the customer's note, the items with a combo insi
   await expect(main(page)).toContainText('Storefront');
   await expect(main(page)).toContainText('Call the customer to confirm.');
   await expect(main(page)).toContainText('Nusrat Jahan');
-  await expect(main(page)).toContainText('01711 234 567');
+  await expect(main(page)).toContainText('01711234567');
   await expect(main(page)).toContainText('House 5, Road 10, Mirpur 11 · Mirpur, Dhaka');
   await expect(main(page)).toContainText("Customer's note");
   await expect(main(page)).toContainText('Please call after 2 pm');
@@ -210,7 +210,7 @@ test('a call is logged as it went: no answer keeps the order and counts the call
   const log = await open(page, '/orders/o-47');
   await main(page).getByRole('link', { name: 'Call to confirm' }).click();
   const call = sheet(page, 'How did the call go?');
-  await expect(call).toContainText('You called Nusrat · 01711 234 567');
+  await expect(call).toContainText('You called Nusrat · 01711234567');
   await expectAccessible(page);
   await call.getByRole('radio', { name: /^No answer/ }).click();
   await call.getByLabel('Note (optional)').fill('Rang out');

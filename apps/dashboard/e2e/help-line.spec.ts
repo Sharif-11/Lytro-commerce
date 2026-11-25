@@ -64,7 +64,7 @@ test.describe('the help line (D8-4, D8-67 to D8-69)', () => {
       'href',
       'tel:+8801712345678',
     );
-    await expect(sheet.getByText('01712 345 678')).toBeVisible();
+    await expect(sheet.getByText('01712345678')).toBeVisible();
     await expect(sheet.getByText('হ্যালো Lytro, আমার শপ megh.lytro.app।')).toBeVisible();
     await expectAccessible(page);
   });

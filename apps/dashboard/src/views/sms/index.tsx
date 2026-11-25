@@ -19,6 +19,7 @@ import { StatusTag } from '@/components/ui/status-tag';
 import { Switch } from '@/components/ui/switch';
 import { useErrorText } from '@/hooks/use-error-text';
 import { dayKey, formatShortDay, formatTime } from '@/lib/dates';
+import { bangladeshiPhone } from '@/lib/phone';
 import { allows } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
 import { ShellPage } from '@/shell/shell-page';
@@ -412,7 +413,7 @@ export function LogRow({
           {t(LOG_KIND_WORDS[row.kind])} <StatusTag tone={tone}>{t(state)}</StatusTag>
         </span>
         <span className="num text-[13px] text-fg-muted [overflow-wrap:anywhere]">
-          {row.toPhone}
+          {bangladeshiPhone.display(row.toPhone)}
           {row.orderId && row.orderNumber && !inOrder ? (
             <>
               {' · '}

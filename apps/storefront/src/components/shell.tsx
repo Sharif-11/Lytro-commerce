@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
+import { phoneShown } from '@lytronix/validators';
 import type { PublicBrand, PublicCategory, PublicShop } from '@/lib/api/storefront-api';
 import { storefrontTheme } from '@/lib/brand/brand-theme';
 import { type Language, Words } from '@/lib/i18n/words';
@@ -250,7 +251,7 @@ export function Footer({
               {phone !== null ? (
                 <div>
                   <Icon name="phone" />
-                  <a href={`tel:${phone}`}>{phone}</a>
+                  <a href={`tel:${phone}`}>{phoneShown(phone)}</a>
                 </div>
               ) : null}
               {email !== null ? (

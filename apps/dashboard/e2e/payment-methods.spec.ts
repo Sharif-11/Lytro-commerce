@@ -149,7 +149,7 @@ test('an account is added not active, then made active by its radio', async ({ p
       ],
     },
   ]);
-  const radio = card(page, 'bKash').getByRole('radio', { name: 'Make 01711 234 567 active' });
+  const radio = card(page, 'bKash').getByRole('radio', { name: 'Make 01711234567 active' });
   await expect(radio).not.toBeChecked();
   await expect(card(page, 'bKash')).toContainText(
     'No account is active, so customers see no number',
@@ -157,7 +157,7 @@ test('an account is added not active, then made active by its radio', async ({ p
 
   await radio.click();
   await expect(radio).toBeChecked();
-  await expect(card(page, 'bKash')).toContainText('Active: 01711 234 567');
+  await expect(card(page, 'bKash')).toContainText('Active: 01711234567');
   const saves = sent(log, 'PUT', '/payment-methods/bkash');
   expect((saves.at(-1)?.accounts as { active: boolean }[])[0]?.active).toBe(true);
 });
@@ -190,9 +190,9 @@ test('editing keeps the account and its place; deleting the active one says what
 }) => {
   const log = await open(page);
   const bkash = card(page, 'bKash');
-  await bkash.getByRole('button', { name: 'Edit 01911 222 333' }).click();
+  await bkash.getByRole('button', { name: 'Edit 01911222333' }).click();
   await expect(sheet(page).getByRole('heading', { name: 'Edit bKash account' })).toBeVisible();
-  await expect(sheet(page).getByLabel('bKash number')).toHaveValue('01911 222 333');
+  await expect(sheet(page).getByLabel('bKash number')).toHaveValue('01911222333');
   await sheet(page).getByLabel('Account name').fill('Rumana');
   await sheet(page).getByRole('button', { name: 'Save' }).click();
   await expect(bkash).toContainText('Rumana');
@@ -203,22 +203,22 @@ test('editing keeps the account and its place; deleting the active one says what
     expect.objectContaining({ id: 'bk-spare', accountName: 'Rumana', number: '01911222333' }),
   ]);
 
-  await bkash.getByRole('button', { name: 'Edit 01711 234 567' }).click();
+  await bkash.getByRole('button', { name: 'Edit 01711234567' }).click();
   await sheet(page).getByRole('button', { name: 'Delete' }).click();
   const asking = page.getByRole('dialog', { name: 'Delete this account?' });
   await expect(asking).toContainText("This is bKash's active account.");
   await expect(asking).toContainText("customers can't pay by bKash until");
   await asking.getByRole('button', { name: 'Keep it' }).click();
-  await expect(bkash).toContainText('01711 234 567');
+  await expect(bkash).toContainText('01711234567');
 
-  await bkash.getByRole('button', { name: 'Edit 01711 234 567' }).click();
+  await bkash.getByRole('button', { name: 'Edit 01711234567' }).click();
   await sheet(page).getByRole('button', { name: 'Delete' }).click();
   await page
     .getByRole('dialog', { name: 'Delete this account?' })
     .getByRole('button', { name: 'Delete' })
     .click();
   await expect(bkash).toContainText('No account is active');
-  await expect(bkash).not.toContainText('01711 234 567');
+  await expect(bkash).not.toContainText('01711234567');
 });
 
 test('every save keeps a note on the accounts it did not touch', async ({ page }) => {
@@ -226,8 +226,8 @@ test('every save keeps a note on the accounts it did not touch', async ({ page }
   const spare = methods.methods[0]?.accounts[1];
   if (spare) spare.note = 'Send Money only';
   const log = await open(page, methods);
-  await card(page, 'bKash').getByRole('radio', { name: 'Make 01911 222 333 active' }).click();
-  await expect(card(page, 'bKash')).toContainText('Active: 01911 222 333');
+  await card(page, 'bKash').getByRole('radio', { name: 'Make 01911222333 active' }).click();
+  await expect(card(page, 'bKash')).toContainText('Active: 01911222333');
   const accounts = sent(log, 'PUT', '/payment-methods/bkash').at(-1)?.accounts as {
     id: string;
     note?: string;
@@ -470,7 +470,7 @@ test('an owner with no verified phone is told, and verifies it there', async ({ 
   await expect(sheet(page)).toContainText('Enter a valid Bangladeshi mobile number');
   await sheet(page).getByLabel('Phone number').fill('1711234567');
   await sheet(page).getByRole('button', { name: 'Send code' }).click();
-  await expect(sheet(page)).toContainText('+880 1711 234 567');
+  await expect(sheet(page)).toContainText('+8801711234567');
   expect(sent(log, 'POST', '/me/identities/code')).toEqual([
     { kind: 'phone', value: '+8801711234567' },
   ]);
@@ -507,7 +507,7 @@ test('staff who can view read everything with no controls, and only the line abo
   methods.ownerPhoneVerified = false;
   const log = await open(page, methods, { isOwner: false, permissions: ['wallets:read'] });
   await expect(main(page)).toContainText('Only the shop owner can change these.');
-  await expect(main(page)).toContainText('01711 234 567');
+  await expect(main(page)).toContainText('01711234567');
   await expect(main(page)).toContainText('Money is taken by: Listener');
   await expect(main(page).getByRole('switch')).toHaveCount(0);
   await expect(main(page).getByRole('radio')).toHaveCount(0);

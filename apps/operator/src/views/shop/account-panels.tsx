@@ -2,7 +2,12 @@ import { useState, type ReactNode } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import { ApiClientError, errorMessage } from '@lytronix/api-client';
 import { Button } from '@lytronix/ui';
-import { bdMobileNumber, LAPSED_TENANT_STATES, PLAN_EXTEND_MAX_DAYS } from '@lytronix/validators';
+import {
+  bdMobileNumber,
+  LAPSED_TENANT_STATES,
+  phoneShown,
+  PLAN_EXTEND_MAX_DAYS,
+} from '@lytronix/validators';
 import { useDeleteShopData, useExtendPlan, useOwnerReset } from '@/api/shops';
 import { ActionPanel } from '@/components/ui/action-panel';
 import { Banner } from '@/components/ui/banner';
@@ -11,7 +16,6 @@ import { ReasonField } from '@/components/ui/reason-field';
 import { SMALL_BUTTON } from '@/components/ui/sizes';
 import { useToast } from '@/components/ui/use-toast';
 import { formatDay } from '@/lib/format';
-import { spacedPhone } from '@/lib/phone-words';
 import type { OperatorShop } from '@/types/operator';
 
 const BOLD = { b: <b className="font-semibold" /> };
@@ -178,7 +182,7 @@ export function OwnerResetPanel({
   const { t } = useTranslation();
   const toast = useToast();
   const reset = useOwnerReset();
-  const account = owner.phone ? spacedPhone(owner.phone) : '';
+  const account = owner.phone ? phoneShown(owner.phone) : '';
   const [phone, setPhone] = useState(account);
   const [reason, setReason] = useState('');
   const typed = bdMobileNumber(phone);

@@ -30,7 +30,7 @@ describe("the help line's words on the site", () => {
   });
 
   it('shows a number to read out, and links to WhatsApp and a call', () => {
-    expect(displayNumber('01712345678')).toBe('+880 17-1234-5678');
+    expect(displayNumber('01712345678')).toBe('+8801712345678');
     expect(whatsappHref('01712345678')).toBe('https://wa.me/8801712345678');
     expect(phoneHref('01812345678')).toBe('tel:+8801812345678');
   });

@@ -83,7 +83,7 @@ export function refusedForSeat(error: unknown): boolean {
 
 /** A person as the list names them: their name, else their phone. */
 export function personLabel(member: StaffMember): string {
-  return member.name ?? (member.phone ? bangladeshiPhone.grouped(member.phone) : '');
+  return member.name ?? (member.phone ? bangladeshiPhone.display(member.phone) : '');
 }
 
 /** The owner first, then the active, then the rest, each group as the server lists it. */
