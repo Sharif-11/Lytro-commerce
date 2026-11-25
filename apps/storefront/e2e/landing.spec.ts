@@ -93,6 +93,24 @@ test.describe('the order', () => {
     });
   });
 
+  // The owner, 2026-11-25: "the +88 is fixed since customer intrinsically start with 0" -- a plain box, typed from 0.
+  test('takes the phone typed from 0 in a plain box, with no fixed +88 before it', async ({
+    page,
+  }) => {
+    const shop = await openShop(page);
+    await page.goto(shop.url('/l/cotton-panjabi'));
+    const field = page.getByLabel('Mobile number');
+    await expect(field).toHaveAttribute('placeholder', '01XXXXXXXXX');
+    await expect(page.locator('form').getByText('+88', { exact: true })).toHaveCount(0);
+    await fillOrderForm(page, { phone: '01712345678' });
+    await confirm(page).click();
+    await expect(
+      page.getByRole('heading', { name: 'Thank you! Your order is placed' }),
+    ).toBeVisible();
+    const { orders } = await shop.sent();
+    expect(orders[0]?.body).toMatchObject({ phone: '01712345678' });
+  });
+
   test('takes the variant a link names, and the quantity picked (LND-06, LND-08)', async ({
     page,
   }) => {

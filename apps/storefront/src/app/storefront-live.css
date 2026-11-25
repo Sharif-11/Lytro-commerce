@@ -596,25 +596,6 @@ button.vb.pic img {
   color: var(--muted);
   font-size: 13.5px;
 }
-.pp-phone {
-  display: flex;
-  align-items: stretch;
-}
-.pp-phone span {
-  display: flex;
-  align-items: center;
-  padding: 0 12px;
-  border: 1.5px solid var(--line-strong);
-  border-right: 0;
-  border-radius: var(--r-control) 0 0 var(--r-control);
-  background: var(--sunken);
-  font-weight: 600;
-}
-.pp-phone .input {
-  flex: 1;
-  min-width: 0;
-  border-radius: 0 var(--r-control) var(--r-control) 0;
-}
 .pp-note {
   align-self: flex-start;
   font-weight: 700;
