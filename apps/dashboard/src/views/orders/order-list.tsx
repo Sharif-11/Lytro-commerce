@@ -303,7 +303,12 @@ export function OrderRow({
   // The owner, 2026-11-25: a held order's call-back time stays on its row.
   const callBack = order.status === OrderStatus.Hold ? order.holdUntil : null;
   const phone =
-    order.customerPhone === null ? null : bangladeshiPhone.forField(order.customerPhone);
+    order.customerPhone === null
+      ? null
+      : // PF-7: a locked order's phone is already masked (017•••••842); any other is one run of digits (#447).
+        order.access === OrderAccess.Locked
+        ? order.customerPhone
+        : bangladeshiPhone.display(order.customerPhone);
   const content = (
     <>
       {/* OB-20: the number isn't shown, but a screen reader still names the order by it. */}
