@@ -13,10 +13,15 @@ function localForm(input: string): string {
       : compact;
 }
 
-/** The local form (01XXXXXXXXX) of a Bangladeshi mobile number, or null when the input is not one. */
+// The 0 left off (1712345678), as people write a number after +88. The owner, 2026-11-25: no box puts +88 before the
+// number any more, but a number typed or pasted that way still reads.
+const LOCAL_MOBILE_WITHOUT_ZERO = /^1[3-9]\d{8}$/;
+
+/** The local form (01XXXXXXXXX) of a Bangladeshi mobile number however it is written, or null when it is not one. */
 export function bdMobileNumber(input: string): string | null {
   const local = localForm(input);
-  return LOCAL_MOBILE.test(local) ? local : null;
+  if (LOCAL_MOBILE.test(local)) return local;
+  return LOCAL_MOBILE_WITHOUT_ZERO.test(local) ? `0${local}` : null;
 }
 
 /** WAL-01: the local form of a wallet number of one of these lengths (Rocket's may be 12 digits), or null. */

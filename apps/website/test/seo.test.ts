@@ -106,6 +106,7 @@ describe("lytro.app's pages (SEO)", () => {
       `${SITE}/about`,
       `${SITE}/contact`,
       `${SITE}/listener`,
+      `${SITE}/developers`,
       `${SITE}/terms`,
       `${SITE}/privacy`,
     ]);

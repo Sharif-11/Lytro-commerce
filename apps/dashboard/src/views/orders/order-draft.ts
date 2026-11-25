@@ -50,7 +50,7 @@ export interface DraftLine {
 
 /** The whole form: who it is for, how it reaches them, the items, then the money and the note. */
 export interface OrderDraft {
-  /** The number after +880, as typed. */
+  /** The number as typed (01XXXXXXXXX, or any way the phone reader takes). */
   phone: string;
   name: string;
   type: FulfilmentType;
@@ -97,10 +97,9 @@ const AMOUNT = /^\d+(\.\d{1,2})?$/;
 export const amountOf = (typed: string): number | null =>
   AMOUNT.test(typed.trim()) ? Number(typed.trim()) : null;
 
-/** The whole number typed after +880, in its local form (01XXXXXXXXX), or null until it is one. */
+/** The number typed, in its local form (01XXXXXXXXX), or null until it is one. */
 export function phoneOf(typed: string): string | null {
-  const full = bangladeshiPhone.fromLocalPart(typed);
-  return bangladeshiPhone.isValid(full) ? `0${full.slice(4)}` : null;
+  return bangladeshiPhone.localOf(typed);
 }
 
 /** Text typed, trimmed, or left out when blank. */
@@ -179,7 +178,7 @@ function paymentOf(draft: OrderDraft): OrderBody['payment'] {
     method: draft.method as NonNullable<OrderBody['payment']>['method'],
     amount: amountOf(draft.amount) ?? Number.NaN,
     ...(wallet && draft.sender.trim() !== ''
-      ? { senderNumber: bangladeshiPhone.fromLocalPart(draft.sender) }
+      ? { senderNumber: bangladeshiPhone.read(draft.sender) ?? draft.sender.trim() }
       : {}),
     ...(cash ? {} : { transactionId: textOf(draft.trxId) }),
   };
@@ -191,7 +190,7 @@ export function createOf(draft: OrderDraft, counter: boolean): OrderBody {
   const discount = amountOf(draft.discount);
   return {
     customerName: textOf(draft.name),
-    phone: phone === '' ? undefined : bangladeshiPhone.fromLocalPart(phone),
+    phone: phone === '' ? undefined : (bangladeshiPhone.read(phone) ?? phone),
     fulfilmentType: draft.type,
     ...reachOf(draft),
     ...(discount !== null && discount > 0 ? { discount } : {}),
@@ -214,7 +213,7 @@ export function draftOf(order: Order, words: LineWords = UNSAID): OrderDraft {
   const byHand = order.deliveryChargeByHand;
   return {
     ...EMPTY_DRAFT,
-    phone: order.customerPhone ? bangladeshiPhone.localPart(order.customerPhone) : '',
+    phone: order.customerPhone ? bangladeshiPhone.forField(order.customerPhone) : '',
     name: order.customerName ?? '',
     type: order.fulfilmentType,
     locationId: order.location?.id ?? null,

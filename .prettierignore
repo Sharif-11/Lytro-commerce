@@ -17,3 +17,6 @@ apps/storefront/src/lib/i18n/copy.ts
 apps/storefront/src/lib/ui/icons.ts
 # Ported from the landing sketch (docs/brand/lytro-landing-v2.html); kept in the sketch's own compact form.
 apps/website/src/app/site.css
+# §7.48 and SITE-PAGES-DESIGN §7: the developer docs CSS, ported from the dashboard and site sketches; kept compact.
+apps/dashboard/src/views/settings/developers/developers.css
+apps/website/src/components/developers/developers.css

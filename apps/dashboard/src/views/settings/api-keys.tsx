@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { ApiKeyPurpose, Permission, UsageMetric } from '@lytronix/validators';
 import { useApiKeys } from '@/api/api-keys';
@@ -19,6 +20,8 @@ import type { ApiKey, CreatedApiKey } from '@/types/api-key';
 import { ApiChargesSection } from './api-charges';
 import { CreatedKeySheet, EditKeySheet, NewKeySheet, RevokeKeySheet } from './api-key-sheets';
 import { keyLine } from './api-key-words';
+import './developers/developers.css';
+import { WORDS } from './developers/words';
 
 /**
  * API keys (TENANT-DASHBOARD-DESIGN §7.26, the prototype's `api-keys` and its sheets): what a key is for, the keys
@@ -27,8 +30,10 @@ import { keyLine } from './api-key-words';
  * Lytro keeps for the storefront comes first, marked Lytro's, with nothing to change or revoke (Part 25, Slice 12a).
  */
 export function ApiKeysView(): React.JSX.Element {
-  const { t } = useTranslation('menu');
-  const { viewer } = useShell();
+  const { t, i18n } = useTranslation('menu');
+  const { tenant, viewer } = useShell();
+  const words = (pair: readonly [string, string]): string =>
+    i18n.language === 'en' ? pair[1] : pair[0];
   const keys = useApiKeys();
   const usage = useUsage({ enabled: allows(viewer, [Permission.PaymentsRead]) });
   const toast = useToast();
@@ -57,6 +62,21 @@ export function ApiKeysView(): React.JSX.Element {
       }
     >
       <p className="text-[14px] text-fg-muted">{t('akLead')}</p>
+      {/* §7.48: the Developer docs card under the lead. */}
+      <Link
+        to="/$shop/settings/developers"
+        params={{ shop: tenant.slug }}
+        className="dv-entry rounded-card border border-line bg-surface p-4"
+      >
+        <span className="dv-ei">
+          <Icon name="code" />
+        </span>
+        <span className="dv-eb">
+          <span className="l1">{words(WORDS.entryTitle)}</span>
+          <span className="l2">{words(WORDS.entryBody)}</span>
+        </span>
+        <Icon name="right" size={18} />
+      </Link>
       <ApiChargesSection />
       {keys.isError ? <ErrorBanner error={keys.error} /> : null}
       {listed ? (
@@ -136,6 +156,27 @@ export function ApiKeysView(): React.JSX.Element {
       ) : null}
       {listed?.some(isLytros) ? (
         <p className="text-[14px] text-fg-muted">{t('akStorefrontNote')}</p>
+      ) : null}
+      {/* §7.48 (`dev-keys-none`): no key of the shop's own yet, under Lytro's storefront key. */}
+      {listed?.some(isLytros) && !listed.some((key) => !isLytros(key)) ? (
+        <Card>
+          <EmptyState
+            icon="key"
+            action={
+              <Button
+                size="sm"
+                onClick={() => {
+                  setAdding(true);
+                }}
+              >
+                <Icon name="plus" />
+                {t('akNew')}
+              </Button>
+            }
+          >
+            {words(WORDS.noOwnKey)}
+          </EmptyState>
+        </Card>
       ) : null}
       {requests ? (
         <Card>

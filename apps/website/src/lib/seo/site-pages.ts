@@ -5,7 +5,8 @@ import type { Metadata, MetadataRoute } from 'next';
 // carry the words sellers search for (অনলাইন দোকান, ই-কমার্স ওয়েবসাইট, বিকাশ, the couriers); the owner approved
 // this wording 2026-11-24. English sits behind the language cookie at the same address until lytro.app/en/ is built.
 
-export type SitePageKey = 'home' | 'about' | 'contact' | 'listener' | 'terms' | 'privacy';
+export type SitePageKey =
+  'home' | 'about' | 'contact' | 'listener' | 'developers' | 'terms' | 'privacy';
 
 export const SITE_NAME = 'Lytro';
 
@@ -59,6 +60,16 @@ export const SITE_PAGES: Readonly<Record<SitePageKey, SitePage>> = {
     updated: '2026-11-24',
     changeFrequency: 'monthly',
     priority: 0.4,
+  },
+  // The owner to approve this wording (2026-11-25, the developer docs PR).
+  developers: {
+    path: '/developers',
+    title: 'ডেভেলপার API: নিজের ওয়েবসাইটে Lytro শপ',
+    description:
+      'Lytro API দিয়ে নিজের ওয়েবসাইট বা অ্যাপে শপের প্রোডাক্ট দেখান, ডেলিভারি চার্জ হিসাব করুন আর অর্ডার নিন। প্রতিটি রুটের রিকোয়েস্ট আর রেসপন্সের নমুনা, curl আর JavaScript-এ।',
+    updated: '2026-11-25',
+    changeFrequency: 'monthly',
+    priority: 0.5,
   },
   terms: {
     path: '/terms',

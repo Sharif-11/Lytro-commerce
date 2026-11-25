@@ -56,13 +56,13 @@ import { API_CLOCK } from '../tokens';
 import type { ApiShop } from '../types/public-api';
 import { PublicApi } from './public-shop.controller';
 
-class ShopperCodeDto extends createZodDto(shopperCodeSchema) {}
-class ShopperSignupDto extends createZodDto(shopperSignupSchema) {}
-class ShopperSigninDto extends createZodDto(shopperSigninSchema) {}
-class ShopperProfileDto extends createZodDto(shopperProfileSchema) {}
-class ShopperPasswordDto extends createZodDto(shopperPasswordSchema) {}
-class ShopperAddressDto extends createZodDto(shopperAddressSchema) {}
-class ShopperAddressUpdateDto extends createZodDto(shopperAddressUpdateSchema) {}
+export class ShopperCodeDto extends createZodDto(shopperCodeSchema) {}
+export class ShopperSignupDto extends createZodDto(shopperSignupSchema) {}
+export class ShopperSigninDto extends createZodDto(shopperSigninSchema) {}
+export class ShopperProfileDto extends createZodDto(shopperProfileSchema) {}
+export class ShopperPasswordDto extends createZodDto(shopperPasswordSchema) {}
+export class ShopperAddressDto extends createZodDto(shopperAddressSchema) {}
+export class ShopperAddressUpdateDto extends createZodDto(shopperAddressUpdateSchema) {}
 
 const shopperSchema = z.object({
   id: z.string(),
@@ -70,14 +70,14 @@ const shopperSchema = z.object({
   phone: z.string(),
   createdAt: coercedDateField(),
 });
-class ShopperViewDto extends createZodDto(shopperSchema) {}
-class ShopperSignedInDto extends createZodDto(
+export class ShopperViewDto extends createZodDto(shopperSchema) {}
+export class ShopperSignedInDto extends createZodDto(
   z.object({ token: z.string(), expiresAt: coercedDateField(), shopper: shopperSchema }),
 ) {}
-class ShopperCodeSentDto extends createZodDto(
+export class ShopperCodeSentDto extends createZodDto(
   z.object({ expiresInSeconds: z.number(), resendAfterSeconds: z.number() }),
 ) {}
-class ShopperAddressesDto extends createZodDto(
+export class ShopperAddressesDto extends createZodDto(
   z.object({
     addresses: z.array(
       z.object({
@@ -98,7 +98,7 @@ class ShopperAddressesDto extends createZodDto(
     ),
   }),
 ) {}
-class ShopperOrderPageDto extends createZodDto(
+export class ShopperOrderPageDto extends createZodDto(
   z.object({
     orders: z.array(
       z.object({

@@ -25,7 +25,7 @@ const thana = z.object({
   nameBn: z.string(),
   cityCode: z.string().nullable(),
 });
-class PublicLocationsDto extends createZodDto(
+export class PublicLocationsDto extends createZodDto(
   z.object({
     cities: z.array(z.object({ code: z.string(), nameEn: z.string(), nameBn: z.string() })),
     zillas: z.array(
@@ -33,8 +33,8 @@ class PublicLocationsDto extends createZodDto(
     ),
   }),
 ) {}
-class DeliveryEstimateBodyDto extends createZodDto(deliveryEstimateSchema) {}
-class DeliveryEstimateDto extends createZodDto(
+export class DeliveryEstimateBodyDto extends createZodDto(deliveryEstimateSchema) {}
+export class DeliveryEstimateDto extends createZodDto(
   z.object({
     lines: z.array(
       z.object({

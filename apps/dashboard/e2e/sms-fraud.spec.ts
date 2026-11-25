@@ -285,7 +285,7 @@ test.describe('Reading a message', () => {
       .fill('Hi, I want to order. Name Sadia Islam, phone 01812-445566.');
     await main(page).getByRole('button', { name: 'Read the details' }).click();
     await expect(main(page).getByText(/Filled 5 of 6 from the message/)).toBeVisible();
-    await expect(main(page).getByLabel(/Phone number/)).toHaveValue('1812 445 566');
+    await expect(main(page).getByLabel(/Phone number/)).toHaveValue('01812445566');
     await expect(main(page).getByLabel(/^Name/)).toHaveValue('Sadia Islam');
     await expect(
       main(page).getByText('The message says "Fatulla", which matches no thana. Pick the thana.'),
