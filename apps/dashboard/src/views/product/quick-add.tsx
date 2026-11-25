@@ -812,6 +812,28 @@ export function QuickFee({
   );
 }
 
+/**
+ * The first landing after the shop is made (the owner, 2026-11-25: "during first onboarding the seller routed to product
+ * add route so that he can quickly add product and share the link"; `pq-first`): one line, and a quiet Later to Home,
+ * where the set-up checklist still has the first product and the link to share.
+ */
+export function QuickWelcome({ onLater }: { onLater: () => void }): React.JSX.Element {
+  const { t } = useTranslation('shop');
+  return (
+    <Banner
+      tone="info"
+      icon="shop"
+      action={
+        <button type="button" className="font-medium whitespace-nowrap underline" onClick={onLater}>
+          {t('qaLater')}
+        </button>
+      }
+    >
+      {t('qaWelcome')}
+    </Banner>
+  );
+}
+
 /** "কম্বো প্যাক বানাতে চান?": today's combo flow, one tap away. */
 export function ComboLink({ onOpen }: { onOpen: () => void }): React.JSX.Element {
   const { t } = useTranslation('shop');
@@ -956,24 +978,27 @@ export function QuickMore({
   const made = settings.stockTracking !== StockTracking.Tracked;
   return (
     <Card className="flex flex-col">
-      <button
-        type="button"
-        aria-expanded={open}
-        className="flex items-start justify-between gap-3 text-left"
-        onClick={() => {
-          onOpen(!open);
-        }}
-      >
-        <span className="flex flex-col gap-0.5">
-          <b className="text-[17px] font-semibold">{t('moreSettings')}</b>
-          <span className="text-[13px] text-fg-muted">
-            {clothing ? t('qaMoreSumClothing') : t('qaMoreSum')}
+      {/* A heading holding its button (the disclosure pattern): the page's one heading on a desktop's quick add. */}
+      <h2 className="flex">
+        <button
+          type="button"
+          aria-expanded={open}
+          className="flex flex-1 items-start justify-between gap-3 text-left"
+          onClick={() => {
+            onOpen(!open);
+          }}
+        >
+          <span className="flex flex-col gap-0.5">
+            <b className="text-[17px] font-semibold">{t('moreSettings')}</b>
+            <span className="text-[13px] font-normal text-fg-muted">
+              {clothing ? t('qaMoreSumClothing') : t('qaMoreSum')}
+            </span>
           </span>
-        </span>
-        <span className={`mt-1 text-fg-muted transition-transform ${open ? 'rotate-180' : ''}`}>
-          <Icon name="down" />
-        </span>
-      </button>
+          <span className={`mt-1 text-fg-muted transition-transform ${open ? 'rotate-180' : ''}`}>
+            <Icon name="down" />
+          </span>
+        </button>
+      </h2>
       {open ? (
         <div className="mt-3 flex flex-col gap-3.5">
           <Group title={t('qaStock')}>

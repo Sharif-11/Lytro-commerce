@@ -2,6 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { mockApi, SLUG, type ApiLog, type ShopState } from './support/mock-api';
 import { drawnProducts, manyProducts } from './support/products';
+import { closeSaved } from './support/quick-add';
 
 // TENANT-DASHBOARD-DESIGN §7.4, Slice 11.7a: the product editor -- Basics with the category picker and New category,
 // one Save that sends only what changed, a new product in one request, the question before leaving unsaved, the
@@ -104,29 +105,33 @@ test('on a desktop the long form has Save at its end as well as at its top; a ph
   expect(writes(log, 'PATCH').map((call) => call.body)).toEqual([{ basePrice: 470 }]);
 });
 
-test('a new product says what is missing, then saves in one request and returns to the list', async ({
+test('a new product says what is missing, then saves in one request and shows its link', async ({
   page,
 }) => {
   const log = await open(page, 'new');
   await save(page).click();
-  await expect(save(page)).toHaveText('Fix 2 things to save');
-  await expect(main(page).getByRole('alert').first()).toHaveText('Fix 2 things to save');
+  // Quick add (§7.4b): the stock box is asked too, never a silent 0.
+  await expect(save(page)).toHaveText('Fix 3 things to save');
+  await expect(main(page).getByRole('alert').first()).toHaveText('Fix 3 things to save');
   await expect(main(page).getByText('A name is needed')).toBeVisible();
   await expect(main(page).getByText('A price is needed')).toBeVisible();
+  await expect(main(page).getByText(/^Write the stock./)).toBeVisible();
   await expectAccessible(page);
 
   await main(page).getByLabel('Name', { exact: true }).fill('Panjabi');
   await main(page).getByLabel('Price', { exact: true }).fill('12.345');
   await expect(main(page).getByText('A price is a number, like 450 or 99.50')).toBeVisible();
   await main(page).getByLabel('Price', { exact: true }).fill('1250');
+  await main(page).getByLabel('Stock', { exact: true }).fill('8');
+  await moreSettings(page);
   await main(page)
-    .getByRole('button', { name: /Category/ })
+    .getByRole('button', { name: /^Category/ })
     .click();
   await sheet(page).getByRole('checkbox', { name: 'Jackets' }).check();
   await sheet(page).getByRole('button', { name: 'Done' }).click();
   await save(page).click();
+  await closeSaved(page);
   await expect(page).toHaveURL(`/${SLUG}/products`);
-  await expect(toast(page)).toHaveText('Saved. Panjabi is on the storefront.');
   expect(writes(log, 'POST').map((call) => call.body)).toEqual([
     {
       name: 'Panjabi',
@@ -148,6 +153,9 @@ test('a new product says what is missing, then saves in one request and returns 
       deliveryMode: 'default',
       paymentPolicy: null,
       advanceAmount: null,
+      // Quick add (§7.4b): the one box is the one variant's opening stock.
+      variantAttributes: [],
+      variants: [{ optionIds: [], sku: null, barcode: null, openingStock: 8 }],
     },
   ]);
   await expect(main(page).getByRole('link', { name: /Panjabi/ })).toBeVisible();

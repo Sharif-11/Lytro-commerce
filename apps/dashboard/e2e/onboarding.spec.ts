@@ -204,7 +204,7 @@ test('signs in with the number typed from 0, with no fixed +880 before the box',
   expect(log.sent('POST', '/auth/phone/code')).toMatchObject({ phone: PHONE });
 });
 
-test('walks a new owner from the website to Home: code, shop, checkout, password, set-up', async ({
+test('walks a new owner from the website to quick add: code, shop, checkout, password, set-up', async ({
   page,
 }) => {
   const log = await mockOnboarding(page);
@@ -262,7 +262,8 @@ test('walks a new owner from the website to Home: code, shop, checkout, password
   await page.getByRole('button', { name: 'পোশাক' }).click();
   await page.getByRole('button', { name: 'সেভ করে ড্যাশবোর্ডে যান' }).click();
 
-  await expect(page).toHaveURL(`/${SLUG}`);
+  // The owner, 2026-11-25 (§7.4b `pq-first`): a brand-new shop lands on quick add, to add a product and share its link.
+  await expect(page).toHaveURL(`/${SLUG}/products/new`);
   expect(log.sent('PUT', '/business-type')).toEqual({ businessType: 'clothing' });
   expect(log.sent('PUT', '/delivery-zones/home-area')).toBeUndefined();
 });

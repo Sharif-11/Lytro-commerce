@@ -1,7 +1,10 @@
+import { useId } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { formatTakaExact } from '@lytronix/ui';
+import { useMarkLinkShared } from '@/api/home';
 import { Icon } from '@/components/icon';
+import { LinkShare } from '@/components/link-share';
 import { Button } from '@/components/ui/button';
 import { buttonClass } from '@/components/ui/classes';
 import { Sheet } from '@/components/ui/sheet';
@@ -16,7 +19,9 @@ import type { ProductDetail } from '@/types/product';
  * product"; the sketch's `pq-saved`): the product with its first photo, name and price, its landing page link (LND-06,
  * the shop's own address as the link card builds it), and Copy, Share and See the page -- then Add another product or
  * Go to the product. A pay-as-you-go shop whose storefront is paused until its activation top-up is told when the link
- * opens, with the top-up. Editing a saved product shows no sheet.
+ * opens, with the top-up. Editing a saved product shows no sheet. Under the product's link, the shop's own (the owner,
+ * 2026-11-25: "share the link of his product or store"; Home's link card), secondary. A copy or share of either ticks the
+ * set-up checklist's "link shared" (SUP-01), as Home's link card does.
  */
 export function SavedSheet({
   product,
@@ -30,9 +35,15 @@ export function SavedSheet({
   onClose: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('shop');
-  const { host } = useShopAddress();
+  const { host, url: shopUrl } = useShopAddress();
+  const shared = useMarkLinkShared();
+  const shopHeading = useId();
+  const markShared = (): void => {
+    shared.mutate();
+  };
   const { slug, tenant, showToast } = useShell();
-  const { copied, copy } = useCopyToClipboard();
+  // The owner's brief: Copied for 1.6 s, and a toast.
+  const { copied, copy } = useCopyToClipboard(1600);
   const shown = product ? linkOf(host, product, null) : '';
   const url = `https://${shown}`;
   const cover = product?.images[0]?.urls.thumbnail;
@@ -109,7 +120,9 @@ export function SavedSheet({
               tone="primary"
               onClick={() => {
                 void copy(url).then((ok) => {
-                  if (ok) showToast(t('qsCopiedToast'));
+                  if (!ok) return;
+                  showToast(t('qsCopiedToast'));
+                  markShared();
                 });
               }}
             >
@@ -120,7 +133,10 @@ export function SavedSheet({
               <Button
                 tone="outline"
                 onClick={() => {
-                  void navigator.share({ title: product.name, url }).catch(() => undefined);
+                  void navigator
+                    .share({ title: product.name, url })
+                    .then(markShared)
+                    .catch(() => undefined);
                 }}
               >
                 <Icon name="share" />
@@ -147,6 +163,7 @@ export function SavedSheet({
                     href={each.href}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={markShared}
                     className={`${buttonClass('outline', 'sm')} no-underline`}
                   >
                     <Icon name="share" />
@@ -156,6 +173,13 @@ export function SavedSheet({
               </div>
             </div>
           )}
+          <section aria-labelledby={shopHeading} className="mt-1 border-t border-line pt-3">
+            <h3 id={shopHeading} className="text-[15px] font-semibold">
+              {t('qsShopLink')}
+            </h3>
+            <p className="text-[14px] text-fg-muted">{t('qsShopLead')}</p>
+            <LinkShare url={shopUrl} shown={host} onShared={markShared} />
+          </section>
         </div>
       ) : null}
     </Sheet>

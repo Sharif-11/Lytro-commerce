@@ -1153,6 +1153,8 @@
   "qaFeeShort": "The balance holds {{have}}, so top up first or it cannot be saved.",
   "qaFeeOk": "Saving it takes {{need}} from the balance. The balance holds {{have}}.",
   "qaCombo": "Making a combo pack?",
+  "qaWelcome": "Your shop is ready! Add your first product, then share its link.",
+  "qaLater": "Later",
   "qaMoreSumClothing": "Category, made to order, size chart, delivery, payment",
   "qaMoreSum": "Category, made to order, options, delivery, payment",
   "qaMade": "Made to order",
@@ -1193,5 +1195,7 @@
   "qsFacebook": "Facebook",
   "qsMessenger": "Messenger",
   "qsPaused": "The link opens once a ৳{{amount}} top-up opens the shop.",
-  "qsActivate": "Top up"
+  "qsActivate": "Top up",
+  "qsShopLink": "Shop link",
+  "qsShopLead": "The whole shop: every product in one link."
 }

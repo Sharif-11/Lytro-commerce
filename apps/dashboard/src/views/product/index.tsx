@@ -92,6 +92,7 @@ import {
   QuickMore,
   QuickPhotos,
   QuickStock,
+  QuickWelcome,
   SizeSheet,
   SplitChips,
 } from './quick-add';
@@ -120,13 +121,33 @@ import { VariantsCard, type StockKind } from './variants-card';
  * The product editor (TENANT-DASHBOARD-DESIGN §7.4, the prototype's `product` and Parts 13 and 14's states): Basics,
  * More settings with Duplicate, Archive and Delete, the product link, one Save, and the question before leaving with
  * something unsaved (Slice 11.7a); options and variants (Slice 11.7b). An archived product opens its own page with
- * Restore.
+ * Restore. `first` is the shop's first landing after it was made (`pq-first`): quick add says welcome, once.
  */
-export function ProductEditor({ productId }: { productId: string | null }): React.JSX.Element {
+export function ProductEditor({
+  productId,
+  first = false,
+}: {
+  productId: string | null;
+  first?: boolean;
+}): React.JSX.Element {
   const { t } = useTranslation('shop');
   const product = useProduct(productId);
+  const navigate = useNavigate();
+  const { slug } = useShell();
   // A new product saved, then "আরেকটা প্রোডাক্ট যোগ করুন" (`pq-saved`): a fresh form, from the top.
   const [round, setRound] = useState(0);
+  // The welcome stays for this visit only: the address drops ?first=1, so Back or a reload doesn't bring it again.
+  const [welcome] = useState(first);
+  useEffect(() => {
+    if (first) {
+      void navigate({
+        to: '/$shop/products/new',
+        params: { shop: slug },
+        search: {},
+        replace: true,
+      });
+    }
+  }, [first, navigate, slug]);
   if (productId !== null && product.isPending) {
     return (
       <ShellPage>
@@ -155,6 +176,7 @@ export function ProductEditor({ productId }: { productId: string | null }): Reac
     <ProductPage
       key={product.data?.id ?? `new-${String(round)}`}
       product={product.data ?? null}
+      welcome={welcome && round === 0 && productId === null}
       onAnother={() => {
         setRound((current) => current + 1);
       }}
@@ -172,9 +194,11 @@ type Stop =
 
 function ProductPage({
   product,
+  welcome,
   onAnother,
 }: {
   product: ProductDetail | null;
+  welcome: boolean;
   onAnother: () => void;
 }): React.JSX.Element {
   const { t, i18n } = useTranslation('shop');
@@ -906,6 +930,13 @@ function ProductPage({
         <ErrorBanner error={addStocks.error} />
       ) : null}
       {product ? <OfferCards product={product} /> : null}
+      {quickAdd && welcome ? (
+        <QuickWelcome
+          onLater={() => {
+            void navigate({ to: '/$shop', params: { shop: slug } });
+          }}
+        />
+      ) : null}
       {quickAdd && fee ? (
         <QuickFee
           need={formatTakaExact(fee.need.toFixed(2))}
