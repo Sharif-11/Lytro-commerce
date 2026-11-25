@@ -794,6 +794,82 @@ flow, the server and the storefront.
    new-product flow has proved itself. This proposal changes `/products/new` only.
 8. **On a computer, the right-hand column holds আরও সেটিংস and the combo link** (`pq-wide`). I recommend keeping it.
 
+### 7.4d Editing in the short layout (`/products/:id/edit`, proposal 2026-11-25, approved in principle)
+
+The owner approved quick add's question 7 (§7.4b), "editing an existing product uses the same layout: yes, as a second
+step", and on 2026-11-25 asked for its sketch. Drawn in `brand/lytro-dashboard.html`'s group "Edit a product · the
+short layout (proposal 2026-11-25)": `pe-simple`, `pe-stock-change`, `pe-stock-below`, `pe-designs`, `pe-split-later`,
+`pe-split-edit`, `pe-add-photo`, `pe-add-photo-plain`, `pe-sizes`, `pe-made`, `pe-full`, `pe-wide`; the PNGs, with
+today's editor as `before-edit.png`, are in `Lytro screenshots/product-quick-edit/`.
+
+**Where.** The product page's এডিট করুন (§7.4c, `pd-detail`) opens the editor at `/products/:id/edit`. Its title is
+"প্রোডাক্ট এডিট" with the product's name under it; the bar holds বাতিল and সেভ করুন, and Save returns to the
+product page. No combo link: a product stays the kind it was made as.
+
+**What changes against today's editor.** The same card as quick add, filled in: photos and video, নাম, দাম, স্টক,
+the sizes (a clothing or shoes-and-bags shop), বিবরণ; everything else in আরও সেটিংস with the product's own values
+(category, made to order, unit and the low-stock alert, batches and serials, delivery, payment, the size chart as a
+picture, prices and options, SKU and barcode, condition, active). Today's long editor (`product`) remains only for
+batch- or serial-tracked products (below).
+
+**The stock of an existing product (INV-06).**
+
+- The স্টক box shows what is in hand. Under it, muted: "সব ডিজাইন ও সাইজ মিলিয়ে" when it counts several, and what
+  orders hold, "৩টা অর্ডারে রাখা আছে".
+- When orders wait for stock (orders beyond stock, §ORDERS-BEYOND-STOCK-PLAN), an amber note: "১টা অর্ডারে মোট ২টা
+  কম। স্টক বাড়ালে আগের অর্ডারগুলো আগে পাবে।"
+- Typing a new number shows the change as a chip ("40 → 35 (−5)", the old number struck in the box) and asks
+  "কেন বদলালেন?" with one tap: নতুন স্টক এসেছে (only when it goes up), আবার গুনেছি, নষ্ট/হারিয়েছে, অন্য.
+  Skipped, it is written as a manual change. Save records the difference as one movement; the level never changes
+  without one.
+- Below what orders hold (`pe-stock-below`): a red line names it, "সেভ করলে নতুন অর্ডারগুলোর ১টা কম পড়বে", and
+  Save stands: the newest orders go short and get stock first when it comes (orders beyond stock, Q3).
+
+**Splitting, and a split stock.**
+
+- On one shared stock, "ডিজাইন ও সাইজ অনুযায়ী আলাদা স্টক দিন" opens the grid (`pe-split-later`), saved with quick
+  add's split action (`POST /products/:id/stock-split`, #446). The rule, stated on the screen: the cells must add up
+  to what is in hand; splitting never changes the total, and to change it the seller sets the one stock first. The
+  total shows "মোট 34 / 40" and names what is left to place. What orders hold stays with its own design and size: those
+  cells keep at least that. "এক স্টকেই রাখুন" goes back without saving.
+- A stock already split is the grid itself (`pe-split-edit`): each changed cell shows its old number struck, the line
+  under counts the cells changed and the new total ("৩টা ঘরে বদল · মোট 40 → 38"), and one reason covers the save:
+  each changed cell is its own movement with that reason.
+
+**Photos.** The built rules, in their built words:
+
+- On a product with designs, a new photo becomes a new design whose own stock starts at 0 (`pdAdded`: "নতুন ছবি থেকে
+  1টি নতুন ডিজাইন হলো, স্টক 0 থেকে শুরু"); on one shared stock it sells from that stock too (`pe-add-photo`).
+- On a product with orders and no designs, a new photo is added as a plain photo (`pdLocked`), and a design can't be
+  made from it (`pdLockedWhy`: duplicate the product to sell it with designs) (`pe-add-photo-plain`).
+- The ⋮ menu of each photo is quick add's (`pq-photo-menu`).
+
+**Sizes.** A new size shows a নতুন mark and sells from the one stock (with a split stock, its cells start at 0). A size
+with orders keeps a lock instead of its ✕; a tap says "M-এ অর্ডার আছে, তাই সরানো যাবে না" (`pe-sizes`).
+
+**Made to order.** The switch in আরও সেটিংস is on, and the card has no stock box (`pe-made`).
+
+**What stays in the full editor.** A batch- or serial-tracked product (cosmetics with expiry, a phone with its IMEI)
+opens today's editor, with one line on top: "এই প্রোডাক্টে সিরিয়াল নম্বর (IMEI) আছে, তাই এটি পুরো ফর্মেই এডিট
+হয়।" (`pe-full`), as quick add sends such a new product there (§7.4b). A combo keeps its own editor.
+
+**On a computer** (`pe-wide`): the card on the left, আরও সেটিংস on the right, the bar at the bottom.
+
+**Open questions, with my recommendations:**
+
+1. **A price per design or size** (today in the full form, from আরও সেটিংস → দাম আর অপশন): keep it behind আরও
+   সেটিংস, as quick add has it. *Recommendation: yes; the card keeps one price.*
+2. **SKU and barcode:** stay in আরও সেটিংস. *Recommendation: yes.*
+3. **A combo** keeps its own editor, not this card. *Recommendation: yes.*
+4. **A size with orders** can't be removed; should it be possible to stop selling just that size (a "বিক্রি বন্ধ"
+   for one size) here? *Recommendation: not now; the seller can set its stock to 0, which, with orders beyond stock,
+   still takes orders. Revisit if sellers ask.*
+5. **Splitting a stock that orders hold:** the held units follow their order's design and size, so the split moves
+   them there; a cell can't go below what its orders hold. *Recommendation: yes; the build checks the split action
+   does this, and adds it if not.*
+6. **Bulk "add stock to several sizes"** (INV-06's amendment, today's add-stock sheet): stays on the product page's
+   স্টক যোগ করুন, not in this card. *Recommendation: yes.*
+
 ### 7.5 Categories (`/categories`)
 
 **Job.** Keep a small tree the storefront can navigate, without ever blocking a product (PRD-03: a

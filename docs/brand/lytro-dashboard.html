@@ -424,6 +424,7 @@ svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.75;str
       <optgroup label="Pathao pickup store, added from Lytro (sketch)"><option value="sh-ps-store">Pickup store · the list, and Add a store</option><option value="sh-ps-new">· a new store: name, contact, place, address</option><option value="sh-ps-new-bad">· what Pathao needs, checked before sending</option><option value="ps-added">· added and chosen</option><option value="sh-ps-waiting">· added, Pathao has not switched it on yet</option><option value="sh-ps-none">· the Pathao account has no store yet</option></optgroup>
       <optgroup label="Developers · the API docs (sketch)"><option value="dev-keys">API keys · Developer docs, under the lead</option><option value="dev-keys-none">· no key of your own yet</option><option value="dev-docs">Developer API · getting started (a phone folds the list)</option><option value="dev-docs-nokey">· no key yet: step 1 makes one</option><option value="dev-toc">· on a phone: On this page, open</option><option value="dev-auth">· authentication and headers</option><option value="dev-limits">· limits: this plan, this cycle</option><option value="dev-used-up">· this cycle’s requests used up</option><option value="dev-limits-payg">· limits on pay-as-you-go, fair use on (2026-11-25)</option><option value="dev-used-up-payg">· pay-as-you-go: the month’s API limit reached</option><option value="dev-errors">· errors: the envelope and every code</option><option value="dev-products">· a route: GET /v1/catalogue/products, curl</option><option value="dev-products-js">· the same, JavaScript</option><option value="dev-copied">· a sample copied</option><option value="dev-order">· POST /v1/orders: body, Idempotency-Key</option><option value="dev-track">· GET /v1/track/{trackingId}</option><option value="dev-shopper">· shopper accounts: the token</option></optgroup>
       <optgroup label="New product · quick add (proposal 2026-11-25)"><option value="pq-empty">Empty: photos, name, price, stock, sizes, description</option><option value="pq-filled">· one photo, 10 in hand</option><option value="pq-stock-one">· three designs, ONE shared stock box (default)</option><option value="pq-nostock">· Save with no stock: the warning</option><option value="pq-made">· made to order switched on in more settings: no stock box</option><option value="pq-size-add">Sheet · সাইজ যোগ করুন: S–XXL, free size, 28–44, typed</option><option value="pq-size-added">· sizes S M L under the stock, one shared box, a video after the 3 designs</option><option value="pq-stock-split-designs">· split: a box under each design</option><option value="pq-stock-split-grid">· split: designs x sizes grid, one row empty</option><option value="pq-stock-grouped">· split: 4 photos, one grouped, one plain</option><option value="pq-photo-menu">Sheet · this photo: own design, same design, not a design</option><option value="pq-colour">· one photo, colours (added from more settings) and sizes</option><option value="pq-more-open">· more settings open: made to order on, category, size chart as a picture</option><option value="pq-other">· a shop that is not clothing: no size button, options in more settings</option><option value="pq-fee">· fee on top: balance short</option><option value="pq-fee-ok">· fee on top: enough balance</option><option value="pq-wide">· the split grid on a computer (switch to Computer)</option></optgroup>
+      <optgroup label="Edit a product · the short layout (proposal 2026-11-25)"><option value="pe-simple">One photo: name, price, stock with what orders hold</option><option value="pe-stock-change">· the stock changed 40 → 35: the change and why (INV-06)</option><option value="pe-stock-below">· below what orders hold: the newest go short</option><option value="pe-designs">3 designs × sizes on one stock, an order waiting</option><option value="pe-split-later">· split one stock: the cells add up to what is in hand</option><option value="pe-split-edit">· a split stock edited: changed cells, one reason</option><option value="pe-add-photo">A new photo: a new design at 0 (pdAdded)</option><option value="pe-add-photo-plain">· on a product with orders: a plain photo (pdLocked)</option><option value="pe-sizes">Sizes: XL added, M with orders stays</option><option value="pe-made">Made to order: no stock box (more settings open)</option><option value="pe-full">Serial (IMEI) product: the full editor stays</option><option value="pe-wide">On a computer</option></optgroup>
       <optgroup label="Orders beyond stock (proposal 2026-11-25)"><option value="obs-list">Orders · photo, name, phone, address, total, status; the স্টক কম chip</option><option value="obs-list-short">· the স্টক কম chip on: only short orders</option><option value="obs-list-payg">· a pay-as-you-go shop: a locked order masked as today</option><option value="obs-order">Order · short: the banner, the short line, Book waits</option><option value="obs-book-blocked">· Book tapped while short (sheet)</option><option value="obs-add-stock">· Add stock from the order, where it goes (sheet)</option><option value="obs-filled">· stock added: covered, Book live (toast)</option><option value="obs-print">Orders · printing labels: a short order can not be picked</option><option value="obs-alert">The bell · a new order arrived short; stock given</option></optgroup>
       <optgroup label="Later phases (design only)"><option value="storefront">Storefront settings · slides as a carousel (Slice 12)</option><option value="storefront-tiles">· one banner and two tiles (Slice 12)</option><option value="storefront-empty">· no slides yet (Slice 12)</option><option value="sh-slide">· slide editor with the focal point (Slice 12)</option><option value="sh-slide-new">· new slide (Slice 12)</option><option value="sh-slide-preview">· both crops (Slice 12)</option><option value="sh-slide-delete">· remove slide (Slice 12)</option><option value="storefront-saved">· slide saved (Slice 12)</option></optgroup>
     </select>
@@ -10838,6 +10839,131 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 .pq-sz.wide{padding:0 16px}
 </style>`);
 /* ---------- end of New product · quick add (proposal) ---------- */
+/* ---------- Edit a product · the short layout (proposal, 2026-11-25). The owner approved quick add's question 7, "editing
+   an existing product uses the same layout: yes, as a second step". TENANT-DASHBOARD-DESIGN §7.4d. The same card as quick
+   add (pq-*), filled in, opened from the product page's এডিট করুন (pd-detail, /products/<id>/edit); Save returns to the
+   product page. What editing adds: the স্টক box shows what is in hand, and a changed number is a stock movement with a
+   one-tap reason (INV-06); what orders hold, or wait for (orders beyond stock), shows under it; a shared stock splits
+   later with quick add's split action, and a split stock is a grid whose changed cells are movements; a new photo follows
+   the built rules (pdAdded, pdLocked); a size with orders stays. Batch- and serial-tracked products keep the full editor. */
+const PE_HOLD = (n) => L(`${n}টা অর্ডারে রাখা আছে`, `Held for ${n} order${n === 1 ? '' : 's'}`);
+const peReasons = (on, o) => {
+  o = o || {};
+  const all = [
+    ['up', L('নতুন স্টক এসেছে', 'New stock arrived')],
+    ['count', L('আবার গুনেছি', 'Counted again')],
+    ['lost', L('নষ্ট/হারিয়েছে', 'Damaged or lost')],
+    ['other', L('অন্য', 'Other')],
+  ].filter(([k]) => !(o.down && k === 'up'));
+  return `<div class="pe-why"><span class="k">${L('কেন বদলালেন?', 'Why the change?')}</span><div class="pe-chips">${all.map(([k, w]) => `<span class="pe-chip ${k === on ? 'on' : ''}">${w}</span>`).join('')}</div><span class="pe-skip">${L('না বাছলে “হাতে বদলানো” হিসেবে লেখা হবে।', 'Skip it and it is written as a manual change.')}</span></div>`;
+};
+/* The স্টক box of an existing product: its number in hand, what orders hold under it, and a waiting note when orders
+   wait for stock (#448's words: Nটা কম). A changed number shows the change and asks why. */
+const peStock = (o) => {
+  if (o.made) return `<div class="pq-note">${ic('info', 16)}<span>${L('অর্ডার পেলে বানানো হয় (আরও সেটিংস), তাই স্টক গুনতে হবে না।', 'Made to order (more settings), so there is no stock to count.')}</span></div>`;
+  if (o.split) return peSplit(o);
+  const designs = pqDesigns(o);
+  const parts = designs > 1 || o.sizes;
+  const what = designs > 1 && o.sizes ? L('ডিজাইন ও সাইজ', 'design and size') : designs > 1 ? L('ডিজাইন', 'design') : L('সাইজ', 'size');
+  const unit = `<span class="pq-unit">${L('পিস', 'pcs')}</span>`;
+  const was = o.was !== undefined ? `<span class="pe-was">${L(`আগে ${o.was}`, `Was ${o.was}`)}</span>` : '';
+  const box = field(L('স্টক', 'Stock'), o.qty, { trail: `${was}${unit}`, bad: o.below });
+  const lines = [];
+  if (parts) lines.push(L(`সব ${what} মিলিয়ে`, `All ${what}s together`));
+  if (o.held) lines.push(PE_HOLD(o.held));
+  const muted = lines.length ? `<div class="pe-held">${lines.join(' · ')}</div>` : '';
+  const wait = o.waiting ? `<div class="pe-wait">${ic('alert', 16)}<span>${L(`${o.waiting[0]}টা অর্ডারে মোট ${o.waiting[1]}টা কম। স্টক বাড়ালে আগের অর্ডারগুলো আগে পাবে।`, `${o.waiting[0]} order${o.waiting[0] === 1 ? '' : 's'} wait for ${o.waiting[1]} in all. Raise the stock and the oldest get it first.`)}</span></div>` : '';
+  const delta = o.was !== undefined ? `<div class="pe-delta ${Number(o.qty) < Number(o.was) ? 'down' : 'up'}">${L(`${o.was} → ${o.qty} (${Number(o.qty) - Number(o.was) > 0 ? '+' : '−'}${Math.abs(Number(o.qty) - Number(o.was))})`, `${o.was} → ${o.qty} (${Number(o.qty) - Number(o.was) > 0 ? '+' : '−'}${Math.abs(Number(o.qty) - Number(o.was))})`)}</div>` : '';
+  const below = o.below ? `<div class="err">${L(`হাতে ${o.qty}, কিন্তু অর্ডারে রাখা ${o.held}। সেভ করলে নতুন অর্ডারগুলোর ${o.held - Number(o.qty)}টা কম পড়বে, স্টক এলে আগে ওরা পাবে।`, `${o.qty} in hand but ${o.held} held. Save and the newest orders go ${o.held - Number(o.qty)} short; they get stock first when it comes.`)}</div>` : '';
+  const why = o.was !== undefined ? peReasons(o.reason, { down: Number(o.qty) < Number(o.was) }) : '';
+  const split = parts ? `<button class="lnk pq-lnk" onclick="go('pe-split-later')">${L(`${what} অনুযায়ী আলাদা স্টক দিন`, `Give each ${what} its own stock`)} ${ic('right', 16)}</button>` : '';
+  return `<div class="pe-stock">${box}${delta}${below}${muted}${wait}${why}</div>${split}`;
+};
+/* The split of an existing product: a grid, a row per design (its photo), a column per size. From one shared stock
+   (pe-split-later) the cells must add up to what is in hand; on a stock already split (pe-split-edit) each changed cell is
+   a movement and one reason covers the save. */
+const peSplit = (o) => {
+  const rows = o.gridRows;
+  const cols = o.sizes;
+  const num = (c) => Number(String(c).split('→').pop()) || 0;
+  const total = rows.reduce((s, r) => s + r.cells.reduce((a, c) => a + num(c), 0), 0);
+  const cell = (c) => String(c).includes('→') ? `<span class="pq-box pe-chg"><s>${String(c).split('→')[0]}</s>${String(c).split('→')[1]}</span>` : pqBox(c);
+  const head = `<tr><th></th>${cols.map((c) => `<th>${c}</th>`).join('')}</tr>`;
+  const body = rows.map((r) => `<tr><th class="rl"><img src="${PQ_IMG(r.img)}" alt=""><span>${r.label}</span></th>${r.cells.map((c) => `<td>${cell(c)}</td>`).join('')}</tr>`).join('');
+  const grid = `<div class="pq-grid"><table>${head}${body}</table></div>`;
+  if (o.split === 'later') {
+    const off = total !== o.inHand;
+    const rule = `<div class="pq-note">${ic('info', 16)}<span>${L(`ঘরগুলোর মোট ${o.inHand} হতে হবে: এখন হাতে যা আছে। আলাদা করলে মোট স্টক বদলায় না। মোট বদলাতে চাইলে আগে এক স্টকে নতুন সংখ্যা দিন।`, `The cells must add up to ${o.inHand}, what is in hand now. Splitting never changes the total; to change it, set the one stock first.`)}</span></div>`;
+    const sum = `<div class="pq-total ${off ? 'pe-off' : ''}">${L(`মোট ${total} / ${o.inHand}`, `${total} of ${o.inHand}`)}</div>${off ? `<div class="err">${L(`আরও ${o.inHand - total}টা কোন ঘরে, লিখুন।`, `${o.inHand - total} more to place: write them in.`)}</div>` : ''}`;
+    const held = o.held ? `<div class="pe-held">${L(`অর্ডারে রাখা ${o.held}টা যার ডিজাইন ও সাইজের, সেই ঘরে অন্তত ততটা থাকবে।`, `The ${o.held} held for orders stay with their own design and size: those cells keep at least that.`)}</div>` : '';
+    return `<div class="field"><label>${L('স্টক · ডিজাইন ও সাইজ অনুযায়ী আলাদা', 'Stock · by design and size')}</label></div>${rule}${pqSame()}${grid}${sum}${held}<button class="lnk pq-lnk sub" onclick="go('pe-designs')">${L('এক স্টকেই রাখুন', 'Keep one stock')}</button>`;
+  }
+  const changed = rows.flatMap((r) => r.cells).filter((c) => String(c).includes('→'));
+  const was = rows.reduce((s, r) => s + r.cells.reduce((a, c) => a + (Number(String(c).split('→')[0]) || 0), 0), 0);
+  const sum = `<div class="pq-total">${L(`${changed.length}টা ঘরে বদল · মোট ${was} → ${total}`, `${changed.length} cells changed · ${was} → ${total} in all`)}</div>`;
+  return `<div class="field"><label>${L('স্টক · ডিজাইন ও সাইজ অনুযায়ী', 'Stock · by design and size')}</label></div>${grid}${sum}${changed.length ? peReasons(o.reason, { down: total < was }) : ''}`;
+};
+const peForm = (o) => {
+  o = o || {};
+  const card = `<div class="card pq-card">${pqPhotos(o)}${o.photoNote ? `<div class="pq-note">${ic('info', 16)}<span>${o.photoNote}</span></div>` : ''}${field(t('nameL'), o.nameText || PQ_NAME())}${field(t('price'), o.price || '1,250', { pre: '৳' })}${peStock(o)}${peSizes(o)}${pqDesc({ desc: true })}</div>`;
+  const more = pqMore(o).replace(/go\('pq-more-open'\)|go\('pq-stock-one'\)/g, "go('pe-made')");
+  return `<div class="ttl"><h1>${L('প্রোডাক্ট এডিট', 'Edit product')}</h1></div><div class="pe-of">${o.nameText || PQ_NAME()}</div><div class="two"><div class="pq-col">${card}</div><div class="pq-col">${more}</div></div>${actionbar(`${btn('o', L('বাতিল', 'Cancel'))}${btn('p', t('save'))}`)}`;
+};
+/* Sizes on an existing product: the picked sizes as chips; a new one is marked নতুন (shared stock, or 0 when split); a size
+   with orders keeps a lock instead of its ✕, and a tap says why. */
+const peSizes = (o) => {
+  if (!o.sizes) return pqSizeUi(o);
+  const chip = (s) => o.locked && o.locked.includes(s) ? `<span class="pq-v pe-lock">${s}${ic('lock', 14)}</span>` : o.added && o.added.includes(s) ? `<span class="pq-v pe-new">${s}<em>${L('নতুন', 'New')}</em>${ic('x', 14)}</span>` : `<span class="pq-v">${s}${ic('x', 14)}</span>`;
+  const why = o.locked ? `<div class="pe-held">${L(`${o.locked.join(', ')}-এ অর্ডার আছে, তাই সরানো যাবে না।`, `${o.locked.join(', ')} has orders, so it can't be removed.`)}</div>` : '';
+  const add = o.added ? `<div class="pe-held">${L(`নতুন সাইজ ${o.added.join(', ')} এক স্টক থেকেই বিক্রি হবে; আলাদা স্টক দিলে এর ঘর 0 থেকে শুরু।`, `New size ${o.added.join(', ')} sells from the one stock; with stock split, its cells start at 0.`)}</div>` : '';
+  return `<div class="pq-szrow"><span class="k">${L('সাইজ', 'Size')}</span>${o.sizes.map(chip).join('')}<button class="pq-v add" onclick="go('pq-size-add')">${ic('plus', 14)} ${L('আরও', 'More')}</button></div>${why}${add}`;
+};
+const peScreen = (id, o) => { SCREENS[id] = { ...SCREENS.product, base: 'products', path: '/products/casual-shirt/edit', title: 'secProducts', render: () => peForm(typeof o === 'function' ? o() : o) }; };
+const peThree = (x) => PQ_D.map((d, i) => ({ img: d.img, design: d.n, ...(x ? x(i) : {}) }));
+const PE_GRID = (o) => [
+  { img: 'fashion-3', label: pqDesignName(1), cells: o === 'edit' ? ['4', '6→4', '3'] : ['5', '6', '3'] },
+  { img: 'fashion-7', label: pqDesignName(2), cells: o === 'edit' ? ['2', '5', '0→2'] : ['4', '5', '3'] },
+  { img: 'fashion-1', label: pqDesignName(3), cells: o === 'edit' ? ['3→2', '4', '2'] : ['4', '4', ''] },
+];
+peScreen('pe-simple', { photos: [{ img: 'fashion-3' }], qty: '10', held: 2 });
+peScreen('pe-stock-change', { photos: [{ img: 'fashion-3' }], qty: '35', was: '40', held: 3, reason: 'count' });
+peScreen('pe-stock-below', { photos: [{ img: 'fashion-3' }], qty: '2', was: '6', held: 3, below: true, reason: 'lost' });
+peScreen('pe-designs', () => ({ photos: peThree(), video: true, sizes: ['S', 'M', 'L'], qty: '40', held: 3, waiting: [1, 2] }));
+peScreen('pe-split-later', () => ({ photos: peThree(), sizes: ['S', 'M', 'L'], split: 'later', inHand: 40, held: 3, gridRows: PE_GRID() }));
+peScreen('pe-split-edit', () => ({ photos: peThree(), sizes: ['S', 'M', 'L'], split: 'edit', reason: 'count', gridRows: PE_GRID('edit') }));
+peScreen('pe-add-photo', () => ({ photos: [...peThree(), { img: 'fashion-7-tall', design: 4 }], sizes: ['S', 'M', 'L'], qty: '40', held: 3,
+  photoNote: L('নতুন ছবি থেকে 1টি নতুন ডিজাইন হলো, স্টক 0 থেকে শুরু। এক স্টকে থাকলে নতুন ডিজাইনও সেখান থেকেই বিক্রি হবে।', '1 new design from the new photo, stock from 0. On one stock, the new design sells from it too.') }));
+peScreen('pe-add-photo-plain', { photos: [{ img: 'fashion-3' }, { img: 'fashion-3-tall', plain: true }], qty: '12', held: 1,
+  photoNote: L('এই প্রোডাক্টে অর্ডার আছে, তাই নতুন ছবি সাধারণ ছবি হিসেবে যোগ হয়েছে। অর্ডার হওয়া প্রোডাক্টের ভ্যারিয়েন্ট বদলায় না।', 'This product has orders, so new photos are added as plain photos. A product with orders keeps its variants.') });
+peScreen('pe-sizes', () => ({ photos: peThree(), sizes: ['S', 'M', 'L', 'XL'], added: ['XL'], locked: ['M'], qty: '40', held: 3 }));
+peScreen('pe-made', () => ({ photos: peThree(), sizes: ['S', 'M', 'L'], made: true, moreOpen: true }));
+peScreen('pe-wide', () => ({ photos: peThree(), video: true, sizes: ['S', 'M', 'L'], qty: '40', held: 3, waiting: [1, 2] }));
+/* Batch- or serial-tracked products keep today's full editor, as quick add routes them (§7.4b): the editor, with one line on top. */
+SCREENS['pe-full'] = { ...SCREENS.product, path: '/products/galaxy-a15/edit', render: () => `<div class="banner info">${ic('info')}<span class="b">${L('এই প্রোডাক্টে সিরিয়াল নম্বর (IMEI) আছে, তাই এটি পুরো ফর্মেই এডিট হয়।', 'This product has serial numbers (IMEI), so it is edited in the full form.')}</span></div>${SCREENS.product.render()}` };
+document.head.insertAdjacentHTML('beforeend', `<style>
+.pe-of{font-size:14px;color:var(--n700);margin:-6px 0 12px}
+.pe-stock{display:flex;flex-direction:column;gap:8px}
+.pe-was{font-size:13px;color:var(--n700);margin-right:8px;text-decoration:line-through}
+.pe-delta{align-self:flex-start;font-size:13px;font-weight:600;padding:3px 10px;border-radius:999px;background:var(--n50);color:var(--ink)}
+.pe-delta.down{background:var(--warn-soft, #fff4e0);color:#8a4b00}
+.pe-delta.up{background:var(--success-soft, #e3f4ea);color:#1d6b3f}
+.pe-held{font-size:13px;color:var(--n700)}
+.pe-wait{display:flex;gap:8px;align-items:flex-start;font-size:13px;color:#8a4b00;background:#fff4e0;border-radius:var(--r-control);padding:8px 10px}
+.pe-wait svg.i{flex:none;margin-top:1px}
+.pe-why{display:flex;flex-direction:column;gap:6px}
+.pe-why .k{font-size:13px;font-weight:600;color:var(--ink)}
+.pe-chips{display:flex;gap:6px;flex-wrap:wrap}
+.pe-chip{height:34px;padding:0 12px;border-radius:999px;border:1px solid var(--line-strong);background:#fff;display:inline-flex;align-items:center;font-size:14px;font-weight:500}
+.pe-chip.on{background:var(--primary);border-color:var(--primary);color:#fff}
+.pe-skip{font-size:12px;color:var(--n700)}
+.pe-chg{position:relative;border-color:var(--primary);background:var(--primary-soft, #e6f2f1);gap:4px}
+.pe-chg s{font-size:11px;font-weight:500;color:var(--n700)}
+.pe-off{color:var(--danger)}
+.pq-v.pe-new{border-color:var(--primary)}
+.pq-v.pe-new em{font-style:normal;font-size:11px;font-weight:600;color:var(--primary)}
+.pq-v.pe-lock{background:var(--n50);color:var(--n700)}
+</style>`);
+/* ---------- end of Edit a product · the short layout (proposal) ---------- */
 /* ---------- Orders beyond stock (proposal 2026-11-25). The owner: "currently we are preventing order for out of stock
    product, but from shoppers points of view we shouldn't do this, if the product is out of stock then it is upto seller
    to add stock or reject the order. here we prevent the seller to ship the products if it is out of stock and ask him to
