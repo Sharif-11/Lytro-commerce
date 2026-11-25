@@ -2,7 +2,12 @@ import { useState, type ReactNode } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import { ApiClientError, errorMessage } from '@lytronix/api-client';
 import { Button } from '@lytronix/ui';
-import { bdMobileNumber, LAPSED_TENANT_STATES, phoneShown, PLAN_EXTEND_MAX_DAYS } from '@lytronix/validators';
+import {
+  bdMobileNumber,
+  LAPSED_TENANT_STATES,
+  phoneShown,
+  PLAN_EXTEND_MAX_DAYS,
+} from '@lytronix/validators';
 import { useDeleteShopData, useExtendPlan, useOwnerReset } from '@/api/shops';
 import { ActionPanel } from '@/components/ui/action-panel';
 import { Banner } from '@/components/ui/banner';

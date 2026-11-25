@@ -399,7 +399,7 @@ test('Suppliers: each with its phone and last purchase; edited, made, archived a
   const list = main(page).getByRole('button', { name: /no phone|\d{5}-\d{6}/ });
   await expect(main(page).getByRole('button', { name: /Alam Textile/ })).toContainText('no phone');
   const rahim = main(page).getByRole('button', { name: /Rahim Traders/ });
-  await expect(rahim).toContainText('01711-000111 · last purchase');
+  await expect(rahim).toContainText('01711000111 · last purchase');
   await expect(list).toHaveCount(3);
   await expectAccessible(page);
 

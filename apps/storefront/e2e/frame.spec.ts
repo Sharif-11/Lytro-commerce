@@ -151,7 +151,7 @@ test.describe('header and footer (SFT-13, SFT-21, TEN-18)', () => {
     const shop = await openShop(page);
     await page.goto(shop.url('/'));
     const footer = page.locator('footer.foot');
-    await expect(footer.getByRole('link', { name: '01711-223344' })).toHaveAttribute(
+    await expect(footer.getByRole('link', { name: '01711223344' })).toHaveAttribute(
       'href',
       'tel:01711-223344',
     );

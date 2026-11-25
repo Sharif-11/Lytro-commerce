@@ -352,7 +352,9 @@ export function DeliveryBanner({
         <span>
           <b>{words.t('no_delivery', { a: zone })}</b>
           <br />
-          {shopPhone ? words.t('no_delivery_call', { p: phoneShown(shopPhone) }) : words.t('no_delivery_hint')}
+          {shopPhone
+            ? words.t('no_delivery_call', { p: phoneShown(shopPhone) })
+            : words.t('no_delivery_hint')}
         </span>
       </div>
     );

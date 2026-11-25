@@ -1,4 +1,4 @@
-import { banglaPartOfDay, type HelpLineView } from '@lytronix/validators';
+import { banglaPartOfDay, phoneShownInternational, type HelpLineView } from '@lytronix/validators';
 import type { Copy } from '../i18n/copy';
 
 /**
@@ -21,12 +21,9 @@ export class HelpLineWords {
   }
 }
 
-/** `01712345678` → `+880 17-1234-5678`, as the contact page shows a number to read out. */
+/** `01712345678` → `+8801712345678`, as the contact page shows a number: one run of digits (the owner, 2026-11-25). */
 export function displayNumber(local: string): string {
-  const digits = local.replace(/\D/g, '').replace(/^880/, '').replace(/^0/, '');
-  return digits.length === 10
-    ? `+880 ${digits.slice(0, 2)}-${digits.slice(2, 6)}-${digits.slice(6)}`
-    : local;
+  return phoneShownInternational(local);
 }
 
 /** A WhatsApp chat with the number, as `wa.me` wants it (8801XXXXXXXXX). */

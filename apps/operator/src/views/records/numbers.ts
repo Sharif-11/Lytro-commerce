@@ -21,7 +21,6 @@ export function countWords(value: number): string {
   return value.toLocaleString('en-US');
 }
 
-
 /** Operations as millions, up to two places: 0.62, 11.3. */
 export function millions(value: number): string {
   return (value / 1e6).toLocaleString('en-US', { maximumFractionDigits: 2 });

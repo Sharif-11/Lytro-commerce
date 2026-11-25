@@ -14,7 +14,7 @@ describe('shopChatOf', () => {
         facebookPage: 'https://www.facebook.com/meghfashion',
       }),
     ).toEqual({
-      whatsapp: { href: 'https://wa.me/8801711223344', label: '01711 223 344' },
+      whatsapp: { href: 'https://wa.me/8801711223344', label: '01711223344' },
       messenger: { href: 'https://m.me/megh.fashion', label: 'm.me/megh.fashion' },
       facebook: {
         href: 'https://www.facebook.com/meghfashion',

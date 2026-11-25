@@ -36,7 +36,7 @@ test('asks an owner verified by Google for a phone before Create shop, keeping w
   await expect(page.getByText('Enter a valid Bangladeshi mobile number')).toBeVisible();
   await page.getByLabel('Phone number').fill('1711234567');
   await page.getByRole('button', { name: 'Continue' }).click();
-  await expect(page.getByText('+880 1711 234 567', { exact: false })).toBeVisible();
+  await expect(page.getByText('+8801711234567', { exact: false })).toBeVisible();
   expect(log.sent('POST', '/me/identities/code')).toEqual({
     kind: 'phone',
     value: PHONE,
@@ -199,7 +199,7 @@ test('signs in with the number typed from 0, with no fixed +880 before the box',
   await field.fill('01711234567');
   await page.getByRole('button', { name: 'এগিয়ে যান' }).click();
   await expect(
-    page.getByText('+880 1711 234 567 নম্বরে 6 সংখ্যার একটি কোড পাঠানো হয়েছে'),
+    page.getByText('+8801711234567 নম্বরে 6 সংখ্যার একটি কোড পাঠানো হয়েছে'),
   ).toBeVisible();
   expect(log.sent('POST', '/auth/phone/code')).toMatchObject({ phone: PHONE });
 });
@@ -216,7 +216,7 @@ test('walks a new owner from the website to Home: code, shop, checkout, password
   await page.getByLabel('ফোন নম্বর').fill('1711234567');
   await page.getByRole('button', { name: 'এগিয়ে যান' }).click();
   await expect(
-    page.getByText('+880 1711 234 567 নম্বরে 6 সংখ্যার একটি কোড পাঠানো হয়েছে'),
+    page.getByText('+8801711234567 নম্বরে 6 সংখ্যার একটি কোড পাঠানো হয়েছে'),
   ).toBeVisible();
   await typeCode(page, '123456');
   await page.getByRole('button', { name: 'ভেরিফাই করুন' }).click();

@@ -63,12 +63,12 @@ test('what waits: each payment says why, with the decisions under it', async ({ 
   await open(page);
   await expect(tab(page, /^To verify/)).toContainText('4');
   await expect(waitingRow(page, '8HC3P2M1')).toContainText('৳500');
-  await expect(waitingRow(page, '8HC3P2M1')).toContainText('01712 000 111');
+  await expect(waitingRow(page, '8HC3P2M1')).toContainText('01712000111');
   await expect(waitingRow(page, '8HC3P2M1')).toContainText(
     'Amount mismatch: ৳500 was asked, the SMS says ৳450',
   );
   await expect(waitingRow(page, '5TK9WQ2B')).toContainText(
-    'Sender mismatch: the shopper typed 01819 000 222, the SMS came from 01555 123 456',
+    'Sender mismatch: the shopper typed 01819000222, the SMS came from 01555123456',
   );
   // A wallet a phone can read, with a phone paired, and nothing has come.
   await expect(waitingRow(page, '2LM7VN6C')).toContainText('No SMS has come for this TrxID yet.');

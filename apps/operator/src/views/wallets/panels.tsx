@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { errorMessage } from '@lytronix/api-client';
 import { Button, SelectField, TextField } from '@lytronix/ui';
-import { PaymentWay } from '@lytronix/validators';
+import { PaymentWay, phoneShown } from '@lytronix/validators';
 import {
   useAddBankAccount,
   useRemoveBankAccount,
@@ -248,7 +248,7 @@ export function GatewayPanel({
       >
         {numbers.map((each) => (
           <option key={each.id} value={each.number}>
-            {each.number}
+            {phoneShown(each.number)}
           </option>
         ))}
       </SelectField>
