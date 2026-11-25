@@ -782,13 +782,14 @@ none, WhatsApp, Facebook and Messenger), and **পেজটা দেখুন**
 form) and **প্রোডাক্টে যান**. A pay-as-you-go shop whose storefront is paused until its activation top-up (PF-13) still
 gets the link, with one line saying it opens after the ৳10 top-up, and Top up. A shop with its storefront switched off
 needs no line: its landing pages still open, bare (SB-31). A combo opens its own page, as before. Editing a saved
-product shows no sheet. Under the product's link, the shop's own, secondary: **দোকানের লিংক** with Home's link card
+product shows no sheet. Under the product's link, the shop's own, secondary: **আপনার শপের লিংক**, Home's link card
 as built (the address with Copy, then Facebook and WhatsApp). A copy or share of either link ticks the set-up
 checklist's "লিংক শেয়ার" (SUP-01), as Home's card does.
 
 **The first landing** (amendment, the owner 2026-11-25: "during first onboarding the seller routed to product add
 route so that he can quickly add product and share the link of his product or store"; `pq-first`). Onboarding's last
-step (set-up) lands a brand-new shop with no products on quick add, not Home. On top, one line: "দোকান তৈরি হয়েছে!
+step (set-up) lands a brand-new shop with no products on quick add, not Home (on the full form where the shop type
+keeps batches or serials, as above, with the same line). On top, one line: "শপ তৈরি হয়েছে!
 প্রথম প্রোডাক্ট যোগ করুন, তারপর লিংক শেয়ার করুন।" with a quiet **পরে করব** to Home, whose checklist still has the first
 product and the link to share. It shows on that landing only: not on a reload, Back, or a later visit, nor for the next
 product after "আরেকটা প্রোডাক্ট যোগ করুন". A shop that already has products, and every sign-in, go Home as before.

@@ -460,7 +460,7 @@ test("pq-saved: the shop's link under the product's, each copied or shared ticki
   await save(page).click();
   const saved = savedSheet(page);
   await expect(saved.getByText('megh.lytro.app/l/panjabi', { exact: true })).toBeVisible();
-  const shop = saved.getByRole('region', { name: 'Shop link' });
+  const shop = saved.getByRole('region', { name: 'Your shop link' });
   await expect(shop.getByText('megh.lytro.app', { exact: true })).toBeVisible();
   await expect(shop.getByRole('link', { name: 'WhatsApp' })).toHaveAttribute(
     'href',

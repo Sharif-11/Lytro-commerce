@@ -930,7 +930,9 @@ function ProductPage({
         <ErrorBanner error={addStocks.error} />
       ) : null}
       {product ? <OfferCards product={product} /> : null}
-      {quickAdd && welcome ? (
+      {/* A brand-new shop's first landing (`pq-first`): on quick add, or on the full form where the shop type keeps
+          batches or serials (a pharmacy's, a grocery's, an electronics shop's). */}
+      {product === null && welcome ? (
         <QuickWelcome
           onLater={() => {
             void navigate({ to: '/$shop', params: { shop: slug } });

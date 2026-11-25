@@ -35,6 +35,8 @@ export function SavedSheet({
   onClose: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('shop');
+  // Home's link card's own words for the shop's link (one definition).
+  const { t: home } = useTranslation('home');
   const { host, url: shopUrl } = useShopAddress();
   const shared = useMarkLinkShared();
   const shopHeading = useId();
@@ -175,7 +177,7 @@ export function SavedSheet({
           )}
           <section aria-labelledby={shopHeading} className="mt-1 border-t border-line pt-3">
             <h3 id={shopHeading} className="text-[15px] font-semibold">
-              {t('qsShopLink')}
+              {home('shopLink')}
             </h3>
             <p className="text-[14px] text-fg-muted">{t('qsShopLead')}</p>
             <LinkShare url={shopUrl} shown={host} onShared={markShared} />
