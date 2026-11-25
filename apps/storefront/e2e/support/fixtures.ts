@@ -266,7 +266,9 @@ export function makeProduct(spec: ProductSpec): ProductFixture {
       optionIds,
       price: money(spec.price),
       stockState: out ? StockState.Out : stockState,
-      available: !out,
+      // INV-25 (ORDERS-BEYOND-STOCK OB-17): the API offers every active variant, whatever its stock; only a pair this
+      // fixture names as not to be had is unavailable.
+      available: !(spec.soldOutPairs ?? []).includes(label),
     };
   };
   const variants: ProductVariant[] = [];

@@ -196,7 +196,8 @@ test.describe('a combo (CMB-09)', () => {
       };
     });
     await page.goto(shop.url('/p/cotton-panjabi'));
-    await expect(page.locator('.pricerow .st.out')).toHaveText('Sold out');
+    // ORDERS-BEYOND-STOCK OB-18: no stock wording; a part no longer sold still keeps the combo from the cart.
+    await expect(page.locator('.pricerow .st')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Add to cart' })).toHaveCount(0);
   });
 });
