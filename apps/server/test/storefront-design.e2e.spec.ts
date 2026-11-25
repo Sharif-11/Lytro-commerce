@@ -356,7 +356,7 @@ describeIfDatabase("a shop's storefront design (SB-11 to SB-16)", () => {
   );
 
   it(
-    'starts with a row for each of its first three categories holding stock, until it publishes its own page (SB-30)',
+    'starts with a row for each of its first three categories holding a product, sold out too, until it publishes its own page (SB-30)',
     async () => {
       const shop = await openShop(port, texts, 'sf-cat-rows');
       const made = async (name: string, body: Record<string, unknown>) => {
@@ -364,8 +364,9 @@ describeIfDatabase("a shop's storefront design (SB-11 to SB-16)", () => {
         expect(created.status, JSON.stringify(created.body)).toBe(201);
         return created.body as { id: string; slug: string };
       };
-      // In the shop's order: one with nothing in it, one hidden, one sold out, then three that sell -- the second of
-      // them through its sub-category -- and a fourth that sells, left out.
+      // In the shop's order: one with nothing in it and one hidden (both left out); one whose only product is sold out,
+      // which counts since 2026-11-25 (the owner: "the storefront must be populated even if there is no stock"); then
+      // two that sell, the second through its sub-category; and two more that sell, left out past the first three.
       await made('Empty', { sortOrder: 1 });
       const hidden = await made('Hidden', { sortOrder: 2, visible: false });
       const soldOut = await made('Sold out', { sortOrder: 3 });
@@ -386,7 +387,7 @@ describeIfDatabase("a shop's storefront design (SB-11 to SB-16)", () => {
       await product(shop, 'Tote', { categoryIds: [bags.id] });
 
       const editor = await editorOf(shop);
-      const start = startingDesign(editor.startingTheme, [kurti.id, women.id, shoes.id]);
+      const start = startingDesign(editor.startingTheme, [soldOut.id, kurti.id, women.id]);
       expect(editor.design).toEqual(start);
       expect(editor.live).toEqual(start);
       expect(editor.broken).toEqual([]);
@@ -397,7 +398,7 @@ describeIfDatabase("a shop's storefront design (SB-11 to SB-16)", () => {
         start.sections.map((section) => section.id),
       );
       expect(shown.design.categories.map((category) => category.id).sort()).toEqual(
-        [kurti.id, women.id, shoes.id].sort(),
+        [soldOut.id, kurti.id, women.id].sort(),
       );
 
       // A page the shop published is its own: categories never add rows to it.

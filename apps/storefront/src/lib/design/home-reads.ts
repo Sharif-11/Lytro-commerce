@@ -30,8 +30,9 @@ export function rowQuery(
   section: ProductsSection,
   design: Pick<PublicStorefrontDesign, 'categories' | 'products' | 'offers'>,
 ): ProductQuery | null {
-  // Sold-out products leave a row (SB-9).
-  const base = { inStock: true, limit: section.count };
+  // SB-9 as amended 2026-11-25 (the owner: "the storefront must be populated even if there is no stock. And just re
+  // order the stock out products at last"): a row lists sold-out products too, and the server puts them last.
+  const base = { limit: section.count };
   switch (section.source) {
     case ProductRowSource.Newest:
       return { ...base, sort: 'newest' };
@@ -46,7 +47,7 @@ export function rowQuery(
     case ProductRowSource.Picked: {
       const reachable = new Set(design.products.map((row) => row.id));
       const picked = section.productIds.filter((id) => reachable.has(id)).slice(0, section.count);
-      return picked.length > 0 ? { inStock: true, productIds: picked } : null;
+      return picked.length > 0 ? { productIds: picked } : null;
     }
     // OF-8, OF-22: a running offer's cards in the shop's order; one no longer running, no row.
     case ProductRowSource.Offer: {
@@ -56,7 +57,8 @@ export function rowQuery(
   }
 }
 
-const NEWEST_SLIDES: ProductQuery = { sort: 'newest', inStock: true, limit: HERO_AUTO_SLIDES };
+// The hero's slides too: in stock first, sold out only when the shop has nothing else (SB-9 as amended 2026-11-25).
+const NEWEST_SLIDES: ProductQuery = { sort: 'newest', limit: HERO_AUTO_SLIDES };
 
 /** BL-3, BL-5: what an auto hero's slides read, and what they read instead when that comes back empty. */
 export function heroQuery(source: HeroSource): {
@@ -66,12 +68,12 @@ export function heroQuery(source: HeroSource): {
   switch (source) {
     case ProductRowSource.OnSale:
       return {
-        query: { sort: 'discount', onSale: true, inStock: true, limit: HERO_AUTO_SLIDES },
+        query: { sort: 'discount', onSale: true, limit: HERO_AUTO_SLIDES },
         fallback: NEWEST_SLIDES,
       };
     case ProductRowSource.BestSellers:
       return {
-        query: { sort: 'best_selling', inStock: true, limit: HERO_AUTO_SLIDES },
+        query: { sort: 'best_selling', limit: HERO_AUTO_SLIDES },
         fallback: NEWEST_SLIDES,
       };
     case ProductRowSource.Newest:

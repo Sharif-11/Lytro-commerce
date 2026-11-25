@@ -297,8 +297,8 @@ export const DOC_ROUTES: readonly DocRoute[] = [
     p: '/catalogue/products',
     q: '?category=women&inStock=true&limit=2',
     what: [
-      'শপের অ্যাক্টিভ প্রোডাক্টের এক পেজ: ক্যাটাগরি, সার্চ আর সাজানো অনুযায়ী। পরের পেজের জন্য nextCursor পাঠান।',
-      "A page of the shop's active products, by category, search and order. Send nextCursor for the next page.",
+      'শপের অ্যাক্টিভ প্রোডাক্টের এক পেজ: ক্যাটাগরি, সার্চ আর সাজানো অনুযায়ী। যেকোনো সাজানোয় স্টকে থাকা প্রোডাক্ট আগে, স্টক শেষ হওয়াগুলো পরে। পরের পেজের জন্য nextCursor পাঠান।',
+      "A page of the shop's active products, by category, search and order. In every order the products in stock come first, the sold-out ones after. Send nextCursor for the next page.",
     ],
     params: [
       P(
@@ -409,6 +409,7 @@ export const DOC_ROUTES: readonly DocRoute[] = [
           ordered: 41,
           bestSeller: true,
           designId: null,
+          hasVideo: true,
         },
         {
           id: P2,
@@ -426,6 +427,7 @@ export const DOC_ROUTES: readonly DocRoute[] = [
           ordered: 12,
           bestSeller: false,
           designId: null,
+          hasVideo: false,
         },
       ],
       nextCursor: 'eyJrIjoiMjAyNi0xMC0yOFQxMTo0MDowMFoiLCJpIjoiNGUxYTdkOTMifQ',

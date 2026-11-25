@@ -64,8 +64,8 @@ export class DrizzleStorefrontDesignStore implements StorefrontDesignStore {
     return this.designs.targets(tx, tenantId, categoryIds, productIds);
   }
 
-  firstStockedCategories(tx: Transaction, tenantId: string, limit: number): Promise<string[]> {
-    return this.designs.firstStockedCategories(tx, tenantId, limit);
+  firstFilledCategories(tx: Transaction, tenantId: string, limit: number): Promise<string[]> {
+    return this.designs.firstFilledCategories(tx, tenantId, limit);
   }
 
   sale(tx: Transaction, tenantId: string): Promise<StorefrontSale> {

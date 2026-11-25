@@ -55,9 +55,10 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const PRICE = /^\d{1,8}(\.\d{1,2})?$/;
 const SCORE = /^-?\d+(\.\d+)?(e[+-]?\d+)?$/i;
 const QUANTITY = /^\d{1,11}(\.\d{1,3})?$/;
-// Every order ends with the card's design number (DC-1); featured starts with whether the seller placed it and where
-// (DC-7).
-const POSITIONS: Readonly<Record<PublicProductSort, readonly RegExp[]>> = {
+// Every order starts with whether the card is in stock (the owner, 2026-11-25: sold-out cards last) and ends with the
+// card's design number (DC-1); featured goes on with whether the seller placed it and where (DC-7).
+const STOCKED = /^[01]$/;
+const OWN_POSITIONS: Readonly<Record<PublicProductSort, readonly RegExp[]>> = {
   [PublicProductSort.Featured]: [INTEGER, INTEGER, TIME, UUID, INTEGER],
   [PublicProductSort.Newest]: [TIME, UUID, INTEGER],
   [PublicProductSort.PriceLow]: [PRICE, UUID, INTEGER],
@@ -66,6 +67,14 @@ const POSITIONS: Readonly<Record<PublicProductSort, readonly RegExp[]>> = {
   [PublicProductSort.Discount]: [INTEGER, TIME, UUID, INTEGER],
   [PublicProductSort.BestSelling]: [QUANTITY, TIME, UUID, INTEGER],
 };
+
+/**
+ * The stock key's value for an in-stock card: 1 in the orders that run high to low, 0 in price low to high, so in
+ * stock comes first either way. A cursor made before the key existed (a page kept from the release before) resumes
+ * among the cards in stock.
+ */
+const inStockValue = (sort: PublicProductSort): string =>
+  sort === PublicProductSort.PriceLow ? '0' : '1';
 
 /** CCH-11: where the next page starts, as an opaque token naming its order. */
 export function cursorOf(sort: PublicProductSort, position: readonly string[]): string {
@@ -81,8 +90,10 @@ export function positionOf(sort: PublicProductSort, cursor: string): string[] | 
     return null;
   }
   if (!Array.isArray(decoded) || decoded[0] !== sort) return null;
-  const position = decoded.slice(1);
-  const expected = POSITIONS[sort];
+  const own = OWN_POSITIONS[sort];
+  const named: unknown[] = decoded.slice(1);
+  const position = named.length === own.length ? [inStockValue(sort), ...named] : named;
+  const expected = [STOCKED, ...own];
   if (position.length !== expected.length) return null;
   const valid = position.every(
     (value: unknown, index) => typeof value === 'string' && expected[index]?.test(value) === true,

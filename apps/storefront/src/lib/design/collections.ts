@@ -34,7 +34,8 @@ export function collectionQuery(
   collection: StorefrontCollection,
   categories: readonly Pick<DesignTarget, 'id' | 'slug'>[],
 ): ProductQuery | null {
-  const base = { inStock: true, limit: COLLECTION_READ };
+  // SB-9 as amended 2026-11-25: a collection reads sold-out products too, last (the server's order).
+  const base = { limit: COLLECTION_READ };
   switch (collection.kind) {
     case StorefrontLinkKind.OnSale:
       return { ...base, sort: 'discount', onSale: true };
