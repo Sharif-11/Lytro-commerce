@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
-import { PaymentMethodKind, PaymentWay } from '@lytronix/validators';
+import { PaymentMethodKind, PaymentWay, phoneShown } from '@lytronix/validators';
 import { errorMessage } from '@lytronix/api-client';
 import { Button, ErrorBanner } from '@lytronix/ui';
 import { useUpdatePaymentMethod } from '@/api/payment-methods';
@@ -34,7 +34,7 @@ function NumberRow({
   return (
     <div className="flex min-h-[52px] flex-wrap items-center gap-x-3 gap-y-2 border-t border-line px-4 py-3">
       <span className="flex min-w-[150px] flex-1 flex-col gap-0.5">
-        <span className="mono text-[15px] font-medium">{wallet.number}</span>
+        <span className="mono text-[15px] font-medium">{phoneShown(wallet.number)}</span>
         <span className="text-[13px] text-fg-muted">{wallet.label ?? t('wallets.none')}</span>
       </span>
       <Switch
@@ -49,7 +49,7 @@ function NumberRow({
               onSuccess: () => {
                 toast(
                   t(enabled ? 'wallets.shownOn' : 'wallets.shownOff', {
-                    wallet: `${wallet.provider} ${wallet.number}`,
+                    wallet: `${wallet.provider} ${phoneShown(wallet.number)}`,
                   }),
                 );
               },

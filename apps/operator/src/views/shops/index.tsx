@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearch } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@lytronix/ui';
-import { phoneSearchOf, TenantSort, TenantState } from '@lytronix/validators';
+import { phoneSearchOf, phoneShown, TenantSort, TenantState } from '@lytronix/validators';
 import { usePlans } from '@/api/plans';
 import { useSearchShops } from '@/api/shops';
 import { Banner } from '@/components/ui/banner';
@@ -14,7 +14,6 @@ import { CELL_NOTE, SMALL_BUTTON } from '@/components/ui/sizes';
 import { StatusChip } from '@/components/ui/status-chip';
 import { enumValue } from '@/lib/enum-value';
 import { daysFromNow, formatDay } from '@/lib/format';
-import { spacedPhone } from '@/lib/phone-words';
 import type { TenantSummary } from '@/types/operator';
 import { FilterRow, FilterSelect } from './filter-select';
 import { ShopStateChip } from './shop-state-chip';
@@ -117,7 +116,7 @@ export function Shops(): React.JSX.Element {
       width: '118px',
       cell: (shop) => (
         <span className="mono text-[13px]">
-          {shop.ownerPhone ? spacedPhone(shop.ownerPhone) : '—'}
+          {shop.ownerPhone ? phoneShown(shop.ownerPhone) : '—'}
         </span>
       ),
     },

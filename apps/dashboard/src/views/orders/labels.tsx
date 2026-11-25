@@ -203,7 +203,7 @@ export function OrderLabel({
           </b>
           {shopPhone ? (
             <span className={small ? 'text-[7px]' : 'text-[8px]'}>
-              {bangladeshiPhone.grouped(shopPhone)}
+              {bangladeshiPhone.display(shopPhone)}
             </span>
           ) : null}
         </div>
@@ -249,7 +249,7 @@ export function OrderLabel({
         <Person
           small={small}
           name={t('labelPhone')}
-          value={order.customerPhone ? bangladeshiPhone.grouped(order.customerPhone) : '—'}
+          value={order.customerPhone ? bangladeshiPhone.display(order.customerPhone) : '—'}
         />
         <Person small={small} name={t('labelAddress')} value={where || '—'} />
       </div>

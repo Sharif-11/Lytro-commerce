@@ -1,4 +1,4 @@
-import { messengerChatLinkOf, whatsAppChatLinkOf } from '@lytronix/validators';
+import { messengerChatLinkOf, phoneShown, whatsAppChatLinkOf } from '@lytronix/validators';
 import type { PublicShop } from '@/lib/api/storefront-api';
 
 /** One way to reach the shop: where it opens, and how it reads. */
@@ -14,20 +14,13 @@ export interface ShopChat {
   facebook: ChatLink | null;
 }
 
-/** A WhatsApp number as a person reads it: 01711 234 567. */
-function spaced(number: string): string {
-  return /^\d{11}$/.test(number)
-    ? `${number.slice(0, 5)} ${number.slice(5, 8)} ${number.slice(8)}`
-    : number;
-}
-
 /** The shop's chats from its contact details (the public API's `shop.contact`). */
 export function shopChatOf(contact: PublicShop['contact']): ShopChat {
   const whatsapp = contact.whatsapp ?? null;
   const messenger = contact.messenger ?? null;
   const facebook = contact.facebookPage ?? null;
   return {
-    whatsapp: whatsapp ? { href: whatsAppChatLinkOf(whatsapp), label: spaced(whatsapp) } : null,
+    whatsapp: whatsapp ? { href: whatsAppChatLinkOf(whatsapp), label: phoneShown(whatsapp) } : null,
     messenger: messenger
       ? { href: messengerChatLinkOf(messenger), label: `m.me/${messenger}` }
       : null,

@@ -245,7 +245,7 @@ describeIfDatabase(
       expect(detail).toMatchObject({
         access: 'locked',
         customerName: 'স•••',
-        customerPhone: '017•• ••• 842',
+        customerPhone: '017•••••842',
         deliveryAddress: null,
         shopperNote: null,
         location: null,
@@ -258,7 +258,7 @@ describeIfDatabase(
       };
       expect(list.locked).toBe(1);
       expect(list.orders[0]).toMatchObject({
-        customerPhone: '017•• ••• 842',
+        customerPhone: '017•••••842',
         area: { thana: null },
       });
       // PF-26: a locked order is found by its number, never by its phone or name.
@@ -282,7 +282,7 @@ describeIfDatabase(
       expect(await ledger(shop.tenantId, 'order_unlock')).toEqual([]);
       expect(await ledger(other.tenantId, 'order_unlock')).toEqual([]);
       expect(((await shop.get(`/orders/${order.id}`)).body as Detail).customerPhone).toBe(
-        '017•• ••• 842',
+        '017•••••842',
       );
     });
 

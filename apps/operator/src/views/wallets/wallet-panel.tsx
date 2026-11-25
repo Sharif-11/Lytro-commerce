@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SelectField, TextField } from '@lytronix/ui';
+import { phoneShown } from '@lytronix/validators';
 import { useCreatePlatformWallet, useUpdatePlatformWallet } from '@/api/platform-wallets';
 import { ActionPanel } from '@/components/ui/action-panel';
 import { TWO_FIELDS } from '@/components/ui/sizes';
@@ -52,7 +53,7 @@ export function WalletPanel({
     const onSuccess = (): void => {
       toast(
         t(wallet ? 'wallets.saved' : 'wallets.added', {
-          wallet: `${provider} ${values.number}`,
+          wallet: `${provider} ${phoneShown(values.number)}`,
         }),
       );
       onClose();
@@ -64,7 +65,7 @@ export function WalletPanel({
   return (
     <ActionPanel
       title={wallet ? t('wallets.editTitle') : t('wallets.newTitle')}
-      sub={wallet ? `${wallet.provider} · ${wallet.number}` : undefined}
+      sub={wallet ? `${wallet.provider} · ${phoneShown(wallet.number)}` : undefined}
       onClose={onClose}
       actionLabel={wallet ? t('common.save') : t('wallets.create')}
       pending={saving.isPending}

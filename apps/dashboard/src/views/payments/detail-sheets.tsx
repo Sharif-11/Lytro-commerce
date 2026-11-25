@@ -51,7 +51,7 @@ export function PaymentDetailSheet({
         <Kv label={t('spWallet')} value={words.method(payment.method)} />
         {payment.transactionId ? <Kv label="TrxID" value={payment.transactionId} /> : null}
         {payment.senderNumber ? (
-          <Kv label={t('spSender')} value={bangladeshiPhone.grouped(payment.senderNumber)} />
+          <Kv label={t('spSender')} value={bangladeshiPhone.display(payment.senderNumber)} />
         ) : null}
         <Kv label={t('spOrder')} value={`#${payment.order.orderNumber}`} />
         <Kv label={t('spFromWhere')} value={sourceWord(payment.source, t)} />
@@ -97,7 +97,7 @@ export function ReceiptSheet({
         {receipt.amount ? <Kv label={t('spAmount')} value={formatTaka(receipt.amount)} /> : null}
         {receipt.transactionId ? <Kv label="TrxID" value={receipt.transactionId} /> : null}
         {receipt.senderNumber ? (
-          <Kv label={t('spSender')} value={bangladeshiPhone.grouped(receipt.senderNumber)} />
+          <Kv label={t('spSender')} value={bangladeshiPhone.display(receipt.senderNumber)} />
         ) : null}
         <Kv label={t('spRStatus')} value={receiptStatusOf(receipt.status, t).word} />
         {receipt.orderNumber ? <Kv label={t('spOrder')} value={`#${receipt.orderNumber}`} /> : null}

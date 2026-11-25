@@ -7,6 +7,7 @@ import {
   PASSWORD_MIN_LENGTH,
 } from '@lytronix/validators/common';
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import { phoneShown } from '@lytronix/validators';
 import { type Language, Words } from '@/lib/i18n/words';
 import { Icon } from '../icon';
 import { shopperRequest } from './shopper-request';
@@ -132,7 +133,7 @@ export function SignUpView({
     }
   };
 
-  const shownPhone = phone.trim();
+  const shownPhone = phoneShown(phone);
 
   if (step === 'code') {
     const mustRenew = codeRefusal === 'old' || codeRefusal === 'many';
