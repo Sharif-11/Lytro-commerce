@@ -107,6 +107,7 @@
 .sfb .sb-tag.sb-sale{background:var(--sale)}
 .sfb .sb-tag.sb-new{background:var(--new)}
 .sfb .sb-tag.sb-best{background:var(--best)}
+.sfb .sb-tag.sb-out{background:rgba(17,24,39,.82)}
 .sfb .sb-card.sb-framed{text-align:center}
 .sfb .sb-card.sb-framed .sb-im{margin:8px 8px 0;border-radius:calc(var(--r-card) - 2px);overflow:hidden}
 .sfb .sb-card.sb-photo .sb-im{aspect-ratio:3/4}

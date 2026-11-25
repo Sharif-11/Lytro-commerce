@@ -31,8 +31,8 @@ export interface StorefrontDesignStore {
     categoryIds: readonly string[],
     productIds: readonly string[],
   ): Promise<{ categories: StorefrontTarget[]; products: StorefrontTarget[] }>;
-  /** SB-30: the shop's first categories, in its own order, that shoppers see and that hold something in stock. */
-  firstStockedCategories(tx: Transaction, tenantId: string, limit: number): Promise<string[]>;
+  /** SB-30: the shop's first categories, in its own order, that shoppers see and that hold an active product (any stock). */
+  firstFilledCategories(tx: Transaction, tenantId: string, limit: number): Promise<string[]>;
   /** SB-9: what is on sale now. */
   sale(tx: Transaction, tenantId: string): Promise<StorefrontSale>;
   /** SB-15: the width of each of these that is a ready image of the shop's (null when not recorded); others left out. */

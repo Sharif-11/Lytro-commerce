@@ -334,10 +334,15 @@ export class PublicCatalogue {
         limit: request.limit + 1,
       });
       const picked = request.ids;
+      // SB-9: a picked row keeps the seller's order, its sold-out cards last (the owner, 2026-11-25).
+      const soldOut = (row: { stockState: StockState }): number =>
+        row.stockState === StockState.Out ? 1 : 0;
       const page =
         picked === null
           ? rows.slice(0, request.limit)
-          : [...rows].sort((a, b) => picked.indexOf(a.id) - picked.indexOf(b.id));
+          : [...rows].sort(
+              (a, b) => soldOut(a) - soldOut(b) || picked.indexOf(a.id) - picked.indexOf(b.id),
+            );
       const last = page.at(-1);
       const ids = [...new Set(page.map((row) => row.id))];
       const images = await this.images.ofProducts(tx, tenantId, ids);

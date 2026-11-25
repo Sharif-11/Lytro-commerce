@@ -351,17 +351,13 @@ export class StorefrontDesignService {
     );
   }
 
-  /** SB-11, SB-30: the theme's starting page with a row for each of the shop's first categories holding stock. */
+  /** SB-11, SB-30: the theme's starting page with a row for each of the shop's first categories holding a product. */
   private async startingOn(
     tx: Transaction,
     tenantId: string,
     theme: StorefrontThemeKey,
   ): Promise<StorefrontDesign> {
-    const categories = await this.store.firstStockedCategories(
-      tx,
-      tenantId,
-      STARTING_CATEGORY_ROWS,
-    );
+    const categories = await this.store.firstFilledCategories(tx, tenantId, STARTING_CATEGORY_ROWS);
     return startingDesign(theme, categories);
   }
 

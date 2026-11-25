@@ -789,11 +789,31 @@ export class PublicCatalogueRepository {
   }
 
   /**
-   * Each order's keys, in one direction, each ending with the card's design so no two cards tie. Featured is the
+   * The owner, 2026-11-25 ("the storefront must be populated even if there is no stock. And just re order the stock
+   * out products at last"): every order puts the sold-out cards last and keeps its own order within each part. One
+   * leading key does it, in the order's own direction, so the keyset (the cursor) carries it across pages.
+   */
+  private orderOf(
+    sort: PublicProductSort,
+    score: SQL,
+    card: CardFigures,
+  ): { keys: OrderKey[]; descending: boolean } {
+    const own = this.ownOrderOf(sort, score, card);
+    const stockedFirst: OrderKey = {
+      expression: own.descending
+        ? sql`(${card.stock} <> 'out')::integer`
+        : sql`(${card.stock} = 'out')::integer`,
+      type: sql`integer`,
+    };
+    return { keys: [stockedFirst, ...own.keys], descending: own.descending };
+  }
+
+  /**
+   * Each order's own keys, in one direction, each ending with the card's design so no two cards tie. Featured is the
    * seller's order (DC-6, DC-7): the cards they have not placed first, newest first, then the placed ones by their
    * place. Price is the lowest price a card sells at; discount and units are its own.
    */
-  private orderOf(
+  private ownOrderOf(
     sort: PublicProductSort,
     score: SQL,
     card: CardFigures,
