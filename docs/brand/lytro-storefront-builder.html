@@ -2010,6 +2010,202 @@ Object.assign(EDITOR, {
 });
 /* ---------- end of every product on the home page (approved) ---------- */
 
+/* ---------- Empty states (proposal 2026-11-26, docs/STOREFRONT-BUILDER-PLAN.md SB-33). The owner: "we need to design an
+   empty product ui/ux for showing no products". Every page a shopper can land on with no products: the home and
+   "সব প্রোডাক্ট" before the first product, a category with none, a search that finds nothing, the offers page with no
+   offer running, and a product's link once it is gone. One calm message with a line icon in the theme's colours; never a
+   dead end (more of the shop's products, or ways to reach the shop); no empty heading; nothing technical and no blame.
+   The strips are Lytro's notes for the owner, not the shop. ---------- */
+Object.assign(P, {
+  bag: '<path d="M5 8h14l-1.2 12H6.2z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/>',
+  call: '<path d="M6.5 3.5h3l1.5 4.5-2 1.3a11 11 0 0 0 5.7 5.7l1.3-2 4.5 1.5v3a2 2 0 0 1-2.2 2A16.5 16.5 0 0 1 4.5 5.7a2 2 0 0 1 2-2.2z"/>',
+  x: '<path d="M6 6l12 12M18 6 6 18"/>',
+});
+document.head.insertAdjacentHTML('beforeend', `<style>
+.em-hero{background:var(--hero-bg);color:var(--hero-h);text-align:center;padding:38px 20px 34px}
+.em-hero .em-mk{width:64px;height:64px;border-radius:var(--r-mark);background:var(--bg);color:var(--main);display:grid;place-items:center;margin:0 auto 14px;font:700 26px/1 var(--fh)}
+.em-hero .em-kick{color:var(--hero-kick);font-weight:700;font-size:13.5px;letter-spacing:.02em}
+.em-hero h1{font-family:var(--fh);font-size:30px;line-height:1.25;margin:6px 0 8px;color:var(--hero-h)}
+.em-hero p{opacity:.9;font-size:15px;max-width:360px;margin:0 auto}
+.em-box{text-align:center;padding:30px 4px 10px;max-width:440px;margin:0 auto}
+.em-box.em-card{background:var(--q-bg);border-radius:16px;padding:26px 18px 22px;margin-top:8px;border:1px solid var(--line)}
+.em-ic{width:64px;height:64px;border-radius:50%;background:var(--accent-soft);color:var(--main);display:grid;place-items:center;margin:0 auto 14px}
+.em-ic .ico{width:30px;height:30px}
+.em-box h1,.em-box h2{font-family:var(--fh);color:var(--sec-h);font-size:21px;line-height:1.35;margin:0 0 6px}
+.em-box p{color:var(--muted);font-size:15px;margin:0 auto;max-width:340px}
+.em-acts{display:flex;flex-direction:column;gap:10px;margin:18px auto 0;max-width:340px}
+.em-two{display:flex;gap:10px}
+.em-two .em-btn{flex:1}
+.em-btn{display:flex;align-items:center;justify-content:center;gap:8px;height:48px;border-radius:var(--r-btn);font-weight:700;font-size:15px}
+.em-btn .ico{width:19px;height:19px}
+.em-btn.wa{background:#157a42;color:#fff}
+.em-btn.pri{background:var(--btn-bg);color:var(--btn-fg)}
+.em-btn.out{border:1.5px solid var(--main);color:var(--main)}
+.em-link{display:inline-flex;align-items:center;gap:6px;margin-top:4px;color:var(--link);font-weight:700;font-size:14.5px;text-decoration:underline;text-underline-offset:3px}
+.em-link .ico{width:17px;height:17px}
+.em-ttl{padding-top:18px}
+.em-ttl h1{font-family:var(--fh);font-size:26px;color:var(--sec-h);margin:0}
+.em-chips{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:16px auto 0;max-width:420px}
+.em-chips a{background:var(--chip-bg);color:var(--chip-fg);border-radius:99px;padding:7px 15px;font-weight:600;font-size:14px}
+.em-more{display:flex;align-items:center;justify-content:center;gap:8px;margin:18px auto 4px;height:46px;max-width:340px;border:1.5px solid var(--main);border-radius:var(--r-btn);color:var(--main);font-weight:700;font-size:14.5px}
+.em-more .ico{width:17px;height:17px}
+.em-srch{background:#fff;border-bottom:1px solid #d9e0e0;padding:10px 12px;display:flex;align-items:center;gap:12px}
+.em-q{flex:1;display:flex;align-items:center;gap:10px;border:1.5px solid #1b2626;border-radius:99px;height:44px;padding:0 14px;font-size:16px;color:#1b2626}
+.em-q .ico{width:19px;height:19px;color:#3f4c4c}
+.em-q span{flex:1}
+.em-srch b{color:#0e6b66;font-size:15px}
+.shop.em-white{background:#fff}
+@container (min-width:900px){
+  .em-hero{padding:64px 20px 56px}
+  .em-hero h1{font-size:42px}
+  .em-hero p{max-width:520px;font-size:16.5px}
+  .em-box{padding-top:44px}
+  .em-box.em-card{max-width:520px}
+  .em-ttl h1{font-size:32px}
+  .em-srch{padding:14px max(16px,calc(50% - 400px))}
+}
+</style>`);
+// What the public API hands the storefront (PYG-29): a paid plan's shop (and any shop while fair use is off) gives every
+// contact it set; a pay-as-you-go shop with fair use on keeps only its address and Facebook page.
+const EM_CONTACT = {
+  paid: { wa: true, msg: true, phone: true, fb: true },
+  payg: { wa: false, msg: false, phone: false, fb: true },
+  none: { wa: false, msg: false, phone: false, fb: false },
+};
+const EM_SHOP = (products, cats) => ({ ...SHOPS.studio, products, cats: cats.map((c) => [...HA_CATS[c]]), banners: SHOPS.studio.banners });
+// No offer running: the cards carry no cut, and nothing is on sale.
+const emNoCut = (list) => list.map(({ was, ...p }) => p);
+const EM_NEWEST4 = () => haNewest(HA_ALL).slice(0, 4);
+const EM_POPULAR4 = () => HA_ALL.filter((p) => p.best).sort((a, b) => b.sold - a.sold).slice(0, 4);
+const emCap = (bn, en) => `<div class="capstrip">${L(bn, en)}</div>`;
+function emActs(c) {
+  const acts = [];
+  if (c.wa) acts.push(`<a class="em-btn wa">${ic('wa')} ${L('WhatsApp-এ মেসেজ করুন', 'Message on WhatsApp')}</a>`);
+  const two = [c.msg ? `<a class="em-btn out">${ic('msg')} Messenger</a>` : '', c.phone ? `<a class="em-btn out">${ic('call')} ${L('কল করুন', 'Call')}</a>` : ''].filter(Boolean);
+  if (two.length) acts.push(`<div class="em-two">${two.join('')}</div>`);
+  const fb = L('ফেসবুক পেজে দেখুন', 'See our Facebook page');
+  if (c.fb) acts.push(acts.length ? `<span><a class="em-link">${ic('fb')} ${fb}</a></span>` : `<a class="em-btn pri">${ic('fb')} ${fb}</a>`);
+  return acts.length ? `<div class="em-acts">${acts.join('')}</div>` : '';
+}
+const emBox = (icon, title, text, after = '', o = {}) => `<div class="em-box ${o.card ? 'em-card' : ''}"><div class="em-ic">${ic(icon)}</div>${o.h1 ? `<h1>${title}</h1>` : `<h2>${title}</h2>`}${text ? `<p>${text}</p>` : ''}${after}</div>`;
+const emSec = (name, inner) => `<section class="sec" data-sec="${name}"><div class="wrap">${inner}</div></section>`;
+const emMore = (title, list, name) => emSec(name, `${head('studio', title, false)}<div class="grid">${list.map((p) => haCard(p)).join('')}</div><a class="em-more">${L('সব প্রোডাক্ট দেখুন', 'See all products')} ${ic('arrow')}</a>`);
+const EM_NEW = () => L('নতুন · খালি থাকলে', 'New · when empty');
+// The page as built, with this PR's other half (fix/product-id-links): no offer running, no "অফার" in the header or the
+// footer. `lit` is the header chip that is on (null: none); `back` is an inner page's back arrow.
+function emPage(shop, parts, o = {}) {
+  const vars = Object.entries(THEMES.studio.v).map(([k, v]) => `--${k}:${v}`).join(';');
+  const c = o.contact || EM_CONTACT.paid;
+  let hdr = SECTIONS.header('studio', shop);
+  let foot = SECTIONS.footer('studio', shop).replace('01711 223344', '01711223344');
+  if (!o.offer) {
+    hdr = hdr.replace(`<a class="">${L('অফার', 'Offers')}</a>`, '');
+    foot = foot.replace(`<li>${L('অফার', 'Offers')}</li>`, '');
+  }
+  if (o.back) hdr = hdr.replace(`<span class="menu">${ic('menu')}</span>`, `<span class="menu">${ic('back')}</span>`);
+  if (o.lit !== undefined) hdr = hdr.replace('<a class="on">', '<a class="">');
+  if (o.lit) hdr = hdr.replace(`<a class="">${o.lit}</a>`, `<a class="on">${o.lit}</a>`);
+  for (const [key, icon] of [['wa', 'wa'], ['msg', 'msg'], ['fb', 'fb']]) if (!c[key]) foot = foot.replace(`<span>${ic(icon)}</span>`, '');
+  if (!c.phone) foot = foot.replace('<li>01711223344</li>', '');
+  // A shop with nothing to sell has an empty cart, and its contact card carries WhatsApp, so no floating button over it.
+  const bare = shop.products.length === 0;
+  if (bare) hdr = hdr.replace('<sup>2</sup>', '');
+  // No empty heading anywhere: a shop with no categories has no Categories column in its footer.
+  if (shop.cats.length === 0) foot = foot.replace(`<div><h3>${L('ক্যাটাগরি', 'Categories')}</h3><ul></ul></div>`, '');
+  const top = o.search ?? SECTIONS.announce('studio', shop) + hdr;
+  const bottom = o.search ? '' : SECTIONS.trust() + foot;
+  const chat = c.wa && !o.search && !bare ? `<span class="chatbtn">${ic('wa')}</span>` : '';
+  return `<div class="shop ${o.white ? 'em-white' : ''} ${STATE.outlined ? 'outlined' : ''}" style="${vars}">${top}${parts.join('')}${bottom}${chat}</div>`;
+}
+
+// As built: a shop with no products. The hero, categories and rows hide themselves (each draws nothing at 0).
+function emHomeNow() {
+  return emPage(EM_SHOP([], []), [emCap(
+    'আজ যেমন (বিল্ট): প্রোডাক্ট ছাড়া শপের হোম। হিরো, ক্যাটাগরি আর প্রোডাক্টের সারি নিজে থেকে লুকায়; থাকে ঘোষণা, হেডার, ভরসার সারি আর ফুটার। মাঝখানে কিছু নেই: ক্রেতা বোঝে না শপটা চালু কিনা, আর কী করবে।',
+    "As built: a shop's home with no products. The hero, categories and product rows hide themselves; the announcement, header, trust strip and footer stay. Nothing in between: a shopper can't tell whether the shop is open, or what to do.",
+  )], { offer: true });
+}
+
+// The proposal: the hero's place says the shop is coming, in its own colours; a card offers the ways to reach it.
+function emHomeEmpty(plan) {
+  const shop = EM_SHOP([], []);
+  const c = EM_CONTACT[plan];
+  const hero = `<section class="em-hero" data-sec="${L('নতুন · প্রোডাক্ট না থাকলে হিরোর জায়গায়', 'New · in the hero’s place while there are no products')}"><div class="em-mk">${shop.mark}</div><div class="em-kick">${L('নতুন কালেকশন শিগগিরই আসছে', 'New collection coming soon')}</div><h1>${T(shop.name)}</h1><p>${T(shop.tag)}</p></section>`;
+  const direct = c.wa || c.msg || c.phone;
+  const card = direct || c.fb
+    ? emBox('msg', L('কিছু খুঁজছেন?', 'Looking for something?'), direct ? L('মেসেজ করুন, কী আছে আর কী আসছে জানিয়ে দেব।', "Message us and we'll tell you what we have and what's coming.") : L('নতুন কালেকশনের খবর পাবেন আমাদের ফেসবুক পেজে।', "You'll find news of the new collection on our Facebook page."), emActs(c), { card: true })
+    : emBox('bag', L('শিগগিরই আবার আসুন', 'Come back soon'), L('আমরা শপ সাজাচ্ছি। কিছুদিন পর নতুন প্রোডাক্ট দেখতে পাবেন।', "We're getting the shop ready. New products will be here in a few days."), '', { card: true });
+  const note = plan === 'paid'
+    ? emCap('পেইড প্ল্যান (আর ফেয়ার ইউজ বন্ধ থাকলে যেকোনো শপ): শপ যেগুলো দিয়েছে শুধু সেগুলো: WhatsApp, Messenger, কল, ফেসবুক পেজ। যেটা দেয়নি তার বোতাম নেই; ফেসবুক একা থাকলে সেটাই বড় বোতাম।', 'A paid plan (and any shop while fair use is off): only what the shop set: WhatsApp, Messenger, call, Facebook page. No button for what it left out; Facebook alone becomes the big button.')
+    : emCap('পে-অ্যাজ-ইউ-গো, ফেয়ার ইউজ চালু: সার্ভার সরাসরি যোগাযোগ দেয় না (PYG-29), থাকে ঠিকানা আর ফেসবুক পেজ। তাই শুধু ফেসবুক পেজের বোতাম, আর WhatsApp-এর ভাসমান বোতামও নেই। ফেসবুক পেজও না থাকলে কার্ডে “শিগগিরই আবার আসুন”, কোনো বোতাম নেই।', "Pay as you go with fair use on: the server gives no direct contact (PYG-29), only the address and Facebook page. So just the Facebook button, and no floating WhatsApp button. With no Facebook page either, the card says “Come back soon”, with no button.");
+  return emPage(shop, [hero, emSec(EM_NEW(), card), note], { contact: c });
+}
+
+function emListEmpty() {
+  const shop = EM_SHOP([], []);
+  const box = emBox('bag', L('নতুন কালেকশন শিগগিরই আসছে', 'New collection coming soon'), L('আমরা শপ সাজাচ্ছি। কী আসছে জানতে মেসেজ করুন।', "We're getting the shop ready. Message us to hear what's coming."), emActs(EM_CONTACT.paid));
+  return emPage(shop, [
+    emSec(EM_NEW(), `<div class="em-ttl"><h1>${L('সব প্রোডাক্ট', 'All products')}</h1></div>${box}`),
+    emCap('শপে একটাও প্রোডাক্ট নেই: “শুধু স্টকে আছে” বোতাম আর “কিছু পাওয়া যায়নি” লাইন যায়; হোমের কথা আর যোগাযোগ (প্ল্যান অনুযায়ী, হোমের মতো)। প্রোডাক্ট আছে কিন্তু “শুধু স্টকে আছে” চালু করায় খালি: “স্টকে থাকা কোনো প্রোডাক্ট নেই” আর “সবগুলো দেখুন”, যা ফিল্টারটা তুলে দেয়।', "No product in the shop at all: the “In stock only” switch and the “Nothing found” line go; the home's words and contact (by plan, as on the home). Products exist but “In stock only” empties the list: “Nothing in stock right now” and “See them all”, which lifts the filter."),
+  ], { lit: L('সব প্রোডাক্ট', 'All products') });
+}
+
+function emCategoryEmpty() {
+  // Q4: a category with no products leaves the header's chips, the menu and the footer, so শাড়ি is not among them.
+  const shop = EM_SHOP(HA_ALL, ['pan', 'kur']);
+  const box = emBox('tag', L('এই ক্যাটাগরিতে নতুন প্রোডাক্ট শিগগিরই আসছে', 'New products for this category are coming soon'), L('ততক্ষণ শপের অন্য প্রোডাক্টগুলো দেখুন।', 'Meanwhile, see what else the shop has.'));
+  return emPage(shop, [
+    emSec(EM_NEW(), `<div class="em-ttl"><h1>${L('শাড়ি', 'Saree')}</h1></div>${box}`),
+    emMore(L('এই শপের আরও প্রোডাক্ট', 'More from this shop'), EM_NEWEST4(), L('নতুন · খালি থাকলে: শপের নতুন ৪টি, স্টকে থাকাগুলো আগে', 'New · when empty: the shop’s newest 4, in stock first')),
+    emCap('পুরোনো লিংক বা ফুটার থেকে আসা খালি ক্যাটাগরি: এক লাইন, তারপর শপের নতুন ৪টি প্রোডাক্ট (স্টক আছে এমনগুলো আগে) আর “সব প্রোডাক্ট দেখুন”। প্রস্তাব (Q4): প্রোডাক্ট নেই এমন ক্যাটাগরি হেডারের চিপ, মেনু আর ফুটারে দেখায় না, যাতে ক্রেতা খালি পেজে না আসে; পেজটা থাকে।', 'An empty category reached by an old link: one line, then the shop’s newest 4 (in stock first) and “See all products”. Proposed (Q4): a category with no products leaves the header chips, the menu and the footer, so shoppers aren’t led to an empty page; the page itself stays.'),
+  ], { back: true, lit: null });
+}
+
+function emSearchNone() {
+  const shop = EM_SHOP(HA_ALL, ['pan', 'kur', 'sar', 'shi']);
+  const bar = `<div class="em-srch"><div class="em-q">${ic('search')}<span>${L('লাল জামদানি', 'red jamdani')}</span>${ic('x')}</div><b>${L('ক্যানসেল', 'Cancel')}</b></div>`;
+  const chips = `<div class="em-chips">${shop.cats.map((c) => `<a>${T([c[0], c[1]])}</a>`).join('')}</div>`;
+  const box = emBox('search', L('“লাল জামদানি” পাওয়া যায়নি', 'Nothing found for “red jamdani”'), L('অন্য বানানে বা ছোট শব্দে খুঁজুন, বা ক্যাটাগরি থেকে দেখুন।', 'Try another spelling or a shorter word, or browse a category.'), chips);
+  return emPage(shop, [
+    emSec(EM_NEW(), box),
+    emMore(L('জনপ্রিয় প্রোডাক্ট', 'Popular products'), EM_POPULAR4(), L('নতুন · খালি থাকলে: সবচেয়ে বেশি অর্ডার হওয়া ৪টি', 'New · when empty: the 4 most ordered')),
+    emCap('আজ যেমন: শুধু “কিছু পাওয়া যায়নি”, পরামর্শ আর “ক্যাটাগরি দেখুন” বোতাম (live-search-none.png)। প্রস্তাব: খোঁজা শব্দটা লাইনে; বোতামের জায়গায় ক্যাটাগরিগুলো চিপ হিসেবে (প্রোডাক্ট আছে এমনগুলো); নিচে জনপ্রিয় ৪টি, যাতে ক্রেতা ফিরে না যায়। সার্চ পেজের সাদা চেহারা আর উপরের বার যেমন আছে তেমন।', 'As built: just “Nothing found”, the hint and a “Browse categories” button (live-search-none.png). Proposed: the searched words in the line; the categories as chips in the button’s place (those with products); the 4 most popular below, so the shopper doesn’t leave. The search page’s white look and its bar stay as they are.'),
+  ], { search: bar, white: true });
+}
+
+function emOffersNone() {
+  const shop = EM_SHOP(emNoCut(HA_ALL), ['pan', 'kur', 'sar']);
+  const box = emBox('tag', L('এখন কোনো অফার চলছে না', 'No offers running right now'), L('নতুন অফার এলে এখানেই দেখাবে।', 'New offers will show here.'));
+  return emPage(shop, [
+    emSec(EM_NEW(), `<div class="em-ttl"><h1>${L('অফার কালেকশন', 'On sale')}</h1></div>${box}`),
+    emMore(L('নতুন এসেছে', 'Just in'), emNoCut(EM_NEWEST4()), L('নতুন · খালি থাকলে: শপের নতুন ৪টি', 'New · when empty: the shop’s newest 4')),
+    emCap('পুরোনো লিংক থেকে /offers, কোনো ছাড় চলছে না: “শুধু স্টকে আছে” আর “কিছু পাওয়া যায়নি” যায়; এক লাইন, তারপর নতুন ৪টি। হেডার আর ফুটারে “অফার” নেই (এই PR-এর অন্য অংশ)। একটা নির্দিষ্ট অফারের শেষ হওয়া পেজ আগের মতোই (o-ended)।', 'An old link to /offers with nothing on sale: “In stock only” and “Nothing found” go; one line, then the newest 4. No “Offers” in the header or footer (this PR’s other half). A named offer’s ended page stays as it is (o-ended).'),
+  ], { back: true, lit: null });
+}
+
+function emProductGone() {
+  const shop = EM_SHOP(HA_ALL, ['pan', 'kur', 'sar']);
+  const box = emBox('bag', L('এই প্রোডাক্টটি এখন আর নেই', "This product isn't available any more"), L('শপের অন্য প্রোডাক্টগুলো দেখুন।', 'See what else the shop has.'), '', { h1: true });
+  return emPage(shop, [
+    emSec(EM_NEW(), box),
+    emMore(L('এই শপের আরও প্রোডাক্ট', 'More from this shop'), EM_NEWEST4(), L('নতুন · খালি থাকলে: শপের নতুন ৪টি, স্টকে থাকাগুলো আগে', 'New · when empty: the shop’s newest 4, in stock first')),
+    emCap('সরানো বা লুকানো প্রোডাক্টের লিংক (/p/ বা /l/): উত্তর 404-ই থাকে, যাতে সার্চ ইঞ্জিন লিংকটা ফেলে দেয়; ক্রেতা পায় শপের হেডার, এক লাইন আর ৪টি প্রোডাক্ট। আজ যেমন: হেডার ছাড়া পেজে লোগো, কথা আর “দোকানে যান” (live-product-gone.png)। স্টোরফ্রন্ট বন্ধ থাকলে (শুধু /l/): আজকের মতো একা পেজ, কথায় “শপ”। স্টক শেষ প্রোডাক্ট এই পেজ নয়: সেটা নিজের পেজেই স্টক শেষ দেখায় (pp-out)।', 'A removed or hidden product’s link (/p/ or /l/): the answer stays 404, so search engines drop the link; the shopper gets the shop’s header, one line and 4 products. As built: a bare page with the logo, the words and “Go to the shop” (live-product-gone.png). With the storefront off (/l/ only): the bare page as today, saying “শপ”. A sold-out product is not this page: its own page shows it sold out (pp-out).'),
+  ], { back: true, lit: null });
+}
+
+Object.assign(EDITOR, {
+  'em-home-now': { label: ['খালি: হোম, আজ যেমন', 'Empty: home, as built'], note: ['প্রোডাক্ট ছাড়া শপের হোম, আজ যেমন বিল্ট: শুধু ঘোষণা, হেডার, ভরসার সারি আর ফুটার।', "A shop's home with no products, as built: just the announcement, header, trust strip and footer."], render: () => emHomeNow() },
+  'em-home-empty': { label: ['খালি: হোম (প্রস্তাব)', 'Empty: home (proposal)'], note: ['প্রোডাক্ট ছাড়া শপের হোম: হিরোর জায়গায় শপের রঙে “নতুন কালেকশন শিগগিরই আসছে”, শপের নাম আর ট্যাগলাইন; নিচে যোগাযোগের কার্ড, শপ যেগুলো দিয়েছে (পেইড প্ল্যান)। খালি শিরোনাম বা খালি সারি নেই।', "A shop's home with no products: in the hero's place, in the shop's colours, “New collection coming soon”, its name and tagline; below, a card with the ways to reach it, those it set (paid plan). No empty heading or row."], render: () => emHomeEmpty('paid') },
+  'em-home-empty-payg': { label: ['খালি: হোম, পে-অ্যাজ-ইউ-গো', 'Empty: home, pay as you go'], note: ['একই হোম, পে-অ্যাজ-ইউ-গো শপ, ফেয়ার ইউজ চালু: সরাসরি যোগাযোগ নেই, শুধু ফেসবুক পেজ।', 'The same home for a pay-as-you-go shop with fair use on: no direct contact, only the Facebook page.'], render: () => emHomeEmpty('payg') },
+  'em-list-empty': { label: ['খালি: সব প্রোডাক্ট', 'Empty: all products'], note: ['“সব প্রোডাক্ট” পেজ, শপে একটাও প্রোডাক্ট নেই।', 'The “All products” page with no product in the shop.'], render: () => emListEmpty() },
+  'em-category-empty': { label: ['খালি: ক্যাটাগরি', 'Empty: a category'], note: ['প্রোডাক্ট নেই এমন ক্যাটাগরি, শপে অন্য প্রোডাক্ট আছে: এক লাইন আর শপের আরও ৪টি।', 'A category with no products while the shop has others: one line and 4 more from the shop.'], render: () => emCategoryEmpty() },
+  'em-search-none': { label: ['খালি: সার্চে কিছু নেই', 'Empty: search finds nothing'], note: ['সার্চে কিছু পাওয়া যায়নি: খোঁজা শব্দ, ক্যাটাগরির চিপ আর জনপ্রিয় ৪টি।', 'A search that finds nothing: the searched words, category chips and the 4 most popular.'], render: () => emSearchNone() },
+  'em-offers-none': { label: ['খালি: অফার নেই', 'Empty: no offer running'], note: ['/offers, কোনো ছাড় চলছে না: এক লাইন আর নতুন ৪টি।', '/offers with nothing on sale: one line and the newest 4.'], render: () => emOffersNone() },
+  'em-product-gone': { label: ['খালি: প্রোডাক্ট নেই', 'Empty: product gone'], note: ['সরানো বা লুকানো প্রোডাক্টের লিংক: 404 থাকে, কিন্তু শপের হেডার, এক লাইন আর শপের আরও ৪টি।', "A removed or hidden product's link: still a 404, but with the shop's header, one line and 4 more from the shop."], render: () => emProductGone() },
+  'em-home-empty-desktop': { label: ['খালি: হোম, কম্পিউটারে', 'Empty: home, computer'], note: ['em-home-empty, ১২৮০ পিক্সেলে।', 'em-home-empty at 1280 px.'], render: () => emHomeEmpty('paid') },
+});
+/* ---------- end of empty states (proposal) ---------- */
+
 function render() {
   const theme = THEMES[STATE.screen];
   const ed = EDITOR[STATE.screen];
