@@ -6,6 +6,7 @@ import {
   PublicProductSort,
   StockState,
   StockTracking,
+  MediaKind,
   type ItemCondition,
 } from '@lytronix/validators';
 import type { Transaction, TransactionRunner } from '../../transactions';
@@ -44,8 +45,11 @@ export interface PublicProductRow {
   designCover: string | null;
   /** DC-5, SB-10: "Only N left" for a design's card, by the product's rules; null otherwise or when not low. */
   designLeft: number | null;
-  /** The owner, 2026-11-25: the product has a video, so its card shows a play mark. */
-  hasVideo: boolean;
+  /**
+   * The owner, 2026-11-25: the product's video, or null: its card shows a play mark, and a product with no photo
+   * shows the video's poster (STO-09).
+   */
+  videoId: string | null;
 }
 
 /** SB-10: what a storefront card's badges say about one product, beyond its own row. */
@@ -99,6 +103,13 @@ export interface FeedImageRow {
   hash: string;
   /** ATR-19 (PD-23): the design it shows, or null for a plain photo. */
   designId: string | null;
+}
+
+/** FED-02, STO-09: an active product's ready video, whose poster stands in for a photo when it has none. */
+export interface FeedVideoRow {
+  productId: string;
+  mediaId: string;
+  hash: string;
 }
 
 /** FED-02: a value of one of the named attributes, the product's own (no variant) or one variant's. */
@@ -469,12 +480,12 @@ export class PublicCatalogueRepository {
       design_id: string | null;
       design_cover: string | null;
       design_left: string | null;
-      has_video: boolean;
+      video_id: string | null;
     }>(sql`
       ${filter.designs ? designCards(tenantId) : sql``}
       SELECT s.id, s.slug, s.name, s.min_price, s.max_price, s.min_regular_price, s.best_discount, s.stock_state,
         to_char(s.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS created_at,
-        s.design_id, s.design_cover, s.design_left, s.has_video,
+        s.design_id, s.design_cover, s.design_left, s.video_id,
         ARRAY[${sql.join(
           names.map((name) => sql`${name}::text`),
           sql`, `,
@@ -483,7 +494,7 @@ export class PublicCatalogueRepository {
         SELECT p.id, p.slug, p.name, ${card.price} AS min_price, ${card.high} AS max_price,
           ${card.regular} AS min_regular_price, ${card.discount} AS best_discount, ${card.stock} AS stock_state,
           p.created_at, ${card.design} AS design_id, ${card.cover} AS design_cover,
-          (p.video_id IS NOT NULL) AS has_video,
+          p.video_id,
           ${
             filter.designs
               ? sql`CASE WHEN c.stock = ${StockState.Low} AND p.stock_tracking = ${StockTracking.Tracked}
@@ -519,7 +530,7 @@ export class PublicCatalogueRepository {
       designId: row.design_id,
       designCover: row.design_cover,
       designLeft: row.design_left === null ? null : Number(row.design_left),
-      hasVideo: row.has_video,
+      videoId: row.video_id,
     }));
   }
 
@@ -784,6 +795,22 @@ export class PublicCatalogueRepository {
       mediaId: row.media_id,
       hash: row.hash,
       designId: row.design_option_id,
+    }));
+  }
+
+  /** FED-02, STO-09: the ready video of every active product that has one. */
+  async listFeedVideos(tx: Transaction, tenantId: string): Promise<FeedVideoRow[]> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const result = await tx.execute<{ product_id: string; media_id: string; hash: string }>(sql`
+      SELECT p.id AS product_id, m.id AS media_id, m.hash
+      FROM tenant.products p
+      JOIN tenant.media m ON m.tenant_id = p.tenant_id AND m.id = p.video_id
+        AND m.kind = ${MediaKind.Video} AND m.status = 'ready'
+      WHERE p.tenant_id = ${tenantId} AND p.active AND p.deleted_at IS NULL`);
+    return result.rows.map((row) => ({
+      productId: row.product_id,
+      mediaId: row.media_id,
+      hash: row.hash,
     }));
   }
 

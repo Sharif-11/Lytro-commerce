@@ -16,6 +16,7 @@ function product(values: Partial<PublicProduct> = {}): PublicProduct {
     minPrice: '1250.00',
     maxPrice: '1250.00',
     images: [photo],
+    cover: photo,
     ...values,
   } as PublicProduct;
 }
@@ -38,7 +39,13 @@ describe("a landing link's preview (LND-05)", () => {
 
   it('shows a price range, and the shop name where there is no description or photo', () => {
     const tags = productMetadata(
-      product({ minPrice: '900.00', maxPrice: '1400.00', description: null, images: [] }),
+      product({
+        minPrice: '900.00',
+        maxPrice: '1400.00',
+        description: null,
+        images: [],
+        cover: null,
+      }),
       shop,
       'https://megh.lytro.app',
       '/p/cotton-panjabi',
@@ -46,5 +53,18 @@ describe("a landing link's preview (LND-05)", () => {
     expect(tags.description).toBe('৳900 – ৳1,400 · Megh Fashion');
     expect(tags.openGraph).toMatchObject({ images: [] });
     expect(tags.twitter).toMatchObject({ card: 'summary', images: [] });
+  });
+
+  // STO-09 (the owner, 2026-11-25): a product with only a video shows its video's poster.
+  it("shows a product with only a video by its video's poster", () => {
+    const poster = 'https://media.lytro.app/t/v1/b.poster.webp';
+    const tags = productMetadata(
+      product({ images: [], cover: { id: 'v1', urls: { main: poster, thumbnail: poster } } }),
+      shop,
+      'https://megh.com',
+      '/l/cotton-panjabi',
+    );
+    expect(tags.openGraph).toMatchObject({ images: [{ url: poster, alt: 'Cotton Panjabi' }] });
+    expect(tags.twitter).toMatchObject({ card: 'summary_large_image', images: [poster] });
   });
 });

@@ -93,6 +93,8 @@ export class PublicProductDetailDto extends createZodDto(
       }),
     ),
     video: videoViewSchema.nullable(),
+    // STO-09: its first photo, else its video's poster; null with neither.
+    cover: imageViewSchema.nullable(),
     options: z.array(
       z.object({
         attributeId: z.string(),
