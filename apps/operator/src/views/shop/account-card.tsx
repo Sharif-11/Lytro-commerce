@@ -1,3 +1,4 @@
+import { phoneShown } from '@lytronix/validators';
 import { useNavigate } from '@tanstack/react-router';
 import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
@@ -7,7 +8,6 @@ import { ConsoleIcon } from '@/components/ui/console-icon';
 import { ConsoleCard } from '@/components/ui/console-page';
 import { NOTE, SMALL_BUTTON } from '@/components/ui/sizes';
 import { formatDay, taka } from '@/lib/format';
-import { spacedPhone } from '@/lib/phone-words';
 import type { AuditEntry } from '@/types/records';
 import { actionWords } from '@/views/audit/summary';
 
@@ -116,7 +116,7 @@ export function AccountCards({
               <span className="text-[15px] font-medium">{t('p88shops.resetRow')}</span>
               <span className="text-[13px] text-fg-muted">
                 {t('p88shops.resetRowDetail')}{' '}
-                {ownerPhone ? <span className="mono">{spacedPhone(ownerPhone)}</span> : null}
+                {ownerPhone ? <span className="mono">{phoneShown(ownerPhone)}</span> : null}
               </span>
             </span>
             <Button

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { errorMessage } from '@lytronix/api-client';
+import { phoneShown } from '@lytronix/validators';
 import { usePaymentMethods } from '@/api/payment-methods';
 import { useLytroPhones } from '@/api/phones';
 import { useDeletePlatformWallet, usePlatformWallets } from '@/api/platform-wallets';
@@ -25,7 +26,7 @@ function RemovePanel({
   const { t } = useTranslation();
   const toast = useToast();
   const remove = useDeletePlatformWallet();
-  const named = `${wallet.provider} · ${wallet.number}`;
+  const named = `${wallet.provider} · ${phoneShown(wallet.number)}`;
   return (
     <ActionPanel
       title={t('wallets.removeTitle')}

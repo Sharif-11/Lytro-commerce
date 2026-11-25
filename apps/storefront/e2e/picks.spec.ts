@@ -263,7 +263,7 @@ test.describe('the cart (SFT-05, SFT-20)', () => {
     await page.goto(shop.url('/cart'));
     const cart = page.getByRole('dialog');
     await expect(cart.getByText('We do not deliver to Bandarban')).toBeVisible();
-    await expect(cart.getByText('call 01711-223344')).toBeVisible();
+    await expect(cart.getByText('call 01711223344')).toBeVisible();
     await expect(cart.getByRole('button', { name: 'Checkout' })).toBeDisabled();
   });
 

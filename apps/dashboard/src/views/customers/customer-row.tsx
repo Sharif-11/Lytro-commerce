@@ -51,7 +51,7 @@ export function CustomerRow({
         <span className="truncate text-[16px] font-medium">{name}</span>
         <span className="num truncate text-[14px] text-fg-muted">
           {[
-            customer.phone ? bangladeshiPhone.grouped(customer.phone) : null,
+            customer.phone ? bangladeshiPhone.display(customer.phone) : null,
             t('ordersN', { count: customer.orderCount }),
             t('spentTotal', { amount: formatTaka(customer.totalSpent) }),
           ]

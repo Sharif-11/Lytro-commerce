@@ -459,7 +459,7 @@ export function PaymentDetail({ payment }: { payment: BillingPayment }): React.J
         <Kv label={t('blFor')} value={forLine(payment, t, i18n.language, period)} />
         {payment.method ? <Kv label={t('paidBy')} value={methodWords(payment, t)} /> : null}
         {payment.senderNumber ? (
-          <Kv label={t('blSentFrom')} value={bangladeshiPhone.grouped(payment.senderNumber)} />
+          <Kv label={t('blSentFrom')} value={bangladeshiPhone.display(payment.senderNumber)} />
         ) : null}
         <Kv
           label={submitted ? t('blSubmitted') : t('blRequested')}

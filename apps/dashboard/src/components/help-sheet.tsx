@@ -93,7 +93,7 @@ export function HelpSheet({
               </span>
               <HelpRowText
                 title={t('p88help.call')}
-                sub={<span className="num">{bangladeshiPhone.grouped(line.phone)}</span>}
+                sub={<span className="num">{bangladeshiPhone.display(line.phone)}</span>}
               />
               <Icon name="external" />
             </a>
