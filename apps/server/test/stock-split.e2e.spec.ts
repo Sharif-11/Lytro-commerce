@@ -100,9 +100,8 @@ describeIfDatabase('quick add: a shared stock split into each size (§7.4b)', ()
     expect([by(small), by(medium), by(large)]).toEqual(['4.000', '6.000', '0.000']);
     // The holder's stock left with one movement; each count arrived with one, both as a split.
     const { rows } = await admin.query<{ delta: string; note: string }>(
-      `SELECT m.delta::text AS delta, m.note FROM tenant.stock_movements m
-         JOIN tenant.product_variants v ON v.id = m.variant_id AND v.tenant_id = m.tenant_id
-        WHERE v.product_id = $1 AND m.note = 'Shared stock split' ORDER BY m.delta`,
+      `SELECT quantity_delta::text AS delta, note FROM tenant.stock_movements
+        WHERE product_id = $1 AND note = 'Shared stock split' ORDER BY quantity_delta`,
       [product.id],
     );
     expect(rows.map((row) => Number(row.delta))).toEqual([-10, 4, 6]);
