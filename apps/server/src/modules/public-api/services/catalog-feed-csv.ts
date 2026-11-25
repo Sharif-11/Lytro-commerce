@@ -7,8 +7,8 @@ import type { PublicCatalogueStore } from '../ports/public-catalogue-store';
 import { CATALOG_FEED_SETTINGS, PUBLIC_CATALOGUE_STORE } from '../tokens';
 import type { CatalogFeedSettings } from './catalog-feed.service';
 
-// FED-02: Meta's catalog columns, in order.
-const COLUMNS = [
+// FED-02: Meta's catalog columns, in order (the developer docs show them as the feed's first line).
+export const CATALOG_FEED_COLUMNS = [
   'id',
   'item_group_id',
   'title',
@@ -111,7 +111,7 @@ export class CatalogFeedCsv {
             size: valueOf('size', row.productId, row.variantId),
           };
         }),
-        COLUMNS,
+        CATALOG_FEED_COLUMNS,
         // Meta reads it, not a spreadsheet: a description starting "- 100% cotton" stays as written.
         'machine',
       );

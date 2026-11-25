@@ -21,6 +21,7 @@ import { PaymentSessionsModule } from '../payment-sessions/payment-sessions.modu
 import { DomainsModule } from '../domains/domains.module';
 import { PaymentsModule } from '../payments/payments.module';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
+import { FairUseModule } from '../fair-use/fair-use.module';
 import { ClientIp } from '../../common/client-ip';
 import { IdempotencyModule } from '../../common/idempotency/idempotency.module';
 import { ActivityController } from './controllers/activity.controller';
@@ -172,6 +173,8 @@ import { NoticesModule } from '../notices/notices.module';
     BillingModule,
     PaymentsModule,
     PlatformSettingsModule,
+    // PF-14: the public pay-as-you-go API charge the developer docs show.
+    FairUseModule,
     IdempotencyModule,
     DataExportModule,
     SmsEventsModule,

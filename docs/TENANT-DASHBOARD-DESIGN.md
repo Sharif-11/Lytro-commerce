@@ -2326,6 +2326,35 @@ next cycle", Buy a request pack; the bar full and red); read-only shop (no New k
 copied (the button turns to Copied with a check for 1.6 s and the toast says so, `dev-copied`). There is no plan
 without API access: every plan has a `requests_monthly` (migration 0064), so no such state is drawn.
 
+**Amended 2026-11-25 (pay-as-you-go fair use; the owner: "ok start developers api building with a fix in sketch under
+single pr").** The sketch came before PAYG-FAIR-USE-PLAN. With the operator's `payg_fair_use` switch on, a pay-as-you-go
+shop's own website pays for its API instead of meeting a request limit (PF-14, PF-36, PF-37, PFQ-10, PFQ-11), so:
+
+- **Limits, the plans table:** the Pay-as-you-go row reads "{free} free, then ৳{rate} / 1,000" (the
+  `payg_api_free_requests` setting and the `payg_api_per_thousand` rate, read live) for every shop while fair use is
+  on; with it off, the plan's requests as before.
+- **Limits, a pay-as-you-go shop with fair use on** (`dev-limits-payg`): its card is this month's API charge against its
+  own limit (৳0 to ৳5,000, ৳200 to begin with), a bar, the requests and the free part, and **API charge and limit**,
+  which opens Settings → API কী (where the limit is set), in place of the request bar, See usage and Buy a request pack.
+  The list under the table: only 2xx and 304 count; the limit and the 80% warning (app, push, email); at the limit or
+  with an empty balance every route but the three an order needs answers 429 `ApiCapReached`; no request packs.
+- **Used up** (`dev-used-up-payg`): the month's limit reached, or the balance empty: a red banner, "the order routes
+  still work; the rest answer 429 until you raise the limit or the month turns", and **Raise the limit**.
+- **Errors:** every route may also answer 403 `StorefrontPaused` (a pay-as-you-go shop before its activation top-up,
+  PF-13) and 429 `ApiCapReached`; `tenant_offline` and `quota_exceeded` say so.
+
+**Built 2026-11-25.** What the build settled of the list below:
+
+- The one definition is `@lytronix/validators/developer-api` (`packages/validators/src/developer-api`), not a new
+  package: both apps already read validators, and its words, samples and the curl and fetch writers are plain data.
+- Messages stay typed in the definition, in both languages; `apps/server/test/developer-api-samples.spec.ts` holds every
+  success message and error to `translate(key, lang)`, every error's status to `HTTP_STATUS`, the minute limits to
+  their server constants, the feed's first line to its columns, every body and query to the route's own schema, every
+  `data` to its response DTO with nothing invented (read back, it must equal the sample), and the documented routes to
+  the public controllers' (reflected), so none of it can drift.
+- The plans table reads the live plans: Trial from `LIMIT_WHEN_UNSET`, Pay-as-you-go from its plan, the rest from the
+  catalogue.
+
 **One definition, never drifting.** The sketch already draws both pages from one object (`DEVAPI`). The build keeps
 that rule:
 

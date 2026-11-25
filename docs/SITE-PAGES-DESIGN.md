@@ -135,3 +135,10 @@ names and JSON stay English. The English address waits on the SEO decision (the 
 **Open questions.** Those of §7.48, and: should the page carry the live plan figures (read from the plans at build or
 from a public plans route) rather than the numbers typed in the definition? Proposed: from the plans, as the pricing
 page will.
+
+**Amended 2026-11-25** (with §7.48's amendment, pay-as-you-go fair use): while the `payg_fair_use` switch is on, the plan
+table's Pay-as-you-go row reads "{free} free, then ৳{rate} / 1,000" and the list under it adds pay-as-you-go's terms
+(2xx and 304 counted, charged nightly, the shop's own monthly limit of ৳0 to ৳5,000, no request packs, 429
+`ApiCapReached` past it but for the three order routes). The figures come from the new public
+`GET /plans/pay-as-you-go/api-charge` and the plans, live. **Built 2026-11-25:** the plan figures are read from the
+plans, as proposed.

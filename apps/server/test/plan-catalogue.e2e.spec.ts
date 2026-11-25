@@ -7,6 +7,8 @@ import { generate } from 'otplib';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from '../src/app/app.module';
+import { PaygFairUseMode, PlatformSettingKey } from '@lytronix/validators';
+import { PlatformSettingsService } from '../src/modules/platform-settings/services/platform-settings.service';
 import { SMS_PROVIDER } from '../src/modules/shared/messaging/tokens';
 import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase, seedShop } from './support/database';
@@ -189,6 +191,21 @@ describeIfDatabase('plans (PLN-01 to PLN-12, PLN-16)', () => {
     expect(plan).toMatchObject({ name: 'Pay-as-you-go', forSale: false });
     expect(plan.limits.products).toBeTypeOf('number');
     expect(plan.limits.staff).toBeTypeOf('number');
+  });
+
+  it('PF-14: GET /plans/pay-as-you-go/api-charge gives the free requests, and the rate only while fair use is on', async () => {
+    const settings = app.get(PlatformSettingsService);
+    const off = await get('/plans/pay-as-you-go/api-charge');
+    expect(off.status).toBe(200);
+    expect(off.body).toEqual({ on: false, freeRequests: 10_000, perThousand: null });
+    await settings.set(PlatformSettingKey.PaygFairUse, PaygFairUseMode.On, randomUUID());
+    try {
+      const on = await get('/plans/pay-as-you-go/api-charge');
+      expect(on.body).toMatchObject({ on: true, freeRequests: 10_000 });
+      expect(Number((on.body as { perThousand: string }).perThousand)).toBe(1);
+    } finally {
+      await settings.set(PlatformSettingKey.PaygFairUse, PaygFairUseMode.Off, randomUUID());
+    }
   });
 
   it('RAT-01: GET /rates gives the rates a shop is shown, with no session, for the pricing page', async () => {

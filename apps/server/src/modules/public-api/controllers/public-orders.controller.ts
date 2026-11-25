@@ -68,8 +68,8 @@ const totals = {
   codAmount: z.string(),
   taxes: z.array(taxLineSchema),
 };
-class PublicOrderBodyDto extends createZodDto(publicOrderSchema) {}
-class PlacedOrderDto extends createZodDto(
+export class PublicOrderBodyDto extends createZodDto(publicOrderSchema) {}
+export class PlacedOrderDto extends createZodDto(
   z.object({
     orderNumber: z.string(),
     trackingId: z.string(),
@@ -81,7 +81,7 @@ class PlacedOrderDto extends createZodDto(
     payment: openedPaymentSchema.nullable(),
   }),
 ) {}
-class TrackedOrderDto extends createZodDto(
+export class TrackedOrderDto extends createZodDto(
   z.object({
     orderNumber: z.string(),
     trackingId: z.string(),
