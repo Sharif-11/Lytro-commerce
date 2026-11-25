@@ -6,6 +6,7 @@ import {
   PASSWORD_MIN_LENGTH,
 } from '@lytronix/validators/common';
 import { useEffect, useMemo, useState } from 'react';
+import { phoneShown } from '@lytronix/validators';
 import { type Language, Words } from '@/lib/i18n/words';
 import { Icon } from '../icon';
 import { shopperRequest } from './shopper-request';
@@ -112,7 +113,7 @@ export function ProfileView({
         </div>
         <div className="field">
           <label htmlFor="pf-phone">{words.t('phone_')}</label>
-          <input id="pf-phone" className="input" value={phone} disabled readOnly />
+          <input id="pf-phone" className="input" value={phoneShown(phone)} disabled readOnly />
           <div className="help">{words.t('e48PhoneFixed')}</div>
         </div>
         <button type="submit" className="btn primary" disabled={sending}>
