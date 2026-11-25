@@ -28,6 +28,11 @@ export function useBalanceGate() {
   return {
     /** PYG-16: a new product, or a copy of one, on pay-as-you-go. */
     product: (): BalanceShort | null => (payg ? flat(RateKey.PaygProductFee) : null),
+    /** Quick add's fee line (§7.4b): what a new product takes and what the balance holds, on pay-as-you-go. */
+    productFee: (): { need: number; have: number } | null => {
+      const value = payg ? rate(RateKey.PaygProductFee) : null;
+      return value === null || spendable === null ? null : { need: Number(value), have: spendable };
+    },
     /** PYG-02 to PYG-05: shipping, booking or handing over an order whose fee hasn't been taken. */
     order: (order: {
       grandTotal: string;

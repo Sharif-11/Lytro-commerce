@@ -1,11 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  MediaPurpose,
-  SIZE_CHART_CELL_MAX_LENGTH,
-  SIZE_CHART_MAX_COLUMNS,
-  SIZE_CHART_MAX_ROWS,
-} from '@lytronix/validators';
+import { MediaPurpose } from '@lytronix/validators';
 import { useStorageUsage } from '@/api/media';
 import { Icon } from '@/components/icon';
 import { Button } from '@/components/ui/button';
@@ -14,7 +9,6 @@ import { BLANK_CHART, type ChartForm } from '@/lib/product-settings';
 import { ChoiceList, ChoiceRow } from './choice-list';
 import { UploadTile } from './upload-tile';
 import { usePictureUpload } from './use-picture-upload';
-import { Segments } from './value-sheet';
 
 /**
  * A table as kept: its corner empty, as drawn (a category's chart it started from may name it), and without the rows
@@ -31,6 +25,10 @@ function trimmed(rows: string[][]): string[][] {
   const table = kept.map((row) => columns.map((index) => row[index] ?? ''));
   return table.length > 0 && columns.length > 0 ? table : BLANK_CHART;
 }
+
+/** A kept table with something typed in it (the corner aside). */
+const hasTable = (rows: string[][]): boolean =>
+  rows.some((row, at) => row.some((cell, col) => (at > 0 || col > 0) && cell.trim() !== ''));
 
 /**
  * Size chart (§7.4's sheet, Part 15's `sh-sizechart` and `sh-sizechart-picture`; PRD-17): the category's chart, or the
@@ -68,27 +66,19 @@ export function SizeChartSheet({
 
   useEffect(() => {
     if (!open) return;
-    setDraft(chart);
+    setDraft(
+      chart.mode === 'table' && !hasTable(chart.rows) ? { ...chart, mode: 'picture' } : chart,
+    );
     pictureUpload.dismiss();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
-
-  const rows = draft.rows;
-  const width = rows[0]?.length ?? 1;
-  const setCell = (row: number, col: number, value: string) => {
-    setDraft({
-      ...draft,
-      rows: rows.map((cells, at) =>
-        at === row ? cells.map((cell, index) => (index === col ? value : cell)) : cells,
-      ),
-    });
-  };
 
   async function attach(file: File): Promise<void> {
     const media = await pictureUpload.start(file);
     if (!media) return;
     setDraft((current) => ({
       ...current,
+      mode: 'picture',
       image: { id: media.id, urls: media.urls ?? { main: '', thumbnail: '' } },
     }));
   }
@@ -138,92 +128,12 @@ export function SizeChartSheet({
           )}
           {owner || draft.own ? (
             <>
-              <Segments
-                label={t('chartTitle')}
-                value={draft.mode}
-                choices={[
-                  { value: 'table', label: t('chartTable') },
-                  { value: 'picture', label: t('chartPicture') },
-                ]}
-                onChange={(mode) => {
-                  if (!readOnly) setDraft({ ...draft, mode });
-                }}
-              />
+              {/* The owner, 2026-11-25: "size chart is image only" -- the table form is switched off here, not on the
+                  server, so a chart already kept as a table shows to shoppers as it is until a picture replaces it. */}
               {draft.mode === 'table' ? (
-                <>
-                  <div className="-mx-4 overflow-x-auto px-4">
-                    <table className="min-w-full border-collapse text-[14px]">
-                      <tbody>
-                        {rows.map((cells, row) => (
-                          <tr key={row}>
-                            {cells.map((cell, col) => (
-                              <td
-                                key={col}
-                                className={[
-                                  'border-b border-line px-2.5 py-2 text-left whitespace-nowrap',
-                                  col === 0 ? 'sticky left-0 z-[1] bg-surface' : '',
-                                ].join(' ')}
-                              >
-                                {/* As drawn, the corner above the sizes and beside the measures stays empty. */}
-                                {row === 0 && col === 0 ? (
-                                  <span className="block w-[52px]" />
-                                ) : (
-                                  <input
-                                    aria-label={t('chartCell', { row: row + 1, col: col + 1 })}
-                                    value={cell}
-                                    maxLength={SIZE_CHART_CELL_MAX_LENGTH}
-                                    readOnly={readOnly}
-                                    className={[
-                                      'h-9 rounded-[6px] border border-line-strong bg-surface px-2 outline-none focus:outline-2 focus:outline-offset-1 focus:outline-focus',
-                                      col === 0
-                                        ? 'w-[52px] font-semibold'
-                                        : row === 0
-                                          ? 'w-[72px] font-semibold'
-                                          : 'num w-[72px] text-right',
-                                    ].join(' ')}
-                                    onChange={(event) => {
-                                      setCell(row, col, event.target.value);
-                                    }}
-                                  />
-                                )}
-                              </td>
-                            ))}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                  {readOnly ? null : (
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        tone="outline"
-                        size="sm"
-                        disabled={rows.length >= SIZE_CHART_MAX_ROWS}
-                        onClick={() => {
-                          setDraft({ ...draft, rows: [...rows, Array<string>(width).fill('')] });
-                        }}
-                      >
-                        <Icon name="plus" />
-                        {t('addRow')}
-                      </Button>
-                      <Button
-                        tone="outline"
-                        size="sm"
-                        disabled={width >= SIZE_CHART_MAX_COLUMNS}
-                        onClick={() => {
-                          setDraft({ ...draft, rows: rows.map((cells) => [...cells, '']) });
-                        }}
-                      >
-                        <Icon name="plus" />
-                        {t('addCol')}
-                      </Button>
-                    </div>
-                  )}
-                  <p className="text-[14px] text-fg-muted">
-                    {t('chartNames')} {t('chartLimit')}
-                  </p>
-                </>
-              ) : (
+                <p className="text-[14px] text-fg-muted">{t('chartTableKept')}</p>
+              ) : null}
+              {
                 <>
                   {pictureUpload.upload ? (
                     <UploadTile
@@ -278,7 +188,7 @@ export function SizeChartSheet({
                     }}
                   />
                 </>
-              )}
+              }
             </>
           ) : null}
           {owner?.onRemove && !readOnly ? (

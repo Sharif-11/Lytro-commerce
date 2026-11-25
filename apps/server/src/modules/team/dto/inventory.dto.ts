@@ -4,6 +4,7 @@ import {
   addSerialsSchema,
   addStockSchema,
   addStocksSchema,
+  splitSharedStockSchema,
   checkSerialsSchema,
   correctSerialSchema,
   SerialStatus,
@@ -25,6 +26,8 @@ import { variantAttributeViewSchema } from './catalogue-response.dto';
 export class SetStockDto extends createZodDto(setStockSchema) {}
 export class AddStockDto extends createZodDto(addStockSchema) {}
 export class AddStocksDto extends createZodDto(addStocksSchema) {}
+// Quick add (TENANT-DASHBOARD-DESIGN §7.4b): a shared stock split into each variant's own.
+export class SplitSharedStockDto extends createZodDto(splitSharedStockSchema) {}
 export class AddSerialsDto extends createZodDto(addSerialsSchema) {}
 export class CorrectSerialDto extends createZodDto(correctSerialSchema) {}
 export class CheckSerialsDto extends createZodDto(checkSerialsSchema) {}

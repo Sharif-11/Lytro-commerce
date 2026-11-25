@@ -589,8 +589,8 @@ toolbar of `docs/brand/lytro-dashboard.html`.
 
 ### 7.4b Quick add: a first product in one card (`/products/new`, proposal 2026-11-25, awaiting the owner)
 
-**Status:** a proposal, awaiting the owner's approval. Only the sketch exists. §7.4a was already taken (the product
-form by shop type), so this is §7.4b.
+**Status:** approved by the owner on 2026-11-25 ("Approve all", every recommendation below included), and built (PR
+feat/product-quick-add). §7.4a was already taken (the product form by shop type), so this is §7.4b.
 
 **The owner, 2026-11-25:**
 
@@ -772,6 +772,32 @@ choose.
 | অ্যাক্টিভ | আরও সেটিংস → অন্যান্য → দোকানে দেখাবে |
 | সাইজ চার্ট (a table or a picture) | আরও সেটিংস → সাইজ চার্ট (ছবি) only; the table form is switched off in the dashboard, not the server (the owner's decision) |
 | The PAYG fee, beside the disabled Save | A banner at the top, before typing; Save keeps its note |
+
+**After the first save** (amendment, the owner 2026-11-25: "after saving a product we want the seller share the
+product. so after saving we need to show the landing page share link"; `pq-saved`, `pq-saved-paused`). A new product's
+Save no longer returns to the list. A sheet says "প্রোডাক্ট সেভ হয়েছে ✓" with its first photo, name and price, and its
+landing link on the shop's own address (the verified custom domain, else `<slug>.lytro.app`, as the product's link card
+builds it): **লিংক কপি করুন** (Copied for 1.6 s, and a toast), **শেয়ার করুন** (the phone's own share sheet; where there is
+none, WhatsApp, Facebook and Messenger), and **পেজটা দেখুন** (a new tab). Under them, **আরেকটা প্রোডাক্ট যোগ করুন** (a fresh
+form) and **প্রোডাক্টে যান**. A pay-as-you-go shop whose storefront is paused until its activation top-up (PF-13) still
+gets the link, with one line saying it opens after the ৳10 top-up, and Top up. A shop with its storefront switched off
+needs no line: its landing pages still open, bare (SB-31). A combo opens its own page, as before. Editing a saved
+product shows no sheet. Under the product's link, the shop's own, secondary: **আপনার শপের লিংক**, Home's link card
+as built (the address with Copy, then Facebook and WhatsApp). A copy or share of either link ticks the set-up
+checklist's "লিংক শেয়ার" (SUP-01), as Home's card does.
+
+**The first landing** (amendment, the owner 2026-11-25: "during first onboarding the seller routed to product add
+route so that he can quickly add product and share the link of his product or store"; `pq-first`). Onboarding's last
+step (set-up) lands a brand-new shop with no products on quick add, not Home (on the full form where the shop type
+keeps batches or serials, as above, with the same line). On top, one line: "শপ তৈরি হয়েছে!
+প্রথম প্রোডাক্ট যোগ করুন, তারপর লিংক শেয়ার করুন।" with a quiet **পরে করব** to Home, whose checklist still has the first
+product and the link to share. It shows on that landing only: not on a reload, Back, or a later visit, nor for the next
+product after "আরেকটা প্রোডাক্ট যোগ করুন". A shop that already has products, and every sign-in, go Home as before.
+
+**As built** (the build PR): a new product counted in batches or by serial (a pharmacy's or an electronics shop's
+defaults, or either switched on in আরও সেটিংস) opens today's full form with everything typed, since its opening stock
+needs a batch or serials the one box can't hold. "অপশন যোগ করুন", "আলাদা দাম, SKU", the add-ons and the colour link open
+today's full form, with the stock typed carried over (one variant's as its own, several's as one shared stock).
 
 **Unchanged:** editing an existing product (`/products/:id`) keeps today's editor (open question 7), as do the combo
 flow, the server and the storefront.

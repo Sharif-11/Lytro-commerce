@@ -2,6 +2,7 @@ import type { Page } from '@playwright/test';
 import { burka, burkaOrders, withBurka } from './support/designs';
 import type { Language, ShopState } from './support/mock-api';
 import { drawnProducts } from './support/products';
+import { startComboKind } from './support/quick-add';
 
 // TENANT-DASHBOARD-DESIGN §7.42 (Part 40, photo designs): each pair a screen of the sketch's "Photo designs" group beside
 // the dashboard showing the same, over the sketch's burka: its photos as its designs, a photo's own step, removing,
@@ -105,7 +106,7 @@ export function p40Pairs(): P40Pair[] {
     }),
     bn('pd-combo-part', '/products/new', {
       then: async (page) => {
-        await page.getByRole('main').getByRole('radio', { name: 'কম্বো প্যাক' }).click();
+        await startComboKind(page, 'কম্বো প্যাক বানাতে চান?', 'কম্বো প্যাক');
         await page.getByRole('main').getByRole('button', { name: 'আইটেম যোগ করুন' }).click();
         await page
           .getByRole('dialog', { name: 'কোন প্রোডাক্ট?' })
