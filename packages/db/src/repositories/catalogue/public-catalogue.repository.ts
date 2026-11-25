@@ -44,6 +44,8 @@ export interface PublicProductRow {
   designCover: string | null;
   /** DC-5, SB-10: "Only N left" for a design's card, by the product's rules; null otherwise or when not low. */
   designLeft: number | null;
+  /** The owner, 2026-11-25: the product has a video, so its card shows a play mark. */
+  hasVideo: boolean;
 }
 
 /** SB-10: what a storefront card's badges say about one product, beyond its own row. */
@@ -351,16 +353,71 @@ export class PublicCatalogueRepository {
     // DC-1, DC-5: what a card shows -- a design's own figures for a design's card, else the product's.
     const card = filter.designs ? DESIGN_CARD : PRODUCT_CARD;
     if (filter.designs) where.push(SHOWN_CARD);
-    if (filter.inStock) where.push(sql`${card.stock} <> 'out'`);
     if (filter.onSale) where.push(sql`${card.discount} > 0`);
     const { keys, descending } = this.orderOf(filter.sort, score, card);
+    // The owner, 2026-11-25 ("the storefront must be populated even if there is no stock. And just re order the stock
+    // out products at last"): the cards in stock first, then the sold-out ones, each part in the order's own keys. The
+    // two parts are read one after the other, each in its own index order (a key leading on stock would sort every
+    // product of the shop); the second only when a page runs past the first. A position starts with its part's mark,
+    // 1 then 0 in the orders that run high to low and 0 then 1 in price low to high, so a cursor's own row comparison
+    // reads the same either way. `inStock` (the shopper's "In stock only") reads the first part alone.
+    const inStockMark = descending ? '1' : '0';
+    const soldOutMark = descending ? '0' : '1';
+    const after = filter.after;
+    const ownAfter = after === null ? null : after.slice(1);
+    const rows: PublicProductRow[] = [];
+    if (after === null || after[0] === inStockMark) {
+      rows.push(
+        ...(await this.listPart(tx, tenantId, filter, {
+          where: [...where, sql`${card.stock} <> 'out'`],
+          card,
+          keys,
+          descending,
+          after: ownAfter,
+          limit: filter.limit,
+          mark: inStockMark,
+        })),
+      );
+    }
+    if (!filter.inStock && rows.length < filter.limit) {
+      rows.push(
+        ...(await this.listPart(tx, tenantId, filter, {
+          where: [...where, sql`${card.stock} = 'out'`],
+          card,
+          keys,
+          descending,
+          after: after !== null && after[0] === soldOutMark ? ownAfter : null,
+          limit: filter.limit - rows.length,
+          mark: soldOutMark,
+        })),
+      );
+    }
+    return rows;
+  }
+
+  /** One part of a list -- its cards in stock, or its sold-out ones -- in the order's own keys, after `after`. */
+  private async listPart(
+    tx: Transaction,
+    tenantId: string,
+    filter: PublicProductFilter,
+    part: {
+      where: SQL[];
+      card: CardFigures;
+      keys: OrderKey[];
+      descending: boolean;
+      after: string[] | null;
+      limit: number;
+      mark: string;
+    },
+  ): Promise<PublicProductRow[]> {
+    const { where, card, keys, descending } = part;
     const columns = keys.map(
       (key, index) => sql`${key.expression} AS ${sql.raw(`k${String(index)}`)}`,
     );
     const names = keys.map((_, index) => sql.raw(`s.k${String(index)}`));
     const conditions: SQL[] = [];
-    if (filter.after !== null) {
-      const after = filter.after;
+    if (part.after !== null) {
+      const after = part.after;
       const values = keys.map((key, index) => sql`${after[index] ?? null}::${key.type}`);
       conditions.push(
         sql`(${sql.join(names, sql`, `)}) ${descending ? sql`<` : sql`>`} (${sql.join(values, sql`, `)})`,
@@ -412,11 +469,12 @@ export class PublicCatalogueRepository {
       design_id: string | null;
       design_cover: string | null;
       design_left: string | null;
+      has_video: boolean;
     }>(sql`
       ${filter.designs ? designCards(tenantId) : sql``}
       SELECT s.id, s.slug, s.name, s.min_price, s.max_price, s.min_regular_price, s.best_discount, s.stock_state,
         to_char(s.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS created_at,
-        s.design_id, s.design_cover, s.design_left,
+        s.design_id, s.design_cover, s.design_left, s.has_video,
         ARRAY[${sql.join(
           names.map((name) => sql`${name}::text`),
           sql`, `,
@@ -425,6 +483,7 @@ export class PublicCatalogueRepository {
         SELECT p.id, p.slug, p.name, ${card.price} AS min_price, ${card.high} AS max_price,
           ${card.regular} AS min_regular_price, ${card.discount} AS best_discount, ${card.stock} AS stock_state,
           p.created_at, ${card.design} AS design_id, ${card.cover} AS design_cover,
+          (p.video_id IS NOT NULL) AS has_video,
           ${
             filter.designs
               ? sql`CASE WHEN c.stock = ${StockState.Low} AND p.stock_tracking = ${StockTracking.Tracked}
@@ -445,7 +504,7 @@ export class PublicCatalogueRepository {
         names.map((name) => sql`${name} ${direction}`),
         sql`, `,
       )}
-      LIMIT ${filter.limit}`);
+      LIMIT ${part.limit}`);
     return result.rows.map((row) => ({
       id: row.id,
       slug: row.slug,
@@ -456,10 +515,11 @@ export class PublicCatalogueRepository {
       bestDiscount: row.best_discount,
       stockState: row.stock_state,
       createdAt: row.created_at,
-      position: row.position,
+      position: [part.mark, ...row.position],
       designId: row.design_id,
       designCover: row.design_cover,
       designLeft: row.design_left === null ? null : Number(row.design_left),
+      hasVideo: row.has_video,
     }));
   }
 

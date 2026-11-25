@@ -112,27 +112,50 @@ describe('public list requests (CCH-03, CCH-11)', () => {
   it("reads a cursor back only for its own order and with each position's form", () => {
     const id = '0b9f6a3e-6f3c-4f7e-9d2a-1c2b3d4e5f60';
     const time = '2026-10-21 10:00:00.123456+00';
-    // DC-7: featured starts with whether the card is placed and where; DC-1: every order ends with the design's number.
-    const featured = ['0', '-3', time, id, '-2'];
+    // The owner, 2026-11-25: every order starts with whether the card is in stock (sold-out cards last); DC-7: featured
+    // goes on with whether the card is placed and where; DC-1: every order ends with the design's number.
+    const featured = ['1', '0', '-3', time, id, '-2'];
     const cursor = cursorOf(PublicProductSort.Featured, featured);
     expect(positionOf(PublicProductSort.Featured, cursor)).toEqual(featured);
     expect(positionOf(PublicProductSort.Newest, cursor)).toBeNull();
-    // A cursor from before design cards (no design number) starts over rather than being misread.
+    // A sold-out card's position, past the ones in stock.
     expect(
-      positionOf(PublicProductSort.Featured, cursorOf(PublicProductSort.Featured, ['0', time, id])),
-    ).toBeNull();
+      positionOf(
+        PublicProductSort.Featured,
+        cursorOf(PublicProductSort.Featured, ['0', ...featured.slice(1)]),
+      ),
+    ).toEqual(['0', ...featured.slice(1)]);
+    // A cursor from before the stock key (a page kept from the release before) resumes among the cards in stock: 1
+    // where the order runs high to low, 0 in price low to high.
+    expect(
+      positionOf(
+        PublicProductSort.Featured,
+        cursorOf(PublicProductSort.Featured, featured.slice(1)),
+      ),
+    ).toEqual(featured);
     expect(
       positionOf(
         PublicProductSort.PriceLow,
         cursorOf(PublicProductSort.PriceLow, ['150.00', id, '1']),
       ),
-    ).toEqual(['150.00', id, '1']);
+    ).toEqual(['0', '150.00', id, '1']);
     expect(
       positionOf(
         PublicProductSort.Relevance,
         cursorOf(PublicProductSort.Relevance, ['1.2e-05', id, '0']),
       ),
-    ).toEqual(['1.2e-05', id, '0']);
+    ).toEqual(['1', '1.2e-05', id, '0']);
+    // A stock key other than 0 or 1, and a cursor from before design cards (no design number), start over rather than
+    // being misread.
+    expect(
+      positionOf(
+        PublicProductSort.Featured,
+        cursorOf(PublicProductSort.Featured, ['2', ...featured.slice(1)]),
+      ),
+    ).toBeNull();
+    expect(
+      positionOf(PublicProductSort.Featured, cursorOf(PublicProductSort.Featured, ['0', time, id])),
+    ).toBeNull();
     expect(
       positionOf(
         PublicProductSort.Newest,

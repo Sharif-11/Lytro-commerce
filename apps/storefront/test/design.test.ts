@@ -87,14 +87,14 @@ function row(source: ProductRowSource, extra: Partial<ProductsSection> = {}): Pr
 
 describe('what each product row asks for (SB-9)', () => {
   const reach = design([]);
-  it('asks the order its source names, only what is in stock, as many as it shows', () => {
+  // SB-9 as amended 2026-11-25: sold-out products stay in a row (the server lists them last), so a row never asks for
+  // what is in stock only.
+  it('asks the order its source names, sold out too, as many as it shows', () => {
     expect(rowQuery(row(ProductRowSource.Newest), reach)).toEqual({
-      inStock: true,
       limit: 4,
       sort: 'newest',
     });
     expect(rowQuery(row(ProductRowSource.OnSale, { count: 6 }), reach)).toEqual({
-      inStock: true,
       limit: 6,
       sort: 'discount',
       onSale: true,
@@ -109,7 +109,7 @@ describe('what each product row asks for (SB-9)', () => {
     expect(rowQuery(row(ProductRowSource.Category, { categoryId: 'gone' }), reach)).toBeNull();
     expect(
       rowQuery(row(ProductRowSource.Picked, { productIds: ['gone', PRODUCT.id] }), reach),
-    ).toEqual({ inStock: true, productIds: [PRODUCT.id] });
+    ).toEqual({ productIds: [PRODUCT.id] });
     expect(rowQuery(row(ProductRowSource.Picked, { productIds: ['gone'] }), reach)).toBeNull();
   });
 
@@ -131,7 +131,6 @@ describe('what each product row asks for (SB-9)', () => {
     const offer = { id: id(9), slug: 'eid-offer', name: 'Eid offer' };
     const withOffer = { ...reach, offers: [offer] };
     expect(rowQuery(row(ProductRowSource.Offer, { offerId: offer.id }), withOffer)).toEqual({
-      inStock: true,
       limit: 4,
       sort: 'featured',
       offer: 'eid-offer',

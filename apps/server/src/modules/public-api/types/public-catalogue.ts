@@ -51,6 +51,8 @@ export interface PublicProductCard {
    * link to it opens the product with this design chosen.
    */
   designId: string | null;
+  /** The owner, 2026-11-25: the product has a video, so a storefront marks its card with a play mark. */
+  hasVideo: boolean;
 }
 
 /**

@@ -278,6 +278,8 @@ export interface ProductCard {
   image: ImageView | null;
   createdAt: string;
   swatches: OptionValue[];
+  /** The owner, 2026-11-25: the product has a video, so its card shows a play mark; absent from an older server. */
+  hasVideo?: boolean;
   // SB-10, SB-21: absent from an older server's answer.
   /** The regular price struck through beside the lowest price; null when that is not on sale. */
   minRegularPrice?: string | null;
