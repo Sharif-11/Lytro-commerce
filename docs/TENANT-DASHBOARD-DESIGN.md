@@ -587,6 +587,213 @@ opening serials per variant, or `sharedOpeningStock` with its batch), `attribute
 signed uploads; all built. **Prototype:** the group "Product form by shop type · Slices 1 to 9" in the
 toolbar of `docs/brand/lytro-dashboard.html`.
 
+### 7.4b Quick add: a first product in one card (`/products/new`, proposal 2026-11-25, awaiting the owner)
+
+**Status:** a proposal, awaiting the owner's approval. Only the sketch exists. §7.4a was already taken (the product
+form by shop type), so this is §7.4b.
+
+**The owner, 2026-11-25:**
+
+- "evaluate our product adding input form. is it too lengthy or hard for new sellers?"
+- "sketch your proposed design first"
+- "we don't need old price for now"
+- "we don't need the last presentational container এই শপের ধরন যা ঠিক করে দেয়"
+- "here uploading multiple image is multiple design by default, how do you consider stock input?"
+- "What if we consider single stock input shared by each design by default."
+- "here seller have confusion between size chart and variant. for cloth shop we need one quick variant option সাইজ যোগ
+  করুন"
+- "size chart is image only"
+- On the size chart's table form: "just switch it off from ui, not from backend".
+- Reviewing PR #442: "i need name, price, stock input then size jugh then a description box as quick option, order
+  pele banao is not default it goes to more settings."
+- "কতগুলো আছে? => stock"
+- Asking "how do we treat video currently, does it define a design": it does not (PRD-11; see below).
+
+**Job.** A new seller adds a first product in one screen with a photo, a name, a price, the stock and, for a clothing
+shop, its sizes. Everything else is one tap away, with today's defaults.
+
+**Why.** This starts from the built editor (§7.4, §7.4a, the `pf-*` screens). On staging, at 390 px, a new product
+shows about 17 controls over 3.3 phone screens (2,717 px).
+
+- **The worst trap:** stock tracking is on by default, but "শুরুর স্টক" starts empty, 1½ screens down. A real
+  production shop (kenakata, 2026-11-25) saved all three of its products at 0, so its storefront home showed nothing.
+- **The first question is the wrong one:** "প্রোডাক্ট / কম্বো প্যাক", with a warning that it can't be changed later.
+- **Jargon:** অ্যাট্রিবিউট, ভ্যারিয়েন্ট, অ্যাড-অন গ্রুপ, ইউনিট and পেমেন্ট পলিসি, plus English option names
+  ("Color · Material · Size").
+- **Too much up front:** six controls whose defaults are already right are shown open, and there are two explanation
+  boxes.
+- **The fee comes last:** the PAYG product fee notice appears only beside a disabled Save, after the seller has typed
+  everything.
+- **A confusion:** sellers mix up the size chart (a picture of measurements) with sizes to choose.
+
+**Prototype.** The group "New product · quick add (proposal 2026-11-25)" in `docs/brand/lytro-dashboard.html`, screens
+`pq-*`. The photos are real: three designs of one shirt, from `sample-photos/builder` (CREDITS.txt). The renders are
+in the owner's folder "Lytro screenshots/quick-add-sketch", beside `before-pf-clothing.png`.
+
+**Layout: one card, in the owner's order.**
+
+1. **ছবি ও ভিডিও**, as today.
+   - **Photos:**
+     - Each photo is a design (ATR-19). With two or more, the label adds "3টি ডিজাইন", and a line says the shopper
+       picks by photo.
+     - Each photo has a ⋮ menu (`pq-photo-menu`), worded as the built media sheet: "আলাদা ডিজাইন", "একই ডিজাইনের
+       আরেকটি ছবি" ("কোন ডিজাইনের?"), or "এটি ডিজাইন নয়".
+   - **The video is never a design: no stock, no choice.** There is one per product (PRD-11), kept apart from the
+     photos. Its tile has a play mark, with no design number, no ⋮ menu and no stock box or grid row. The design count
+     and the split grid count photos only. "ভিডিও দিন" goes once a video is added (`pq-size-added`). On the storefront
+     the video is the last slide of the gallery and chooses nothing.
+2. **নাম.**
+3. **দাম**: one price. There is no "আগের দাম" (the owner). Today's new-product form has no regular-price field, so none
+   is added or moved.
+4. **স্টক**: just the number box, labelled "স্টক" (the owner: "কতগুলো আছে? => stock"), with পিস inside it.
+   - With several designs or sizes, a muted hint under the box says what it counts, for example "সব ডিজাইন ও সাইজ
+     মিলিয়ে", never in the label.
+   - The split link sits under it.
+   - There is no "হাতে আছে / অর্ডার পেলে বানাই" switch here. Counting stock is the default, and made to order lives in
+     আরও সেটিংস.
+5. **"+ সাইজ যোগ করুন"**, for a clothing or shoes-and-bags shop.
+   - The sheet (`pq-size-add`) offers S, M, L, XL, XXL and ফ্রি সাইজ; a number set from 28 to 44 in steps of 2, for
+     pants and blouses; and "অন্য সাইজ" to type one.
+   - The picked sizes show as removable chips with "+ আরও" (`pq-size-added`).
+   - Other shops show nothing here (`pq-other`), and add any option from আরও সেটিংস.
+6. **বিবরণ (ঐচ্ছিক)**, an open text box.
+7. **সেভ করুন.**
+
+Under the card come **আরও সেটিংস** (folded), then a link card, **"কম্বো প্যাক বানাতে চান?"**, which opens today's
+combo flow. On a computer, both sit in the right-hand column (`pq-wide`).
+
+**The fee sits on top, before any typing** (the balance-gates pattern):
+
+- **Balance short** (`pq-fee`): a warning, "নতুন প্রোডাক্টে ৳10 লাগে। ব্যালেন্সে আছে ৳0.50…", with Top up. Save stays
+  disabled with its balance note.
+- **Balance enough** (`pq-fee-ok`): an info line saying what the save takes and what the balance holds.
+- The amount is the live `payg_product_fee` rate.
+
+**The stock rules:**
+
+- **One shared box by default** (`pq-stock-one`), however many photos and sizes there are.
+- **No silent 0** (`pq-nostock`). Saving with the box empty marks it with "স্টক লিখুন। ০ থাকলে দোকানে “স্টক নেই”
+  দেখাবে, কেউ অর্ডার করতে পারবে না।" It offers "অর্ডার পেলে বানাই চালু করুন" (the switch in আরও সেটিংস) and "০ রেখেই
+  সেভ করুন" (open question 2).
+- **The split is one tap away**, "ডিজাইন / সাইজ অনুযায়ী আলাদা স্টক দিন":
+  - **by design** (`pq-stock-split-designs`): a box under each design's photo, plus "সবগুলোতে একই" with Fill;
+  - **by design × size** (`pq-stock-split-grid`): a grid, a row per design (its photo as the label) and a column per
+    size, with "সবগুলোতে একই" and a total. Empty cells are marked at Save: "ডিজাইন 3-এর ঘর খালি। সংখ্যা লিখুন, না
+    থাকলে ০।"
+  - "এক স্টকে ফিরে যান" goes back.
+- **A grouped or plain photo has no box** (`pq-stock-grouped`), so four angles of one dress give one box.
+- **Made to order** is a switch in আরও সেটিংস → স্টক, off by default.
+  - On (`pq-made`, `pq-more-open`): the card has no stock box, only a one-line note, and the sizes stay.
+  - The low-stock alert, batch and serial controls leave আরও সেটিংস with it, as they do today.
+- **The trade-off:** shared stock can't stop one design or size being oversold, since only the total is known. Sellers
+  who keep exact counts split.
+
+**On today's model.** Nothing here needs a new server concept for a new product.
+
+| Quick add | Today's model |
+| --- | --- |
+| Each photo, a design | The photo-design attribute (ATR-19, `use-photo-designs`); grouping and plaining as the built media sheet does them |
+| The video | The product's one video (PRD-11); never a design |
+| Sizes | The clothing preset's size attribute, which splits the product; the picked sizes are its values |
+| Each design × size | A variant |
+| One shared box | `products.shared_stock` (INV-24), held by the stock-holder variant, pack amount 1 for each variant; `POST /products` `sharedOpeningStock` (built) |
+| Split | `shared_stock` off; each variant's own opening stock in `POST /products` `variants` (built) |
+| Made to order | Stock tracking made to order; shared stock off (it isn't allowed without tracking) |
+| Colours (one photo) | The colour attribute's values with their swatches (ATR-18), added from আরও সেটিংস |
+| Size chart | The product's size chart picture (`MediaPurpose.SizeChartImage`); without one, the category's chart shows |
+
+**Splitting later needs a server change** (open question 5). A product saved with a shared number holds stock, and the
+server refuses to switch shared to split while stock is held (`SharedStockNeedsEmpty`, product.service.ts). Splitting
+then needs one action that:
+
+1. takes how many of each design or size;
+2. checks they add up to the total, or records the difference as an adjustment;
+3. moves the holder's stock into each variant in one transaction;
+4. turns sharing off.
+
+**The size chart, a DECISION (the owner, 2026-11-25).** "size chart is image only", and of its table form, "just switch
+it off from ui, not from backend":
+
+- the dashboard no longer offers the table form anywhere: not in the product editor's size chart sheet
+  (`size-chart-sheet.tsx`), and not in the category's size chart. It is one picture upload;
+- the server, the API and stored data stay unchanged;
+- a chart already saved as a table keeps showing to shoppers as today; the seller just can't make or edit one.
+
+This is for the build PR after approval.
+
+In quick add, the chart sits in আরও সেটিংস only, never beside the sizes, labelled "সাইজ চার্ট — কাস্টমারকে মাপ দেখাতে
+(ছবি)". Two notes go with it: without a picture of its own the category's chart shows, and it doesn't make sizes to
+choose.
+
+**আরও সেটিংস** (`pq-more-open`), in plain words, with today's defaults:
+
+- **স্টক:**
+  - **অর্ডার পেলে বানাই**, a switch, off by default;
+  - কীসে গোনেন (the unit);
+  - কম স্টকে জানান (5);
+  - ব্যাচে স্টক, মেয়াদসহ;
+  - প্রতিটি পিসের সিরিয়াল নম্বর.
+- **ক্যাটাগরি** (optional).
+- **ডেলিভারি:** ওজন, ডেলিভারি চার্জ, where it delivers.
+- **টাকা নেওয়া:** কীভাবে টাকা নেবেন.
+- **সাইজ চার্ট (ছবি)**, for clothing only.
+- **দাম আর অপশন:**
+  - "একই ছবিতে কয়েকটা রঙ? রঙ যোগ করুন", with one photo only; the picked colours then show as chips in the card
+    (`pq-colour`);
+  - অপশন যোগ করুন (fabric or a message for clothing; a colour or pack size for other shops);
+  - a different price or SKU per design or size (today's variant table);
+  - অর্ডারে বাড়তি জিনিস (add-ons).
+- **অন্যান্য:**
+  - অবস্থা;
+  - শুরুর নিয়ম, the shop-type defaults picker that today sits above the form as "ডিফল্ট: … বদলান". It's kept because
+    it sets the stock and option defaults;
+  - দোকানে দেখাবে.
+
+**What moves where:**
+
+| Today | In quick add |
+| --- | --- |
+| "প্রোডাক্ট / কম্বো প্যাক", the first question | A link card under the form: "কম্বো প্যাক বানাতে চান?" |
+| "ডিফল্ট: <type> · বদলান" above the form | আরও সেটিংস → অন্যান্য → শুরুর নিয়ম |
+| The box "এই ধরনের প্রোডাক্টে বাড়তি কিছু সামনে নেই…" | Removed |
+| The table "এই শপের ধরন যা ঠিক করে দেয়" | Removed (the owner); its settings stay as controls in আরও সেটিংস |
+| ছবি · ভিডিও | The same place, with a ⋮ menu per photo, and boxes under the photos when split by design. The video has no design, menu or box |
+| নাম, দাম | The same; no আগের দাম (the owner) |
+| ক্যাটাগরি | আরও সেটিংস → ক্যাটাগরি (the owner) |
+| বিবরণ | An open box in the card, after the sizes (the owner) |
+| অপশন ও ভ্যারিয়েন্ট (অ্যাট্রিবিউট যোগ করুন, the suggested names) | Clothing, shoes and bags: "+ সাইজ যোগ করুন" under the stock. The colour link, any other option and the variant table: আরও সেটিংস |
+| **Clothing-shop rule** (the owner) | Only clothing and shoes-and-bags shops get the size button up front; the size chart is never beside it |
+| অ্যাড-অন | আরও সেটিংস → দাম আর অপশন → অর্ডারে বাড়তি জিনিস |
+| স্টক ট্র্যাক হবে / অর্ডার পেলে বানানো (radios) | Gone from the form: counting stock is the default, and made to order is a switch in আরও সেটিংস, off by default (the owner) |
+| শুরুর স্টক | The card's one box, labelled "স্টক" (the owner), shared by default, with the split one tap away |
+| ইউনিট, লো-স্টক অ্যালার্ট, সিরিয়াল, ব্যাচ | আরও সেটিংস → স্টক |
+| ওজন, ডেলিভারি চার্জ, যেখানে ডেলিভারি হবে | আরও সেটিংস → ডেলিভারি |
+| পেমেন্ট পলিসি | আরও সেটিংস → টাকা নেওয়া |
+| অ্যাক্টিভ | আরও সেটিংস → অন্যান্য → দোকানে দেখাবে |
+| সাইজ চার্ট (a table or a picture) | আরও সেটিংস → সাইজ চার্ট (ছবি) only; the table form is switched off in the dashboard, not the server (the owner's decision) |
+| The PAYG fee, beside the disabled Save | A banner at the top, before typing; Save keeps its note |
+
+**Unchanged:** editing an existing product (`/products/:id`) keeps today's editor (open question 7), as do the combo
+flow, the server and the storefront.
+
+**Questions for the owner, each with my recommendation:**
+
+1. **ANSWERED** (the owner, 2026-11-25): counting stock is the default, and made to order lives in আরও সেটিংস as a
+   switch, off by default.
+2. **Allow "০ রেখেই সেভ করুন" after the warning?** I recommend yes. Some sellers list items before the stock arrives,
+   and the storefront now shows zero-stock products last (the out-of-stock PR), so nothing disappears.
+3. **Should sizes share the one stock by default, like designs?** I recommend yes: one rule for everything, with the
+   split one tap away. A one-line note on the trade-off could sit beside the split link; it isn't drawn.
+4. **Offer "রঙ যোগ করুন" only while there is one photo?** I recommend yes, as drawn. With several photos, the photos are
+   the designs.
+5. **Splitting later with stock in hand needs a server action** (above). I recommend building it in the quick-add build
+   PR: the seller types each design or size, and a total that doesn't match is recorded as an adjustment.
+6. **Shoes and bags shops** (`shoes_bags`) get the same size button, as drawn. Should their number set be shoe sizes
+   36–45, in place of 28–44? I recommend yes.
+7. **Should editing an existing product use the same quick layout?** I recommend yes, but as a second step, once the
+   new-product flow has proved itself. This proposal changes `/products/new` only.
+8. **On a computer, the right-hand column holds আরও সেটিংস and the combo link** (`pq-wide`). I recommend keeping it.
+
 ### 7.5 Categories (`/categories`)
 
 **Job.** Keep a small tree the storefront can navigate, without ever blocking a product (PRD-03: a
