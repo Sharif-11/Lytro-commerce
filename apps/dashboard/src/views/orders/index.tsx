@@ -66,7 +66,8 @@ export function OrdersScreen({
     filter.to ||
     filter.reason ||
     filter.holding ||
-    filter.source,
+    filter.source ||
+    filter.ids,
   );
 
   // The search's pause: a write of the search box still to come.
@@ -160,6 +161,21 @@ export function OrdersScreen({
             }}
           >
             {t(`source_${filter.source}`)}
+            <Icon name="x" />
+          </Chip>
+        </div>
+      ) : null}
+      {filter.ids && filter.ids.length > 0 ? (
+        // OB-10: the orders a fill notice in the bell led to, until cleared.
+        <div className="mb-2.5 flex flex-wrap gap-2">
+          <Chip
+            on
+            aria-label={`${t('obs.idsChip', { count: filter.ids.length })}. ${t('obs.idsClear')}`}
+            onClick={() => {
+              show({ ids: undefined });
+            }}
+          >
+            {t('obs.idsChip', { count: filter.ids.length })}
             <Icon name="x" />
           </Chip>
         </div>

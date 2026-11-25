@@ -542,6 +542,12 @@ export const orderListQuerySchema = z.object({
   access: z.literal('locked').optional(),
   // INV-25 (ORDERS-BEYOND-STOCK OB-11): only the orders still waiting for stock, the list's স্টক কম chip.
   short: z.literal('yes').optional(),
+  // OB-10 (the owner on #448): just these orders, as a fill notice links to them; up to 50, comma-separated.
+  ids: z
+    .string()
+    .transform((value) => value.split(',').filter((each) => each !== ''))
+    .pipe(z.array(z.uuid()).min(1).max(50))
+    .optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(LIST_PAGE_SIZE_MAX).default(ORDER_PAGE_SIZE),
 });

@@ -51,6 +51,12 @@ export interface ReservationStore {
     tenantId: string,
     variantId: string,
   ): Promise<OrderShortfallRecord[]>;
+  /** OB-12: every line waiting on these stocks, oldest first, for reading only. */
+  listWaitingOn(
+    tx: Transaction,
+    tenantId: string,
+    variantIds: string[],
+  ): Promise<OrderShortfallRecord[]>;
   /** Q3: one stock's active reservations, newest first, locked; lock its level first. */
   lockHeldNewestFirst(
     tx: Transaction,

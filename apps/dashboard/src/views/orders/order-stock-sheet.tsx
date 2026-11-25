@@ -52,7 +52,9 @@ export function OrderStockSheet({
 
   useEffect(() => {
     if (item === null) return;
-    setQuantity(String(Number(item.short)));
+    // OB-12 (the owner on #448): enough to cover this order -- its own shortfall and what older orders ahead of it
+    // on the same stock wait for, since they get it first.
+    setQuantity(String(Number(item.short) + Number(item.ahead?.quantity ?? 0)));
     add.reset();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [item?.id]);
@@ -101,6 +103,15 @@ export function OrderStockSheet({
               setQuantity(event.target.value);
             }}
           />
+          {item.ahead ? (
+            <p className="num text-[15px] text-fg-muted">
+              {t('obs.breakdown', {
+                count: item.ahead.orders,
+                own: Number(item.short),
+                ahead: Number(item.ahead.quantity),
+              })}
+            </p>
+          ) : null}
           <Banner tone="info">{t('obs.olderFirst')}</Banner>
           {add.isError ? (
             <>

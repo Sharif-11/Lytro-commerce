@@ -300,6 +300,8 @@ export function OrderRow({
   const words = useOrderWords();
   const shown = words.status(order.status);
   const short = Number(order.short);
+  // The owner, 2026-11-25: a held order's call-back time stays on its row.
+  const callBack = order.status === OrderStatus.Hold ? order.holdUntil : null;
   const phone =
     order.customerPhone === null ? null : bangladeshiPhone.forField(order.customerPhone);
   const content = (
@@ -328,12 +330,27 @@ export function OrderRow({
             ) : null}
           </>
         )}
-        {short > 0 ? (
-          <span>
-            <StatusTag tone="warn">
-              <Icon name="alert" size={14} />
-              {t('obs.short', { count: short })}
-            </StatusTag>
+        {short > 0 || callBack || order.attention !== null ? (
+          // OB-20 as the owner amended it (2026-11-25): what needs doing, each only when it applies -- the stock it
+          // waits for, a courier's news to look at, and when to call back.
+          <span className="flex flex-wrap items-center gap-1.5">
+            {short > 0 ? (
+              <StatusTag tone="warn">
+                <Icon name="alert" size={14} />
+                {t('obs.short', { count: short })}
+              </StatusTag>
+            ) : null}
+            {order.attention !== null ? (
+              <StatusTag tone="warn">
+                <Icon name="alert" size={14} />
+                {t('crLineLook')}
+              </StatusTag>
+            ) : null}
+            {callBack ? (
+              <span className="text-[14px] font-medium text-warning">
+                {t('obs.callBack', { time: words.time(callBack) })}
+              </span>
+            ) : null}
           </span>
         ) : null}
       </span>

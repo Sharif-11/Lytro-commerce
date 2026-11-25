@@ -1,9 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Transaction } from '@lytronix/db';
 import { ReservationStatus } from '@lytronix/validators';
+import type { FillNotifier } from '../ports/fill-notifier';
 import type { ReservationStore } from '../ports/reservation-store';
 import type { StockStore } from '../ports/stock-store';
-import { RESERVATION_STORE, STOCK_STORE } from '../tokens';
+import { FILL_NOTIFIER, RESERVATION_STORE, STOCK_STORE } from '../tokens';
 import type { OrderShortfallRecord } from '../types/inventory';
 import { milli, quantityOf } from './stock-state';
 
@@ -37,6 +38,7 @@ export class ShortfallFiller {
   constructor(
     @Inject(RESERVATION_STORE) private readonly reservations: ReservationStore,
     @Inject(STOCK_STORE) private readonly store: StockStore,
+    @Inject(FILL_NOTIFIER) private readonly notifier: FillNotifier,
   ) {}
 
   /** OB-10: every order this transaction's fills gave stock to, and whether each now waits for nothing. */
@@ -75,6 +77,12 @@ export class ShortfallFiller {
     const given = this.given.get(tx) ?? new Map<string, boolean>();
     for (const order of filled) given.set(order.orderId, order.covered);
     this.given.set(tx, given);
+    // OB-10 (the owner on #448): one notice for this stock change, in its transaction.
+    await this.notifier.ordersFilled(tx, {
+      tenantId,
+      orderIds: filled.map((order) => order.orderId),
+      coveredIds: filled.filter((order) => order.covered).map((order) => order.orderId),
+    });
     return filled;
   }
 

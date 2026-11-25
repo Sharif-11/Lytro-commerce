@@ -72,8 +72,9 @@ test('the list puts the day first: To confirm with each tab counted, the rows un
 
   await tabs.getByRole('button', { name: /^On hold/ }).click();
   await expect(page).toHaveURL(`/${SLUG}/orders?tab=hold`);
-  // OB-20: the row shows the status, not the call-back time (the order shows it).
+  // OB-20 as amended (the owner, 2026-11-25): a held order keeps its call-back time on its row.
   await expect(row(page, '261031-0043')).toContainText('On hold');
+  await expect(row(page, '261031-0043')).toContainText(/Call back /);
 
   await tabs.getByRole('button', { name: /^All/ }).click();
   await expect(main(page)).toContainText('Yesterday');

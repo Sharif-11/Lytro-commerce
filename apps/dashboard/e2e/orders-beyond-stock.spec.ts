@@ -14,6 +14,7 @@ function shortDay(): OrdersFixture {
   const shirt = sumaiya?.items[0];
   if (!shirt) throw new Error('Part 29 has Sumaiya’s T-shirts');
   shirt.short = 2;
+  shirt.ahead = { orders: 3, quantity: 4 };
   shirt.productId = 'p-tee';
   return day;
 }
@@ -88,7 +89,9 @@ test('a short order says why it waits, greys the step that hands it on, and adds
   );
   await main(page).getByRole('button', { name: 'Add stock' }).first().click();
   const adding = sheet(page, 'Add stock');
-  await expect(adding.getByLabel('How many arrived')).toHaveValue('2');
+  // OB-12 (the owner on #448): enough to cover this order, older orders ahead of it first.
+  await expect(adding.getByLabel('How many arrived')).toHaveValue('6');
+  await expect(adding).toContainText('2 for this order + 4 for 3 older orders');
   await expect(adding).toContainText('Older orders waiting for it get the stock first.');
   await expectAccessible(page);
   await adding.getByRole('button', { name: 'Add stock' }).click();

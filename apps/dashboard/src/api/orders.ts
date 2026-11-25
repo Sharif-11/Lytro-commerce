@@ -79,6 +79,8 @@ export interface OrderFilter {
   locked?: boolean;
   /** INV-25 (ORDERS-BEYOND-STOCK OB-11): only the orders still waiting for stock (the স্টক কম chip). */
   short?: boolean;
+  /** OB-10: only these orders, as a fill notice in the bell links to them. */
+  ids?: string[];
 }
 
 function query(filter: OrderFilter, extra: Record<string, string>): string {
@@ -94,6 +96,7 @@ function query(filter: OrderFilter, extra: Record<string, string>): string {
     ...(filter.tab === LOOK_TAB ? { attention: 'any' } : {}),
     ...(filter.locked ? { access: 'locked' } : {}),
     ...(filter.short ? { short: 'yes' } : {}),
+    ...(filter.ids && filter.ids.length > 0 ? { ids: filter.ids.join(',') } : {}),
     ...extra,
   }).toString();
 }

@@ -130,6 +130,8 @@ export interface OrderItem {
   id: string;
   /** INV-25 (OB-11): how many of it the line still waits for; "0.000" when none. */
   short: string;
+  /** OB-12: what older orders wait for on the same stock, which gets it first; null when none. */
+  ahead: { orders: number; quantity: string } | null;
   productId: string | null;
   variantId: string | null;
   productName: string;

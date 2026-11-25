@@ -24,6 +24,7 @@ import { StockService } from './services/stock.service';
 import {
   BATCH_EXPIRY_NOTIFIER,
   LOW_STOCK_NOTIFIER,
+  FILL_NOTIFIER,
   RESERVATION_STORE,
   SERIAL_STORE,
   STOCK_BATCH_STORE,
@@ -32,6 +33,7 @@ import {
 } from './tokens';
 import {
   BellBatchExpiryNotifier,
+  BellFillNotifier,
   BellLowStockNotifier,
 } from '../notifications/notifiers/bell-notifiers';
 import { NotificationsModule } from '../notifications/notifications.module';
@@ -49,6 +51,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     { provide: RESERVATION_STORE, useClass: DrizzleReservationStore },
     { provide: BATCH_EXPIRY_NOTIFIER, useExisting: BellBatchExpiryNotifier },
     { provide: LOW_STOCK_NOTIFIER, useExisting: BellLowStockNotifier },
+    { provide: FILL_NOTIFIER, useExisting: BellFillNotifier },
     InventoryLedger,
     StockService,
     StockCheckService,

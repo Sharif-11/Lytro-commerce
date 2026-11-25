@@ -733,6 +733,12 @@
     "olderFirst": "আগে আসা অর্ডারগুলো আগে স্টক পাবে।",
     "quantity": "কতগুলো এসেছে",
     "openProduct": "পণ্যের পাতা খুলুন",
-    "added": "স্টক যোগ হয়েছে"
+    "added": "স্টক যোগ হয়েছে",
+    "callBack": "কল ব্যাক {{time}}",
+    "breakdown_one": "এই অর্ডারের জন্য {{own}}টা + আগের {{count}}টা অর্ডারে {{ahead}}টা",
+    "breakdown_other": "এই অর্ডারের জন্য {{own}}টা + আগের {{count}}টা অর্ডারে {{ahead}}টা",
+    "idsChip_one": "স্টক পাওয়া {{count}}টা অর্ডার",
+    "idsChip_other": "স্টক পাওয়া {{count}}টা অর্ডার",
+    "idsClear": "সব অর্ডার দেখুন"
   }
 }

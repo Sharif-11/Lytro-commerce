@@ -733,6 +733,12 @@
     "olderFirst": "Older orders waiting for it get the stock first.",
     "quantity": "How many arrived",
     "openProduct": "Open the product",
-    "added": "Stock added"
+    "added": "Stock added",
+    "callBack": "Call back {{time}}",
+    "breakdown_one": "{{own}} for this order + {{ahead}} for 1 older order",
+    "breakdown_other": "{{own}} for this order + {{ahead}} for {{count}} older orders",
+    "idsChip_one": "The order that got stock",
+    "idsChip_other": "The {{count}} orders that got stock",
+    "idsClear": "Show all orders"
   }
 }

@@ -183,6 +183,23 @@ export class ReservationRepository {
       .for('update');
   }
 
+  /** INV-25 (ORDERS-BEYOND-STOCK OB-12): every line waiting on these stocks, oldest first, for reading only. */
+  async listWaitingOn(
+    tx: Transaction,
+    tenantId: string,
+    variantIds: string[],
+  ): Promise<SelectStockShortfall[]> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    if (variantIds.length === 0) return [];
+    return tx
+      .select()
+      .from(stockShortfalls)
+      .where(
+        and(eq(stockShortfalls.tenantId, tenantId), inArray(stockShortfalls.variantId, variantIds)),
+      )
+      .orderBy(asc(stockShortfalls.createdAt), asc(stockShortfalls.id));
+  }
+
   /** INV-25 (ORDERS-BEYOND-STOCK Q3): one stock's active reservations, newest first, locked; lock its level first. */
   async lockHeldNewestFirst(
     tx: Transaction,

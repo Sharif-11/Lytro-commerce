@@ -82,6 +82,8 @@ export interface OrderListFilter {
   lockedOnly?: boolean;
   /** INV-25 (ORDERS-BEYOND-STOCK OB-11): only the orders with a line still waiting for stock. */
   shortOnly?: boolean;
+  /** OB-10: only these orders, as a fill notice links to them. */
+  ids?: string[] | null;
 }
 
 /** Slice 6.7: an order's live parcel as its list row shows it. */
@@ -447,6 +449,7 @@ export class OrderRepository {
     if (filter.before !== null) conditions.push(lt(orders.createdAt, filter.before));
     if (filter.lockedOnly === true) conditions.push(eq(orders.access, OrderAccess.Locked));
     if (filter.shortOnly === true) conditions.push(shortOrderSql());
+    if (filter.ids && filter.ids.length > 0) conditions.push(inArray(orders.id, filter.ids));
     if (filter.search !== null) {
       const pattern = `%${escapeLike(filter.search)}%`;
       // PYG-22 (PF-26): a locked order is found by its number only, so searching names and numbers reveals no one.

@@ -239,6 +239,50 @@ export class ReservationService {
   }
 
   /**
+   * INV-25 (ORDERS-BEYOND-STOCK OB-12, the owner on #448): for each of this order's waiting lines, what older orders
+   * wait for on the same stock -- stock goes to them first (OB-8), so covering this line takes theirs too. How many
+   * orders, and how much in this line's own unit (whole packs, rounded up, for a size drawing on a shared stock).
+   */
+  async aheadOf(
+    tx: Transaction,
+    tenantId: string,
+    orderId: string,
+  ): Promise<Map<string, { orders: number; quantity: string }>> {
+    const own = await this.reservations.listShortfallsForOrders(tx, tenantId, [orderId]);
+    const ahead = new Map<string, { orders: number; quantity: string }>();
+    if (own.length === 0) return ahead;
+    const all = await this.reservations.listWaitingOn(tx, tenantId, [
+      ...new Set(own.map((row) => row.variantId)),
+    ]);
+    const inStock = (row: { quantity: string; packAmount: string | null }): number =>
+      row.packAmount === null
+        ? milli(row.quantity)
+        : Math.round((milli(row.quantity) * milli(row.packAmount)) / 1000);
+    for (const line of own) {
+      const before = all.filter(
+        (row) =>
+          row.variantId === line.variantId &&
+          row.orderId !== orderId &&
+          (row.createdAt < line.createdAt ||
+            (row.createdAt.getTime() === line.createdAt.getTime() && row.id < line.id)),
+      );
+      if (before.length === 0) continue;
+      const stock = before.reduce((sum, row) => sum + inStock(row), 0);
+      const units =
+        line.packAmount === null
+          ? stock
+          : Math.ceil(stock / milli(line.packAmount)) * 1000;
+      const orders = new Set(before.map((row) => row.orderId)).size;
+      const had = ahead.get(line.orderLineId);
+      ahead.set(line.orderLineId, {
+        orders: Math.max(orders, had?.orders ?? 0),
+        quantity: quantityOf(units + (had ? milli(had.quantity) : 0)),
+      });
+    }
+    return ahead;
+  }
+
+  /**
    * INV-15, INV-14: ships these reservations, each whole, as one sale of the units it held (INV-12: earliest expiry
    * first, never an expired batch), at the cost of the moment (INV-11). A serial-numbered product names the serial of
    * every unit shipped, and those units are sold to the order. A reservation that expiry left without enough sellable

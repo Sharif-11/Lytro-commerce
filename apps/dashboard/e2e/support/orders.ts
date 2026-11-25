@@ -52,6 +52,8 @@ export interface OrderItemFixture {
   large?: string;
   /** INV-25 (ORDERS-BEYOND-STOCK): the units it still waits for; none when left out. */
   short?: number;
+  /** OB-12: what older orders wait for on the same stock, ahead of it. */
+  ahead?: { orders: number; quantity: number };
 }
 
 export interface OrderFixture {
@@ -671,6 +673,9 @@ function detail(order: OrderFixture, language: Language, customerId: string | nu
       itemDiscount: '0.00',
       itemTotal: money(item.quantity * item.unitPrice),
       short: (item.short ?? 0).toFixed(3),
+      ahead: item.ahead
+        ? { orders: item.ahead.orders, quantity: item.ahead.quantity.toFixed(3) }
+        : null,
       returnedQuantity: `${String(item.returned ?? 0)}.000`,
       weightKg: item.weightKg === undefined ? null : item.weightKg.toFixed(3),
       ownDeliveryCharge: null,

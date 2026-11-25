@@ -121,6 +121,11 @@ export interface OrderItemView {
   id: string;
   /** INV-25 (ORDERS-BEYOND-STOCK OB-11): how many of it the line still waits for; "0.000" when none. */
   short: string;
+  /**
+   * OB-12: what older orders wait for on the same stock, which gets it first -- how many orders and how much, in this
+   * line's unit; null when none waits ahead of it.
+   */
+  ahead: { orders: number; quantity: string } | null;
   productId: string | null;
   variantId: string | null;
   productName: string;

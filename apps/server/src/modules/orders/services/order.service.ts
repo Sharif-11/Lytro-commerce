@@ -253,7 +253,7 @@ function itemView(
   line: OrderLineRecord,
   components: SelectOrderLineComponent[],
   current: ReadonlyMap<string, OrderableVariant>,
-): Omit<OrderItemView, 'short'> {
+): Omit<OrderItemView, 'short' | 'ahead'> {
   return {
     components: components
       .filter((component) => component.orderLineId === line.id)
@@ -687,6 +687,7 @@ export class OrderService {
           attention: query.attention === 'any',
           lockedOnly: query.access === 'locked',
           shortOnly: query.short === 'yes',
+          ids: query.ids ?? null,
         },
         { offset: (query.page - 1) * query.limit, limit: query.limit },
       );
@@ -1838,6 +1839,11 @@ export class OrderService {
       waiting.set(row.orderLineId, (waiting.get(row.orderLineId) ?? 0) + Number(row.quantity));
     }
     const shortOf = (lineId: string): string => (waiting.get(lineId) ?? 0).toFixed(3);
+    // OB-12 (the owner on #448): what older orders wait for on the same stock, ahead of each waiting line.
+    const ahead =
+      waiting.size > 0
+        ? await this.reservations.aheadOf(tx, tenantId, order.id)
+        : new Map<string, { orders: number; quantity: string }>();
     // PYG-22, PYG-23: a pay-as-you-go order from Lytro shows only what the shop has opened of it.
     return new OrderMask(order.access).view({
       id: order.id,
@@ -1898,6 +1904,7 @@ export class OrderService {
       items: lines.map((line) => ({
         ...itemView(line, components, current),
         short: shortOf(line.id),
+        ahead: ahead.get(line.id) ?? null,
       })),
       short: [...waiting.values()].reduce((sum, value) => sum + value, 0).toFixed(3),
       calls: calls.map((call) => ({

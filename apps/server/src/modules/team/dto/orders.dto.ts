@@ -98,6 +98,8 @@ const orderItemSchema = z.object({
   id: z.string(),
   // INV-25 (ORDERS-BEYOND-STOCK OB-11): how many of it the line still waits for.
   short: z.string(),
+  // OB-12: what older orders wait for on the same stock, which gets it first; null when none.
+  ahead: z.object({ orders: z.number(), quantity: z.string() }).nullable(),
   productId: z.string().nullable(),
   variantId: z.string().nullable(),
   productName: z.string(),
