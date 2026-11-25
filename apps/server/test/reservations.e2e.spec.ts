@@ -173,6 +173,25 @@ function hold(
   );
 }
 
+/** INV-25: what these orders' lines wait for, oldest first. */
+function waitingFor(shop: ShopClient, orderIds: string[]) {
+  return inTx((tx) => app.get(ReservationService).listShortfalls(tx, shop.tenantId, orderIds));
+}
+
+/** Stock arriving through the one ledger path, which fills waiting lines first (OB-8). */
+function receive(shop: ShopClient, variantId: string, quantity: number) {
+  return inTx((tx) =>
+    app
+      .get(InventoryLedger)
+      .apply(
+        tx,
+        shop.tenantId,
+        [{ variantId, delta: String(quantity), reason: StockReason.ManualAdjustment }],
+        SYSTEM,
+      ),
+  );
+}
+
 function ship(shop: ShopClient, shipments: Shipment[]) {
   return inTx((tx) => app.get(ReservationService).consume(tx, shop.tenantId, shipments, SYSTEM));
 }
@@ -445,10 +464,20 @@ describeIfDatabase('holding stock for orders (INV-15, PRD-07)', () => {
     });
     // 170 ml left makes one whole 100 ml pack.
     expect(stock.variants.find((row) => row.variantId === large)?.available).toBe('1.000');
-    await expect(reserve(shop, [line(large, 2)])).rejects.toMatchObject({
-      code: 'conflict',
-      messageKey: 'NotEnoughStockForOrder',
-    });
+    // INV-25 (OB-7, OB-14): the order holds the one whole pack that is free and waits for the other.
+    const bigOrder = randomUUID();
+    const [bigHeld] = await reserve(shop, [line(large, 2)], { orderId: bigOrder });
+    expect(bigHeld).toMatchObject({ soldVariantId: large, ordered: '1.000', quantity: '100.000' });
+    expect(await waitingFor(shop, [bigOrder])).toEqual([
+      expect.objectContaining({
+        soldVariantId: large,
+        variantId: holder,
+        quantity: '1.000',
+        packAmount: '100.000',
+      }),
+    ]);
+    await release(shop, [bigHeld?.id ?? '']);
+    await inTx((tx) => app.get(ReservationService).releaseOrder(tx, shop.tenantId, bigOrder));
     await expect(reserve(shop, [{ ...line(small, 1), quantity: '1.5' }])).rejects.toMatchObject({
       code: 'conflict',
       messageKey: 'WholePacksOnly',
@@ -466,7 +495,7 @@ describeIfDatabase('holding stock for orders (INV-15, PRD-07)', () => {
     await expectLedgerAgrees(shop.tenantId);
   });
 
-  it('gives exactly one of two simultaneous reservations for the last unit, the other a conflict (INV-01)', async () => {
+  it('gives the last unit to one of two simultaneous orders, the other waits for it (INV-01, INV-25)', async () => {
     const shop = await openShop(port, texts, 'last-unit');
     for (let round = 0; round < 5; round += 1) {
       const { product, variantId } = await simple(shop, `Last one ${String(round)}`, 1);
@@ -475,13 +504,10 @@ describeIfDatabase('holding stock for orders (INV-15, PRD-07)', () => {
         await readied(shop, [line(variantId, 1)]),
       ];
       const results = await Promise.allSettled(holds.map((go) => go()));
-      expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
-      const refused = results.find((result) => result.status === 'rejected');
-      expect((refused as PromiseRejectedResult).reason).toMatchObject({
-        code: 'conflict',
-        messageKey: 'NotEnoughStockForOrder',
-        params: { product: `Last one ${String(round)}` },
-      });
+      // OB-7: neither is refused; one holds the unit and the other waits for one.
+      expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(2);
+      const held = results.flatMap((result) => (result.status === 'fulfilled' ? result.value : []));
+      expect(held).toHaveLength(1);
       expect(await variantStock(shop, product.id, variantId)).toMatchObject({
         onHand: '1.000',
         reserved: '1.000',
@@ -492,17 +518,17 @@ describeIfDatabase('holding stock for orders (INV-15, PRD-07)', () => {
     await expectLedgerAgrees(shop.tenantId);
   });
 
-  it('gives ten simultaneous orders for five units five holds and five conflicts, never below zero (INV-05)', async () => {
+  it('gives ten simultaneous orders for five units five holds and five waits, never below zero (INV-05, INV-25)', async () => {
     const shop = await openShop(port, texts, 'rush');
     const { product, variantId } = await simple(shop, 'Rush soap', 5);
     const holds: (() => Promise<ReservationRecord[]>)[] = [];
     for (let order = 0; order < 10; order += 1)
       holds.push(await readied(shop, [line(variantId, 1)]));
     const results = await Promise.allSettled(holds.map((go) => go()));
-    expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(5);
-    for (const result of results) {
-      if (result.status === 'rejected') expect(result.reason).toMatchObject({ code: 'conflict' });
-    }
+    expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(10);
+    expect(
+      results.flatMap((result) => (result.status === 'fulfilled' ? result.value : [])),
+    ).toHaveLength(5);
     expect(await variantStock(shop, product.id, variantId)).toMatchObject({
       reserved: '5.000',
       available: '0.000',
@@ -533,13 +559,30 @@ describeIfDatabase('holding stock for orders (INV-15, PRD-07)', () => {
     await expectLedgerAgrees(shop.tenantId);
   });
 
-  it('holds all of an order or none: a line short of stock leaves nothing held', async () => {
+  it('holds what is free of an order and waits for the rest, never refusing it (INV-25, OB-7)', async () => {
     const shop = await openShop(port, texts, 'all-or-none');
     const soap = await simple(shop, 'Soap', 5);
     const comb = await simple(shop, 'Comb', 1);
-    await expect(
-      reserve(shop, [line(soap.variantId, 2), line(comb.variantId, 2)]),
-    ).rejects.toMatchObject({ code: 'conflict', messageKey: 'NotEnoughStockForOrder' });
+    const both = randomUUID();
+    const held = await reserve(shop, [line(soap.variantId, 2), line(comb.variantId, 2)], {
+      orderId: both,
+    });
+    expect(held.map((row) => [row.variantId, row.quantity])).toEqual(
+      expect.arrayContaining([
+        [soap.variantId, '2.000'],
+        [comb.variantId, '1.000'],
+      ]),
+    );
+    expect(await waitingFor(shop, [both])).toEqual([
+      expect.objectContaining({ soldVariantId: comb.variantId, quantity: '1.000' }),
+    ]);
+    // OB-9: an order still waiting can't leave.
+    await expect(ship(shop, held.map((row) => ({ reservationId: row.id })))).rejects.toMatchObject({
+      code: 'conflict',
+      messageKey: 'OrderShortOfStock',
+      params: { product: 'Comb' },
+    });
+    await inTx((tx) => app.get(ReservationService).releaseOrder(tx, shop.tenantId, both));
     expect(await variantStock(shop, soap.product.id, soap.variantId)).toMatchObject({
       reserved: '0.000',
     });
@@ -669,9 +712,12 @@ describeIfDatabase('expiry under a hold (INV-13, INV-15)', () => {
 
     // Nothing else may make it worse: no new hold, no sale outside a hold, and the expired units stay on hand while
     // held, so writing them off waits for the orders.
-    await expect(reserve(shop, [line(variantId, 1)])).rejects.toMatchObject({
-      messageKey: 'NotEnoughStockForOrder',
-    });
+    // INV-25 (OB-7): a new order holds nothing of it and waits; cancelled, it waits for nothing.
+    const later = randomUUID();
+    expect(await reserve(shop, [line(variantId, 1)], { orderId: later })).toEqual([]);
+    expect(await waitingFor(shop, [later])).toHaveLength(1);
+    await inTx((tx) => app.get(ReservationService).releaseOrder(tx, shop.tenantId, later));
+    expect(await waitingFor(shop, [later])).toEqual([]);
     await expect(sell(shop, variantId, 1)).rejects.toMatchObject({ messageKey: 'NotEnoughStock' });
     const writeOff = await shop.post(`/products/${product.id}/batches/${old}/write-off`, {});
     expect(writeOff.status).toBe(409);
@@ -1216,6 +1262,63 @@ describeIfDatabase('the inventory golden path (exit criterion 3)', () => {
     });
     expect(await rubyOf()).toMatchObject({ onHand: '12.000', avgCost: '236.0000' });
     expect(await batchQuantities()).toMatchObject({ R2: '12.000' });
+    await expectLedgerAgrees(shop.tenantId);
+  });
+});
+
+describeIfDatabase('orders beyond stock (INV-25, ORDERS-BEYOND-STOCK OB-7 to OB-9)', () => {
+  it('fills waiting orders oldest first as stock arrives, leftover staying free (OB-8)', async () => {
+    const shop = await openShop(port, texts, 'beyond-fill');
+    const { product, variantId } = await simple(shop, 'Waited kurti', 1);
+    const older = randomUUID();
+    const newer = randomUUID();
+    const [olderHeld] = await reserve(shop, [line(variantId, 2)], { orderId: older });
+    expect(olderHeld).toMatchObject({ quantity: '1.000' });
+    expect(await reserve(shop, [line(variantId, 2)], { orderId: newer })).toEqual([]);
+    expect((await waitingFor(shop, [older, newer])).map((row) => row.quantity)).toEqual([
+      '1.000',
+      '2.000',
+    ]);
+    await receive(shop, variantId, 2);
+    // The older order is covered; the newer holds the one unit left and still waits for one.
+    expect(await waitingFor(shop, [older])).toEqual([]);
+    expect(await waitingFor(shop, [newer])).toEqual([
+      expect.objectContaining({ quantity: '1.000' }),
+    ]);
+    expect(await variantStock(shop, product.id, variantId)).toMatchObject({
+      onHand: '3.000',
+      reserved: '3.000',
+      available: '0.000',
+    });
+    await receive(shop, variantId, 3);
+    expect(await waitingFor(shop, [newer])).toEqual([]);
+    expect(await variantStock(shop, product.id, variantId)).toMatchObject({
+      onHand: '6.000',
+      reserved: '4.000',
+      available: '2.000',
+    });
+    await expectLedgerAgrees(shop.tenantId);
+  });
+
+  it('gives what a cancelled order let go to the oldest waiting order (OB-8, OB-13)', async () => {
+    const shop = await openShop(port, texts, 'beyond-release');
+    const { product, variantId } = await simple(shop, 'Last saree', 1);
+    const first = randomUUID();
+    const second = randomUUID();
+    await reserve(shop, [line(variantId, 1)], { orderId: first });
+    expect(await reserve(shop, [line(variantId, 1)], { orderId: second })).toEqual([]);
+    await inTx((tx) => app.get(ReservationService).releaseOrder(tx, shop.tenantId, first));
+    expect(await waitingFor(shop, [second])).toEqual([]);
+    const [now] = (
+      await inTx((tx) => app.get(ReservationService).listForOrder(tx, shop.tenantId, second))
+    ).filter((row) => row.status === ReservationStatus.Active);
+    expect(now).toMatchObject({ quantity: '1.000' });
+    // A covered order ships.
+    await ship(shop, [{ reservationId: now?.id ?? '' }]);
+    expect(await variantStock(shop, product.id, variantId)).toMatchObject({
+      onHand: '0.000',
+      reserved: '0.000',
+    });
     await expectLedgerAgrees(shop.tenantId);
   });
 });
