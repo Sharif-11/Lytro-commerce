@@ -13,6 +13,8 @@ export const ordersSearch = z.object({
   reason: z.enum(CancelReason).optional().catch(undefined),
   holding: z.string().min(1).optional().catch(undefined),
   holdingName: z.string().optional().catch(undefined),
+  product: z.string().min(1).optional().catch(undefined),
+  productName: z.string().optional().catch(undefined),
   source: z.enum(OrderSource).optional().catch(undefined),
   // PYG-22 (PF-25): only the locked pay-as-you-go orders, the লক করা chip.
   locked: z.literal('1').optional().catch(undefined),
@@ -30,6 +32,8 @@ export function searchOf(filter: OrderFilter): Record<string, string | undefined
     reason: filter.tab === 'cancelled' ? filter.reason : undefined,
     holding: filter.holding,
     holdingName: filter.holding ? filter.holdingName : undefined,
+    product: filter.product,
+    productName: filter.product ? filter.productName : undefined,
     source: filter.source,
     locked: filter.locked ? '1' : undefined,
   };
@@ -45,6 +49,8 @@ export function filterOf(search: OrdersSearch): OrderFilter {
     reason: search.reason,
     holding: search.holding,
     holdingName: search.holdingName,
+    product: search.product,
+    productName: search.productName,
     source: search.source,
     locked: search.locked === '1',
   };

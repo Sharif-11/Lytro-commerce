@@ -37,6 +37,7 @@ export function MoreSettings({
   onChart,
   onDuplicate,
   duplicateNote = null,
+  linkChange = null,
   onRemove,
 }: {
   /** CMB-01: a combo has no chart, condition, serials or batches (`k31-combo-more`). */
@@ -66,6 +67,8 @@ export function MoreSettings({
   onDuplicate: (() => void) | null;
   /** The owner, 2026-11-19: why Duplicate is greyed out (the balance can't cover a new product's fee); null if it isn't. */
   duplicateNote?: React.ReactNode;
+  /** §7.4c: Change the link, since the link card is on the product's page now. */
+  linkChange?: React.ReactNode;
   onRemove: ((how: 'archive' | 'hard') => void) | null;
 }): React.JSX.Element {
   const { t } = useTranslation('shop');
@@ -173,6 +176,7 @@ export function MoreSettings({
         </div>
         {readOnly || !onDuplicate || !onRemove ? null : (
           <div className="flex flex-wrap gap-2">
+            {linkChange}
             <Button
               tone="outline"
               size="sm"

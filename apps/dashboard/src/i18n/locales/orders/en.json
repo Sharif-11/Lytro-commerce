@@ -404,6 +404,7 @@
   "askedNumber": "Numbers only",
   "changeDetails": "Change details",
   "holdingChip": "Holding {{name}}",
+  "productChip": "Orders of {{name}}",
   "holdingClear": "Show every order",
   "saSplit": "Split",
   "saFigures": "This period's figures",

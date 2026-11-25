@@ -536,6 +536,9 @@ export const orderListQuerySchema = z.object({
   customerId: z.guid().optional(),
   // INV-15 (Slice 4.8c, agreed 2026-11-02): the orders holding stock of this variant, for Stock's See the orders.
   variantId: z.guid().optional(),
+  // The seller's product page (TENANT-DASHBOARD-DESIGN §7.4c, the owner 2026-11-25): the orders with a line of this
+  // product, its recent orders and the list's See all.
+  productId: z.guid().optional(),
   // Slice 6.7 (read agreed 2026-11-06): only the orders whose parcel a courier reported something staff should look at.
   attention: z.literal('any').optional(),
   // PYG-22 (PF-25): only the pay-as-you-go orders still locked, the list's লক করা chip.

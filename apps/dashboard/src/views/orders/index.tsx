@@ -66,6 +66,7 @@ export function OrdersScreen({
     filter.to ||
     filter.reason ||
     filter.holding ||
+    filter.product ||
     filter.source,
   );
 
@@ -160,6 +161,20 @@ export function OrdersScreen({
             }}
           >
             {t(`source_${filter.source}`)}
+            <Icon name="x" />
+          </Chip>
+        </div>
+      ) : null}
+      {filter.product ? (
+        <div className="mb-2.5 flex flex-wrap gap-2">
+          <Chip
+            on
+            aria-label={`${t('productChip', { name: filter.productName ?? '' })}. ${t('holdingClear')}`}
+            onClick={() => {
+              show({ product: undefined, productName: undefined });
+            }}
+          >
+            {t('productChip', { name: filter.productName ?? '' })}
             <Icon name="x" />
           </Chip>
         </div>

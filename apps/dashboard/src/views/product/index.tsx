@@ -72,7 +72,7 @@ import { InCombosDialog } from './in-combos-dialog';
 import { combosIn } from './in-combos';
 import { ArchivedProduct } from './archived-product';
 import { BasicsCard } from './basics-card';
-import { LinkCard } from './link-card';
+import { LinkChangeButton } from './link-card';
 import { OfferCards } from './offer-card';
 import { MediaSheet } from './media-sheet';
 import { PhotoStrip } from './photo-strip';
@@ -492,7 +492,10 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
     setMatrixProblems({});
   }
 
-  function leaveTo(to: '/$shop/products' | '/$shop/products/$productId', productId?: string): void {
+  function leaveTo(
+    to: '/$shop/products' | '/$shop/products/$productId' | '/$shop/products/$productId/edit',
+    productId?: string,
+  ): void {
     leaving.current = true;
     if (to === '/$shop/products') void navigate({ to, params: { shop: slug } });
     else void navigate({ to, params: { shop: slug, productId: productId ?? '' } });
@@ -516,7 +519,7 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
         onSuccess: (made) => {
           forget([...made.images.map((image) => image.id), made.video?.id ?? null], []);
           showToast(savedWords(made));
-          // A new combo opens with its link (`k31-combo-saved`); a new product goes back to the list.
+          // A new combo opens with its link (`k31-combo-saved`), now on its page (§7.4c); a new product goes back to the list.
           if (isCombo) leaveTo('/$shop/products/$productId', made.id);
           else leaveTo('/$shop/products');
         },
@@ -593,6 +596,8 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
           });
         } else if (outcome.refused.length === 0 && outcome.product) {
           showToast(savedWords(outcome.product));
+          // §7.4c (the owner, 2026-11-25): saving an edit returns to the product's page.
+          leaveTo('/$shop/products/$productId', outcome.product.id);
         }
       },
     });
@@ -646,7 +651,7 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
     duplicate.mutate(undefined, {
       onSuccess: (made) => {
         showToast(t('peCopied'));
-        leaveTo('/$shop/products/$productId', made.id);
+        leaveTo('/$shop/products/$productId/edit', made.id);
       },
       onError: (error) => {
         if (error instanceof ApiClientError && error.code === 'plan_limit_reached') {
@@ -907,10 +912,12 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
               productShort ? <BalanceNote short={productShort} what={shell('bgWhatCopy')} /> : null
             }
             onRemove={product ? setRemoving : null}
+            linkChange={
+              product ? <LinkChangeButton product={product} readOnly={!mayManage} /> : null
+            }
           />
         </div>
         <div className="flex flex-col gap-section">
-          {product ? <LinkCard product={product} readOnly={!mayManage} /> : null}
           {product && mayReadStock && kind.tracked && !isCombo ? (
             <StockCard
               product={product}

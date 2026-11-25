@@ -73,6 +73,9 @@ export interface OrderFilter {
   /** INV-15 (Slice 4.8c): only the orders holding this variant's stock, and its name for the chip. */
   holding?: string;
   holdingName?: string;
+  /** §7.4c: only the orders with a line of this product (its page's See all), and its name for the chip. */
+  product?: string;
+  productName?: string;
   /** LND-09: only the orders from here (Part 34's `o29-dates`). */
   source?: OrderSource;
   /** PYG-22 (PF-25): only the pay-as-you-go orders still locked (the লক করা chip). */
@@ -88,6 +91,7 @@ function query(filter: OrderFilter, extra: Record<string, string>): string {
     ...(filter.to ? { dateTo: filter.to } : {}),
     ...(filter.reason && filter.tab === 'cancelled' ? { cancelReason: filter.reason } : {}),
     ...(filter.holding ? { variantId: filter.holding } : {}),
+    ...(filter.product ? { productId: filter.product } : {}),
     ...(filter.source ? { source: filter.source } : {}),
     ...(filter.tab === LOOK_TAB ? { attention: 'any' } : {}),
     ...(filter.locked ? { access: 'locked' } : {}),
@@ -122,6 +126,17 @@ export function useOrderCount(
   });
 }
 
+/** TENANT-DASHBOARD-DESIGN §7.4c: the newest orders with a line of this product, for its page (three; See all lists the rest). */
+export function useProductOrders(productId: string | null, options: { enabled?: boolean } = {}) {
+  return useQuery({
+    queryKey: [...ORDERS_QUERY_KEY, 'list', 'product', productId],
+    queryFn: () =>
+      tenantSession.client.get<OrderPage>(
+        `/orders?${new URLSearchParams({ productId: productId ?? '', limit: '3' }).toString()}`,
+      ),
+    enabled: (options.enabled ?? true) && productId !== null,
+  });
+}
 /** One customer's orders, newest first (CUS-02), a page at a time. */
 export function useCustomerOrders(customerId: string, options: { enabled?: boolean } = {}) {
   return useInfiniteQuery({

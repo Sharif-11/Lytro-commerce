@@ -684,6 +684,7 @@ export class OrderService {
           search,
           customerId: query.customerId ?? null,
           holdingVariantId: query.variantId ?? null,
+          productId: query.productId ?? null,
           attention: query.attention === 'any',
           lockedOnly: query.access === 'locked',
         },

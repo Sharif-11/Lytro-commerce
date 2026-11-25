@@ -10,13 +10,9 @@ import { Field, SelectField } from '@/components/ui/field';
 import { Sheet } from '@/components/ui/sheet';
 import { useErrorText } from '@/hooks/use-error-text';
 import { useShopAddress } from '@/hooks/use-shop-address';
+import { linkOf } from '@/lib/product-link';
 import { useShell } from '@/shell/shell-context';
 import type { ProductDetail } from '@/types/product';
-
-/** LND-06: a product's landing link, and the same with a variant chosen, by the variant's id as the feed's links are. */
-function linkOf(host: string, product: ProductDetail, variantId: string | null): string {
-  return `${host}/l/${product.slug}${variantId ? `?v=${variantId}` : ''}`;
-}
 
 /** A variant by the options that name it ("M · Black"). */
 function variantName(product: ProductDetail, optionIds: readonly string[]): string {
@@ -29,6 +25,45 @@ function variantName(product: ProductDetail, optionIds: readonly string[]): stri
     .map((id) => values.get(id) ?? '')
     .filter(Boolean)
     .join(' · ');
+}
+
+/**
+ * Change the link (LND-04), for the editor's more settings once the link card moved to the product's page
+ * (TENANT-DASHBOARD-DESIGN §7.4c, the owner 2026-11-25): a button opening the link's sheet.
+ */
+export function LinkChangeButton({
+  product,
+  readOnly,
+}: {
+  product: ProductDetail;
+  readOnly: boolean;
+}): React.JSX.Element | null {
+  const { t } = useTranslation('shop');
+  const { host } = useShopAddress();
+  const [open, setOpen] = useState(false);
+  if (readOnly) return null;
+  return (
+    <>
+      <Button
+        tone="outline"
+        size="sm"
+        onClick={() => {
+          setOpen(true);
+        }}
+      >
+        {t('linkChange')}
+      </Button>
+      <LinkSheet
+        open={open}
+        product={product}
+        host={host}
+        readOnly={readOnly}
+        onClose={() => {
+          setOpen(false);
+        }}
+      />
+    </>
+  );
 }
 
 /**
