@@ -193,7 +193,7 @@ test('edits a person: their name, cleared or changed, and their roles', async ({
   await main(page)
     .getByRole('button', { name: /Kamal Hossain/ })
     .click();
-  await expect(sheet(page).getByLabel('Phone number')).toHaveValue('01611 222 333');
+  await expect(sheet(page).getByLabel('Phone number')).toHaveValue('01611222333');
   await expect(sheet(page).getByLabel('Phone number')).toHaveAttribute('readonly', '');
   await expectAccessible(page);
   await sheet(page).getByLabel('Name (optional)').fill('Kamal');

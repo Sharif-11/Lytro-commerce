@@ -41,6 +41,7 @@ import {
   orders,
   orderStatusHistory,
   stockReservations,
+  stockShortfalls,
   type InsertOrder,
   type InsertOrderLine,
   type InsertOrderPayment,
@@ -55,6 +56,11 @@ import { escapeLike } from '../like';
 import { isEmptyPatch } from '../patch';
 
 /** ORD-13, ORD-45, ORD-52: what the order list is narrowed by; null leaves a filter out. */
+
+/** INV-25 (OB-11): an order with a line still waiting for stock. */
+function shortOrderSql(): SQL {
+  return sql`EXISTS (SELECT 1 FROM ${stockShortfalls} s WHERE s.tenant_id = ${orders.tenantId} AND s.order_id = ${orders.id})`;
+}
 export interface OrderListFilter {
   status: OrderStatus | null;
   paymentStatus: OrderPaymentStatus | null;
@@ -76,6 +82,10 @@ export interface OrderListFilter {
   attention: boolean;
   /** PYG-22 (PF-25): only the pay-as-you-go orders still locked. */
   lockedOnly?: boolean;
+  /** INV-25 (ORDERS-BEYOND-STOCK OB-11): only the orders with a line still waiting for stock. */
+  shortOnly?: boolean;
+  /** OB-10: only these orders, as a fill notice links to them. */
+  ids?: string[] | null;
 }
 
 /** Slice 6.7: an order's live parcel as its list row shows it. */
@@ -98,6 +108,10 @@ export interface OrderSummaryRow extends OrderRow {
   /** Slice 6.7: its live parcel (CRR-08 allows one), and what a courier reported that staff should look at, on any of its parcels. */
   parcel: OrderListParcel | null;
   attention: ParcelAttention | null;
+  /** INV-25 (OB-11): how many units its lines still wait for, in what was ordered; 0 when it waits for none. */
+  short: string;
+  /** OB-20: the photos its first lines were ordered with (a line's pinned photo), at most 3, in line order. */
+  thumbs: string[];
 }
 
 /** Home's order figures (Slice 4.8b): what waits, and what was placed today and yesterday. */
@@ -452,6 +466,8 @@ export class OrderRepository {
     if (filter.from !== null) conditions.push(gte(orders.createdAt, filter.from));
     if (filter.before !== null) conditions.push(lt(orders.createdAt, filter.before));
     if (filter.lockedOnly === true) conditions.push(eq(orders.access, OrderAccess.Locked));
+    if (filter.shortOnly === true) conditions.push(shortOrderSql());
+    if (filter.ids && filter.ids.length > 0) conditions.push(inArray(orders.id, filter.ids));
     if (filter.search !== null) {
       const pattern = `%${escapeLike(filter.search)}%`;
       // PYG-22 (PF-26): a locked order is found by its number only, so searching names and numbers reveals no one.
@@ -484,6 +500,16 @@ export class OrderRepository {
         attention: sql<ParcelAttention | null>`(SELECT p.attention FROM ${courierParcels} p
           WHERE p.tenant_id = ${orders.tenantId} AND p.order_id = ${orders.id} AND p.attention IS NOT NULL
           ORDER BY p.updated_at DESC LIMIT 1)`,
+        // INV-25 (OB-11): what its lines still wait for.
+        short: sql<string>`(SELECT coalesce(sum(s.quantity), 0)::text FROM ${stockShortfalls} s
+          WHERE s.tenant_id = ${orders.tenantId} AND s.order_id = ${orders.id})`,
+        // OB-20: the photos its first three lines were ordered with, read per row of this page by the line index.
+        thumbs: sql<
+          string[]
+        >`(SELECT coalesce(array_agg(t.thumbnail_url ORDER BY t.position), ARRAY[]::text[]) FROM (
+          SELECT l.thumbnail_url, l.position FROM ${orderLines} l
+          WHERE l.tenant_id = ${orders.tenantId} AND l.order_id = ${orders.id} AND l.thumbnail_url IS NOT NULL
+          ORDER BY l.position LIMIT 3) t)`,
       })
       .from(orders)
       .leftJoin(items, eq(items.orderId, orders.id))
@@ -499,6 +525,8 @@ export class OrderRepository {
         unansweredCalls: row.unansweredCalls,
         parcel: row.parcel,
         attention: row.attention,
+        short: row.short,
+        thumbs: row.thumbs,
       })),
       total: counted[0]?.total ?? 0,
     };
@@ -542,6 +570,16 @@ export class OrderRepository {
         ),
       );
     return row ?? { received: 0, opened: 0, confirmed: 0 };
+  }
+
+  /** INV-25 (OB-11): how many of the shop's orders still wait for stock, for the "স্টক কম" chip. */
+  async countShort(tx: Transaction, tenantId: string): Promise<number> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const [row] = await tx
+      .select({ total: count() })
+      .from(orders)
+      .where(and(eq(orders.tenantId, tenantId), shortOrderSql()));
+    return row?.total ?? 0;
   }
 
   /** PYG-22 (PF-25): how many of the shop's orders are still locked, for the order list's top line. */

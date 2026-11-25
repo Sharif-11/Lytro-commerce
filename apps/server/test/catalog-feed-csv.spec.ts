@@ -1,4 +1,10 @@
-import type { FeedAttributeRow, FeedImageRow, FeedVariantRow, Transaction } from '@lytronix/db';
+import type {
+  FeedAttributeRow,
+  FeedImageRow,
+  FeedVariantRow,
+  FeedVideoRow,
+  Transaction,
+} from '@lytronix/db';
 import { ItemCondition, StockState } from '@lytronix/validators';
 import { describe, expect, it } from 'vitest';
 import { MediaLinks } from '../src/common/media-links';
@@ -33,14 +39,16 @@ function storeWith(
   images: FeedImageRow[],
   attributes: FeedAttributeRow[],
   variants: FeedVariantRow[] = [variant(RED, StockState.Low), variant(BLUE, StockState.Out)],
+  videos: FeedVideoRow[] = [],
 ): Pick<
   PublicCatalogueStore,
-  'run' | 'listFeedVariants' | 'listFeedImages' | 'listFeedAttributes'
+  'run' | 'listFeedVariants' | 'listFeedImages' | 'listFeedVideos' | 'listFeedAttributes'
 > {
   return {
     run: <T>(work: (tx: Transaction) => Promise<T>) => work({} as Transaction),
     listFeedVariants: () => Promise.resolve(variants),
     listFeedImages: () => Promise.resolve(images),
+    listFeedVideos: () => Promise.resolve(videos),
     listFeedAttributes: () => Promise.resolve(attributes),
   };
 }
@@ -131,5 +139,22 @@ describe('a catalog feed row (FED-02, FED-03)', () => {
     const csv = await csvOf(storeWith([], []));
     expect(csv.split('\n')[1]).toContain(',1500.00 BDT,');
     expect(csv.split('\n')[1]?.endsWith(`?v=${RED},,,,,`)).toBe(true);
+  });
+
+  // STO-09 (the owner, 2026-11-25): a product with only a video is never sent to Meta without a picture.
+  it("gives a product with only a video its video's poster as the photo", async () => {
+    const video: FeedVideoRow = { productId: PRODUCT, mediaId: 'clip', hash: 'h' };
+    const csv = await csvOf(storeWith([], [], undefined, [video]));
+    const poster = `https://media.lytro.app/tenants/${SHOP}/clip/h.poster.webp`;
+    expect(csv.split('\n')[1]?.endsWith(`?v=${RED},${poster},,,,`)).toBe(true);
+  });
+
+  it('keeps the first photo first for a product with photos and a video', async () => {
+    const photo: FeedImageRow = { productId: PRODUCT, mediaId: 'front', hash: 'h', designId: null };
+    const video: FeedVideoRow = { productId: PRODUCT, mediaId: 'clip', hash: 'h' };
+    const csv = await csvOf(storeWith([photo], [], undefined, [video]));
+    const front = `https://media.lytro.app/tenants/${SHOP}/front/h.webp`;
+    expect(csv.split('\n')[1]?.endsWith(`?v=${RED},${front},,,,`)).toBe(true);
+    expect(csv).not.toContain('poster');
   });
 });

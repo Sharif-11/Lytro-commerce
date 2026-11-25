@@ -11,7 +11,7 @@ import { buttonClass } from '@/components/ui/classes';
 import { Sheet } from '@/components/ui/sheet';
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard';
 import { useShopAddress } from '@/hooks/use-shop-address';
-import { designLinkOf } from '@/lib/product-link';
+import { linkOf } from '@/lib/product-link';
 import { useShell } from '@/shell/shell-context';
 import type { ProductDetail } from '@/types/product';
 
@@ -34,7 +34,6 @@ export function ProductShareBody({ product }: { product: ProductDetail }): React
   const { t } = useTranslation('shop');
   // Home's link card's own words for the shop's link (one definition).
   const { t: home } = useTranslation('home');
-  const { t: shell } = useTranslation('shell');
   const { host, url: shopUrl } = useShopAddress();
   const { slug, tenant, showToast } = useShell();
   const shared = useMarkLinkShared();
@@ -45,7 +44,7 @@ export function ProductShareBody({ product }: { product: ProductDetail }): React
   const markShared = (): void => {
     shared.mutate();
   };
-  const shown = designLinkOf(host, product, designId);
+  const shown = linkOf(host, product, designId);
   const url = `https://${shown}`;
   const design = product.designs.find((each) => each.id === designId) ?? null;
   const cover = design
@@ -54,12 +53,12 @@ export function ProductShareBody({ product }: { product: ProductDetail }): React
   const paused = tenant.fairUse?.on === true && tenant.fairUse.paused;
   const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
   const fallback = [
-    { name: shell('whatsapp'), href: `https://wa.me/?text=${encodeURIComponent(url)}` },
+    { name: t('qsWhatsapp'), href: `https://wa.me/?text=${encodeURIComponent(url)}` },
     {
-      name: shell('facebook'),
+      name: t('qsFacebook'),
       href: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
     },
-    { name: t('psMessenger'), href: `fb-messenger://share/?link=${encodeURIComponent(url)}` },
+    { name: t('qsMessenger'), href: `fb-messenger://share/?link=${encodeURIComponent(url)}` },
   ];
   return (
     <div className="flex flex-col gap-3">
@@ -78,7 +77,7 @@ export function ProductShareBody({ product }: { product: ProductDetail }): React
           </span>
         </span>
       </div>
-      <p className="text-[14px] text-fg-muted">{t('psLead')}</p>
+      <p className="text-[14px] text-fg-muted">{t('qsLead')}</p>
       <div
         className="flex h-12 items-center rounded-control border border-line-strong bg-surface px-3 text-[16px]"
         data-testid="share-link"
@@ -93,7 +92,7 @@ export function ProductShareBody({ product }: { product: ProductDetail }): React
             <Icon name="clock" size={16} />
           </span>
           <span className="min-w-[180px] flex-1">
-            {t('psPaused', { amount: tenant.fairUse?.activationTopUp ?? 10 })}
+            {t('qsPaused', { amount: tenant.fairUse?.activationTopUp ?? 10 })}
           </span>
           <Link
             to="/$shop/balance"
@@ -101,7 +100,7 @@ export function ProductShareBody({ product }: { product: ProductDetail }): React
             search={{ topup: 1, amount: tenant.fairUse?.activationTopUp ?? 10 }}
             className="font-semibold whitespace-nowrap text-primary"
           >
-            {t('psActivate')}
+            {t('qsActivate')}
           </Link>
         </div>
       ) : null}
@@ -111,13 +110,13 @@ export function ProductShareBody({ product }: { product: ProductDetail }): React
           onClick={() => {
             void copy(url).then((ok) => {
               if (!ok) return;
-              showToast(t('psCopiedToast'));
+              showToast(t('qsCopiedToast'));
               markShared();
             });
           }}
         >
           <Icon name={copied ? 'check' : 'copy'} />
-          {copied ? t('psCopied') : t('psCopy')}
+          {copied ? t('qsCopied') : t('qsCopy')}
         </Button>
         {canShare ? (
           <Button
@@ -130,7 +129,7 @@ export function ProductShareBody({ product }: { product: ProductDetail }): React
             }}
           >
             <Icon name="share" />
-            {t('psShare')}
+            {t('qsShare')}
           </Button>
         ) : null}
         <a
@@ -140,24 +139,27 @@ export function ProductShareBody({ product }: { product: ProductDetail }): React
           className={`${buttonClass('outline', 'md')} justify-center no-underline`}
         >
           <Icon name="external" />
-          {t('psSee')}
+          {t('qsView')}
         </a>
       </div>
       {canShare ? null : (
-        <div className="flex flex-wrap gap-2" data-testid="share-fallback">
-          {fallback.map((each) => (
-            <a
-              key={each.name}
-              href={each.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={markShared}
-              className={`${buttonClass('outline', 'sm')} no-underline`}
-            >
-              <Icon name="share" />
-              {each.name}
-            </a>
-          ))}
+        <div className="flex flex-col gap-1.5" data-testid="share-fallback">
+          <span className="text-[14px] font-medium text-fg-muted">{t('qsShare')}</span>
+          <div className="flex flex-wrap gap-2">
+            {fallback.map((each) => (
+              <a
+                key={each.name}
+                href={each.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={markShared}
+                className={`${buttonClass('outline', 'sm')} no-underline`}
+              >
+                <Icon name="share" />
+                {each.name}
+              </a>
+            ))}
+          </div>
         </div>
       )}
       {product.designs.length > 1 ? (
@@ -218,7 +220,7 @@ export function ProductShareBody({ product }: { product: ProductDetail }): React
         <h3 id={shopHeading} className="text-[15px] font-semibold">
           {home('shopLink')}
         </h3>
-        <p className="text-[14px] text-fg-muted">{t('psShopHint')}</p>
+        <p className="text-[14px] text-fg-muted">{t('qsShopLead')}</p>
         <LinkShare url={shopUrl} shown={host} onShared={markShared} />
       </section>
     </div>

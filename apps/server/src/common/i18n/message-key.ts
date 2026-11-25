@@ -370,6 +370,10 @@ export const MESSAGE_KEYS = [
   'StockIsShared',
   'WholePacksOnly',
   'SharedStockNeedsEmpty',
+  'StockNotShared',
+  'SplitNeedsEveryVariant',
+  'SplitBatchedStock',
+  'SplitVariantNotFound',
   'BatchNotFound',
   'BatchesNotTracked',
   'NewBatchOnlyForArrivals',
@@ -393,6 +397,8 @@ export const MESSAGE_KEYS = [
 
   // Reservations (Phase 3 Slice 5a)
   'NotEnoughStockForOrder',
+  // INV-25 (ORDERS-BEYOND-STOCK OB-9): an order waiting for stock can't leave the shop.
+  'OrderShortOfStock',
   'UnitsHeldForOrders',
   // Phase 4 Slice 4.5: combo packs (CMB-01 to CMB-10).
   'ComboPartNotFound',
@@ -505,6 +511,7 @@ export const MESSAGE_KEYS = [
   'PeriodTooLong',
   'StockAdded',
   'StocksAdded',
+  'StockSplit',
   'BatchesRetrieved',
   'BatchWrittenOff',
   'SerialsRetrieved',

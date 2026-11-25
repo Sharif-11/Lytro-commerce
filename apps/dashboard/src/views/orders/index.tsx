@@ -67,7 +67,8 @@ export function OrdersScreen({
     filter.reason ||
     filter.holding ||
     filter.product ||
-    filter.source,
+    filter.source ||
+    filter.ids,
   );
 
   // The search's pause: a write of the search box still to come.
@@ -179,6 +180,21 @@ export function OrdersScreen({
           </Chip>
         </div>
       ) : null}
+      {filter.ids && filter.ids.length > 0 ? (
+        // OB-10: the orders a fill notice in the bell led to, until cleared.
+        <div className="mb-2.5 flex flex-wrap gap-2">
+          <Chip
+            on
+            aria-label={`${t('obs.idsChip', { count: filter.ids.length })}. ${t('obs.idsClear')}`}
+            onClick={() => {
+              show({ ids: undefined });
+            }}
+          >
+            {t('obs.idsChip', { count: filter.ids.length })}
+            <Icon name="x" />
+          </Chip>
+        </div>
+      ) : null}
       {filter.holding ? (
         <div className="mb-2.5 flex flex-wrap gap-2">
           <Chip
@@ -196,7 +212,12 @@ export function OrdersScreen({
       <OrderTabs
         filter={filter}
         onTab={(tab: OrderTab, reason) => {
-          show({ tab, reason });
+          show({ tab, reason, short: false });
+        }}
+        short={list.data?.pages[0]?.short ?? 0}
+        onShort={() => {
+          // OB-11: every order still waiting for stock, whatever its status; off again, the day's work.
+          show(filter.short === true ? { short: false } : { short: true, tab: 'all' });
         }}
       />
       {filter.tab === LOOK_TAB ? (

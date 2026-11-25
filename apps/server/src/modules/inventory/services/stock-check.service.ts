@@ -223,6 +223,7 @@ export class StockCheckService {
                 reference: { type: STOCK_CHECK_REFERENCE, id: check.id },
                 batchId: line.batchId ?? null,
                 serials: missingSerials.get(line) ?? null,
+                countsHeld: true,
               },
             ];
       });

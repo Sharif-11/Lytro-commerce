@@ -56,16 +56,17 @@ export function designOfVariant(
 }
 
 /**
- * PD-6: the photo a cart line, the landing page's summary and the order show for a variant: its design's cover, else the
- * product's first photo; the thumbnail's address, or null for a product without photos.
+ * PD-6, STO-09: the photo a cart line, the landing page's summary and the order show for a variant: its design's cover,
+ * else the product's cover (its first photo, else its video's poster); the thumbnail's address, or null for a product
+ * with neither.
  */
 export function lineImageOf(
-  product: Pick<PublicProduct, 'options' | 'images'>,
+  product: Pick<PublicProduct, 'options' | 'images' | 'cover'>,
   variant: Pick<ProductVariant, 'optionIds'> | null,
 ): string | null {
   const designId = variant ? designOfVariant(product, variant) : null;
   const cover = designId === null ? null : designCoverOf(product, designId);
-  return (cover ?? product.images[0] ?? null)?.urls.thumbnail ?? null;
+  return (cover ?? product.cover)?.urls.thumbnail ?? null;
 }
 
 /** PD-17: a design none of whose variants can be bought: its cards are greyed and can't be chosen. */

@@ -16,6 +16,7 @@ import {
   type PublicProductListQuery,
 } from '@lytronix/validators';
 import { ApiError, FieldsError } from '../../../common/api-error';
+import { coverOf } from '../../../common/media-links';
 import { DAY_MS, SECOND_MS } from '../../../common/time';
 import { CatalogueImages } from '../../catalogue/services/catalogue-images';
 import { ProductService } from '../../catalogue/services/product.service';
@@ -42,7 +43,7 @@ import { CatalogueCache } from './catalogue-cache';
 import { listRequestOf, cursorOf, positionOf, type ListRequest } from './catalogue-query';
 import { CatalogueVersionReader } from './catalogue-version-reader';
 import { DomainService } from '../../domains/services/domain.service';
-import { comboFigures, comboSaving, unitsOf } from '../../inventory/services/combo-figures';
+import { comboFigures, comboSaving } from '../../inventory/services/combo-figures';
 
 // Bumped whenever an answer's shape changes, so no shopper's browser keeps an old one under an unchanged tag. 2: a list
 // row's swatches and creation time, a category's product count (Slice 12b). 3: what a product asks (Slice 4.8e). 5: a
@@ -192,14 +193,14 @@ export class PublicCatalogue {
         const offered = part.variants.flatMap((variant) => {
           const row = stock.get(`${String(part.position)} ${variant.variantId}`);
           if (!row || !row.productActive || !row.variantActive || !variant.available) return [];
-          const units = unitsOf(row);
           return [
             {
               variantId: variant.variantId,
               productName: variant.productName,
               label: labels.get(variant.variantId) ?? '',
               image: photos.get(row.designCoverMediaId ?? '') ?? null,
-              available: units === null || units > 0,
+              // INV-25 (OB-14, OB-17): a part beyond its free stock still orders; the combo line waits for it.
+              available: true,
             },
           ];
         });
@@ -352,6 +353,12 @@ export class PublicCatalogue {
         tenantId,
         page.flatMap((row) => (row.designCover === null ? [] : [row.designCover])),
       );
+      // STO-09: a product with no photo shows its video's poster, so only those videos are read.
+      const videos = await this.images.videosOf(
+        tx,
+        tenantId,
+        page.map((row) => ((images.get(row.id)?.length ?? 0) > 0 ? null : row.videoId)),
+      );
       const swatches = await this.swatchesOf(tx, tenantId, ids);
       // SB-10: the badges' facts, one read for the page.
       const facts = new Map(
@@ -375,8 +382,10 @@ export class PublicCatalogue {
           stockState: row.stockState,
           image:
             (row.designCover === null ? null : covers.get(row.designCover)) ??
-            images.get(row.id)?.[0] ??
-            null,
+            coverOf(
+              images.get(row.id) ?? [],
+              row.videoId === null ? null : (videos.get(row.videoId) ?? null),
+            ),
           createdAt: row.createdAt,
           swatches: row.designId === null ? (swatches.get(row.id) ?? []) : [],
           minRegularPrice: row.minRegularPrice,
@@ -385,7 +394,7 @@ export class PublicCatalogue {
           ordered: facts.get(row.id)?.ordered ?? 0,
           bestSeller: facts.get(row.id)?.bestSeller ?? false,
           designId: row.designId,
-          hasVideo: row.hasVideo,
+          hasVideo: row.videoId !== null,
         })),
         nextCursor:
           picked === null && rows.length > request.limit && last
@@ -481,6 +490,7 @@ function publicDetail(detail: ProductDetail): Omit<PublicProductDetail, 'combo'>
       designId: image.designId,
     })),
     video: detail.video,
+    cover: coverOf(detail.images, detail.video),
     options: detail.variantAttributes.map((attribute) => ({
       attributeId: attribute.attributeId,
       name: attribute.name,
@@ -510,7 +520,8 @@ function publicDetail(detail: ProductDetail): Omit<PublicProductDetail, 'combo'>
           ? variant.effectiveRegularPrice
           : null,
       stockState: variant.stockState,
-      available: variant.stockState !== StockState.Out,
+      // INV-25 (OB-17, ATR-07 as amended): every active variant can be ordered; stockState still says what is in stock.
+      available: true,
     })),
     sizeChart: detail.sizeChart
       ? { rows: detail.sizeChart.rows, image: detail.sizeChart.image }

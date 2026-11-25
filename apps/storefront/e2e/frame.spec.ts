@@ -91,14 +91,15 @@ test.describe('one app, each shop its own (SFT-01, SFT-02, SFT-13)', () => {
 });
 
 test.describe('cards (SFT-03)', () => {
-  test('tags a new product, a sold-out one, and shows a product page its stock', async ({
+  test('tags a new product, never a sold-out one, and shows a product page its stock only when in stock', async ({
     page,
   }) => {
     const shop = await openShop(page);
     await page.goto(shop.url('/new'));
     const card = (name: string) => page.locator('.card', { hasText: name });
     await expect(card('Linen Shirt').locator('.tag')).toHaveText('New');
-    await expect(card('Kids Frock').locator('.tag')).toHaveText('Sold out');
+    // ORDERS-BEYOND-STOCK OB-2, OB-18: no stock wording for a sold-out product.
+    await expect(card('Kids Frock').locator('.tag')).toHaveCount(0);
     await expect(card('Chiffon Hijab').locator('.tag')).toHaveCount(0);
 
     await page.goto(shop.url('/p/chiffon-hijab'));
@@ -115,7 +116,8 @@ test.describe('cards (SFT-03)', () => {
       'https://m.me/meghfashion',
     );
     await page.goto(shop.url('/p/kids-frock'));
-    await expect(page.locator('.pricerow .st.out')).toHaveText('Sold out');
+    await expect(page.locator('#order-name')).toBeVisible();
+    await expect(page.locator('.pricerow .st')).toHaveCount(0);
   });
 });
 
@@ -151,7 +153,7 @@ test.describe('header and footer (SFT-13, SFT-21, TEN-18)', () => {
     const shop = await openShop(page);
     await page.goto(shop.url('/'));
     const footer = page.locator('footer.foot');
-    await expect(footer.getByRole('link', { name: '01711-223344' })).toHaveAttribute(
+    await expect(footer.getByRole('link', { name: '01711223344' })).toHaveAttribute(
       'href',
       'tel:01711-223344',
     );
@@ -159,7 +161,7 @@ test.describe('header and footer (SFT-13, SFT-21, TEN-18)', () => {
     await expect(footer.getByText('Shop 12, Rapa Plaza')).toBeVisible();
     // UI/UX batch 2 (2.2): the shop's WhatsApp, Messenger and Facebook page, each opening in a new tab.
     const chats: [string, string, string][] = [
-      ["The shop's WhatsApp", '01711 223 344', 'https://wa.me/8801711223344'],
+      ["The shop's WhatsApp", '01711223344', 'https://wa.me/8801711223344'],
       ["The shop's Messenger", 'm.me/meghfashion', 'https://m.me/meghfashion'],
       [
         "The shop's Facebook page",

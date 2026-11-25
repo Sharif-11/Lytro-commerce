@@ -1,4 +1,5 @@
 import { headers } from 'next/headers';
+import { phoneShown } from '@lytronix/validators';
 import type { PublicShop } from '@/lib/api/storefront-api';
 import type { PageTheme } from '@/lib/design/design-look';
 import { firstLetter } from '@/lib/design/marks';
@@ -175,7 +176,7 @@ export function DesignedFooter({
   const contact = [
     phone !== null ? (
       <li key="phone">
-        <a href={`tel:${phone}`}>{phone}</a>
+        <a href={`tel:${phone}`}>{phoneShown(phone)}</a>
       </li>
     ) : null,
     chat.whatsapp ? (

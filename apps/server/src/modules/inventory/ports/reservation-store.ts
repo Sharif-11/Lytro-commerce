@@ -1,6 +1,11 @@
 import type { Transaction } from '@lytronix/db';
 import type { ReservationStatus } from '@lytronix/validators';
-import type { NewReservation, ReservationRecord } from '../types/inventory';
+import type {
+  NewReservation,
+  NewShortfall,
+  OrderShortfallRecord,
+  ReservationRecord,
+} from '../types/inventory';
 
 /**
  * INV-15, INV-16: stock held for order lines. The database raises and lowers each level's reserved stock with its
@@ -28,4 +33,38 @@ export interface ReservationStore {
     status: ReservationStatus.Consumed | ReservationStatus.Released,
   ): Promise<string[]>;
   deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void>;
+  /** INV-25 (OB-7): records what an order line waits for. */
+  insertShortfall(
+    tx: Transaction,
+    tenantId: string,
+    row: NewShortfall,
+  ): Promise<OrderShortfallRecord>;
+  /** INV-25: what these orders' lines wait for, oldest first. */
+  listShortfallsForOrders(
+    tx: Transaction,
+    tenantId: string,
+    orderIds: string[],
+  ): Promise<OrderShortfallRecord[]>;
+  /** OB-8: the lines waiting for one stock, oldest first, locked; lock its level first. */
+  lockWaiting(
+    tx: Transaction,
+    tenantId: string,
+    variantId: string,
+  ): Promise<OrderShortfallRecord[]>;
+  /** OB-12: every line waiting on these stocks, oldest first, for reading only. */
+  listWaitingOn(
+    tx: Transaction,
+    tenantId: string,
+    variantIds: string[],
+  ): Promise<OrderShortfallRecord[]>;
+  /** Q3: one stock's active reservations, newest first, locked; lock its level first. */
+  lockHeldNewestFirst(
+    tx: Transaction,
+    tenantId: string,
+    variantId: string,
+  ): Promise<ReservationRecord[]>;
+  /** OB-8: what a line still waits for after a fill; nothing left takes the row away. */
+  setShortfall(tx: Transaction, tenantId: string, id: string, quantity: string): Promise<void>;
+  /** OB-13: drops what an order waits for; how many rows went. */
+  deleteShortfallsForOrder(tx: Transaction, tenantId: string, orderId: string): Promise<number>;
 }

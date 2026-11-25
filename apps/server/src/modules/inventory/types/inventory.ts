@@ -2,11 +2,13 @@ import type { ImageView } from '../../../common/media-links';
 import type { ComboIssue } from '../services/combo-figures';
 import type {
   NewReservation,
+  NewShortfall,
   NewSerial,
   NewStockBatch,
   NewStockMovement,
   SelectSerialNumber,
   SelectStockReservation,
+  SelectStockShortfall,
   ReferencedMovementRow,
   ReturnedRow,
   ShortfallRow,
@@ -38,8 +40,11 @@ export type MovementRecord = SelectStockMovement;
 export type StockBatchRecord = SelectStockBatch;
 export type SerialRecord = SelectSerialNumber;
 export type ReservationRecord = SelectStockReservation;
+/** INV-25: what an order line waits for (OB-6). */
+export type OrderShortfallRecord = SelectStockShortfall;
 export type {
   NewReservation,
+  NewShortfall,
   NewSerial,
   NewStockBatch,
   NewStockMovement,
@@ -96,6 +101,11 @@ export interface StockChange {
   unitCost?: string | null;
   /** INV-14: on a sale, the order its units went to; the serials leaving with it are sold to that order. */
   orderId?: string | null;
+  /**
+   * INV-25 (ORDERS-BEYOND-STOCK Q3): a count or edit the seller made, which stands even below what is held for orders
+   * (the newest orders then wait for what they gave up). Never set on a sale.
+   */
+  countsHeld?: boolean;
 }
 
 /**
@@ -284,6 +294,8 @@ export interface SharedStockView {
 
 export interface ProductStockView {
   productId: string;
+  /** INV-25 (ORDERS-BEYOND-STOCK OB-10): after stock was added, how many waiting orders it went to; absent when none. */
+  filledOrders?: number;
   stockTracking: StockTracking;
   stockUnit: StockUnit;
   lowStockThreshold: string;

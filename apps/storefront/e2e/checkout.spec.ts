@@ -302,7 +302,7 @@ test.describe('what the shop refuses', () => {
     ]);
   });
 
-  test('an item already sold out when the page checks: named, and Place order waits', async ({
+  test('an item sold out on the shelf is placed like any other, with no stock wording (INV-25, OB-18)', async ({
     page,
   }) => {
     const shop = await openShop(page);
@@ -318,11 +318,9 @@ test.describe('what the shop refuses', () => {
       },
     ]);
     await page.goto(shop.url('/checkout'));
-    await expect(alertOn(page)).toContainText('Kids Frock is sold out');
-    await expect(alertOn(page)).toContainText('Remove it to place the order.');
-    await expect(place(page)).toBeDisabled();
-    await page.locator('.cl.off').getByRole('button', { name: 'Remove' }).click();
+    await expect(page.locator('.cl', { hasText: 'Kids Frock' })).toBeVisible();
     await expect(alertOn(page)).toHaveCount(0);
+    await expect(page.locator('.cl.off')).toHaveCount(0);
     await fillOrderForm(page);
     await expect(place(page)).toBeEnabled();
   });

@@ -150,7 +150,7 @@ export function PhoneEditor({
         aria-label={label}
         aria-invalid={refused}
         inputMode="tel"
-        placeholder="+880 1711-000000"
+        placeholder="01711000000"
         value={words}
         onChange={(event) => {
           setWords(event.target.value);

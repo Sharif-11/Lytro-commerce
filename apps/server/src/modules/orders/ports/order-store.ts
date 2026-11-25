@@ -214,6 +214,8 @@ export interface OrderStore {
   recentCouriers(tx: Transaction, tenantId: string, limit: number): Promise<string[]>;
   /** PYG-22 (PF-25): how many orders are still locked. */
   countLocked(tx: Transaction, tenantId: string): Promise<number>;
+  /** INV-25 (OB-11): how many orders still wait for stock. */
+  countShort(tx: Transaction, tenantId: string): Promise<number>;
   /** PYG-24 (PF-33): every order not yet opened, opened free; their ids and phones. */
   openAll(
     tx: Transaction,

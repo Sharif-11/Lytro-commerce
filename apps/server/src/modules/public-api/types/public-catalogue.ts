@@ -132,6 +132,11 @@ export interface PublicProductDetail {
   /** PRD-11, ATR-19, PD-28: its photos in order, each with its pixels and the design it shows (null: plain). */
   images: (ImageView & { width: number | null; height: number | null; designId: string | null })[];
   video: VideoView | null;
+  /**
+   * STO-09 (the owner, 2026-11-25): the one picture shown for it -- its first photo, else its video's poster -- for a
+   * link preview or a cart line; null with neither.
+   */
+  cover: ImageView | null;
   options: PublicProductOption[];
   attributes: PublicProductAttribute[];
   variants: PublicVariant[];

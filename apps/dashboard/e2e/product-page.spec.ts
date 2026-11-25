@@ -263,7 +263,7 @@ test('several designs show each design’s count by size (pd-detail-designs)', a
   await expect(grid.getByRole('row')).toHaveCount(3);
   await expect(grid.getByRole('cell')).toHaveText(['3', '0', '2', '5']);
   await expect(grid.getByRole('img', { name: 'Stripe' })).toBeVisible();
-  await expect(main(page).getByText('Red: sold out. Amber: low.')).toBeVisible();
+  await expect(main(page).getByText(/^Red: sold out. Amber: low./)).toBeVisible();
   await expect(main(page).getByTestId('pd-photos')).toContainText('Design 1');
   await expectAccessible(page);
   await expectNoSideways(page);

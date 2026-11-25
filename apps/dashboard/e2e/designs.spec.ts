@@ -269,7 +269,7 @@ test('New order offers a design product’s variants under each design’s photo
 
 test('a combo’s part is ticked by design photo and size (PD-22)', async ({ page }) => {
   await open(page, '/products/new', { products: withBurka() });
-  await main(page).getByRole('radio', { name: 'Combo pack' }).click();
+  await main(page).getByRole('button', { name: 'Making a combo pack?' }).click();
   await main(page).getByRole('button', { name: 'Add an item' }).click();
   await page
     .getByRole('dialog', { name: 'Which product?' })
@@ -293,6 +293,8 @@ test('the order page names a design line’s SKU, and the 3 × 3 label its desig
   await expect(
     main(page)
       .locator(`img[src="${shot('m-2')}"]`)
+      // OB-20: the list beside the order (hidden on a phone) shows the same photo too.
+      .filter({ visible: true })
       .first(),
   ).toBeVisible();
   await main(page)

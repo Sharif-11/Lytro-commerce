@@ -15,6 +15,7 @@ import {
 import { drawnActivity } from './support/activity';
 import { BILLING_STAFF, offerInstall, onAnIphone } from './support/menu';
 import { drawnIdentities } from './support/account';
+import { startComboKind, toFullFormIn } from './support/quick-add';
 import { drawnShopPayments, type ShopPaymentsFixture } from './support/shop-payments';
 import { emptyMeta } from './support/meta';
 import { drawnExports, drawnSettings } from './support/settings';
@@ -1196,9 +1197,9 @@ const PAYMENT_METHODS: Pair[] = [
     await dialogOf(page).getByLabel('অ্যাকাউন্টের নাম').fill('মেঘ');
     await dialogOf(page).getByRole('button', { name: 'সেভ করুন' }).click();
   }),
-  pm('sh-pm33-edit', 'sh-pm33-edit', drawnMethods('bn'), tapMain('এডিট 01911 222 333')),
+  pm('sh-pm33-edit', 'sh-pm33-edit', drawnMethods('bn'), tapMain('এডিট 01911222333')),
   pm('dlg-pm33-delete', 'dlg-pm33-delete', drawnMethods('bn'), async (page) => {
-    await tapMain('এডিট 01711 234 567')(page);
+    await tapMain('এডিট 01711234567')(page);
     await dialogOf(page).getByRole('button', { name: 'ডিলিট করুন' }).click();
   }),
   pm('sh-pm33-bank', 'sh-pm33-bank', drawnMethods('bn'), async (page) => {
@@ -1459,7 +1460,8 @@ function comboOffSale(): ProductsFixture {
 /** A new combo, named and priced as Part 31 draws it. */
 const startCombo = async (page: Page, kind: string, name: string, price: string): Promise<void> => {
   const main = page.getByRole('main');
-  await main.getByRole('radio', { name: kind }).click();
+  // Quick add (§7.4b): the combo is its "কম্বো প্যাক বানাতে চান?" link away.
+  await startComboKind(page, 'কম্বো প্যাক বানাতে চান?', kind);
   await main.getByLabel(name, { exact: true }).first().fill('ঈদ কম্বো');
   await main.getByLabel(price, { exact: true }).first().fill('2450');
 };
@@ -1513,7 +1515,7 @@ const COMBO_EDITOR: Pair[] = [
     path: '/products/new',
     state: { products: comboShop() },
     then: async (page) => {
-      await page.getByRole('main').getByRole('radio', { name: 'Combo pack' }).click();
+      await startComboKind(page, 'Making a combo pack?', 'Combo pack');
       await page.getByRole('main').getByLabel('Name', { exact: true }).fill('Eid combo');
       await page.getByRole('main').getByLabel('Price', { exact: true }).fill('2450');
     },
@@ -4253,6 +4255,8 @@ function stockPairs(): Pair[] {
     (language: Language) =>
     async (page: Page): Promise<void> => {
       const bn = language === 'bn';
+      // Quick add (§7.4b) opens first; the prototype's pf-* is today's full form, from More settings.
+      await toFullFormIn(page, language);
       await main(page)
         .getByLabel(bn ? 'নাম' : 'Name', { exact: true })
         .fill(bn ? 'পথের পাঁচালী' : 'Pather Panchali');
@@ -4356,7 +4360,10 @@ function stockPairs(): Pair[] {
     one('pf-defaults-changed', '/products/new', {
       state: phones,
       then: async (page) => {
-        await tap('বদলান')(page);
+        // A clothing shop's new product opens on quick add (§7.4b), whose category sits under আরও সেটিংস; a category
+        // that counts by serial then opens today's full form with its note, as the prototype draws.
+        await tap(/^আরও সেটিংস/)(page);
+        await tap(/^ক্যাটাগরি/)(page);
         await sheet(page).getByRole('checkbox', { name: 'ফোন' }).check();
         await sheet(page).getByRole('button', { name: 'ঠিক আছে' }).click();
         await main(page)
@@ -4528,6 +4535,8 @@ function variantPairs(): Pair[] {
         scroll: card,
         state: { products: bakery },
         then: async (page) => {
+          // Quick add (§7.4b) opens first; the attribute card is the full form's, from More settings.
+          await toFullFormIn(page, 'en');
           for (const [name, values] of [
             ['Size', ['1 lb', '2 lb', '3 lb']],
             ['Flavour', ['Chocolate', 'Vanilla', 'Red velvet']],

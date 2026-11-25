@@ -263,13 +263,22 @@ test.describe('what the form refuses', () => {
     expect((sent?.body as { source: string }).source).toBe('landing_page');
   });
 
-  test('a sold-out product says so by its price, with no form to fill', async ({ page }) => {
-    // The one product page (SB-31): sold out, the page keeps the product and drops the order form and the questions.
+  test('a sold-out product is ordered like any other, with no stock wording (ORDERS-BEYOND-STOCK OB-2, OB-18)', async ({
+    page,
+  }) => {
     const shop = await openShop(page);
     await page.goto(shop.url('/l/kids-frock'));
-    await expect(page.locator('.pricerow .st.out')).toHaveText('Sold out');
-    await expect(page.locator('#order-name')).toHaveCount(0);
-    await expect(page.locator('.pp-bar')).toHaveCount(0);
+    await expect(page.locator('.pricerow .st')).toHaveCount(0);
+    await expect(page.locator('body')).not.toContainText(/sold out|out of stock/i);
+    await fillOrderForm(page);
+    await expect(confirm(page)).toBeEnabled();
+    await confirm(page).click();
+    await expect(
+      page.getByRole('heading', { name: 'Thank you! Your order is placed' }),
+    ).toBeVisible();
+    await expect(page.locator('body')).not.toContainText(/sold out|out of stock/i);
+    const { orders } = await shop.sent();
+    expect(orders).toHaveLength(1);
   });
 
   test('an item sold out as it was placed says so, nothing placed', async ({ page }) => {

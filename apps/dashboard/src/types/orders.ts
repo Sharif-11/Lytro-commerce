@@ -66,6 +66,12 @@ export interface OrderSummary {
   parcel: OrderListParcel | null;
   /** Slice 6.7: what a courier reported that staff haven't marked seen (Needs a look). */
   attention: ParcelAttention | null;
+  /** OB-20: the delivery address line; null at the counter and on a locked order (PF-21). */
+  deliveryAddress: string | null;
+  /** INV-25 (OB-11): how many units its lines still wait for; "0.000" when none. */
+  short: string;
+  /** OB-20: the photos its first three lines were ordered with, in line order. */
+  thumbs: string[];
 }
 
 /** GET /orders: newest first, a page at a time. */
@@ -73,6 +79,8 @@ export interface OrderPage {
   orders: OrderSummary[];
   /** PYG-22 (PF-25): how many of the shop's orders are still locked, whatever the filter. */
   locked: number;
+  /** INV-25 (OB-11): how many of the shop's orders still wait for stock, for the "স্টক কম" chip. */
+  short: number;
   page: number;
   limit: number;
   total: number;
@@ -120,6 +128,10 @@ export interface OrderComponent {
 /** Mirrors `OrderItemView`: an item as ordered (ORD-46). */
 export interface OrderItem {
   id: string;
+  /** INV-25 (OB-11): how many of it the line still waits for; "0.000" when none. */
+  short: string;
+  /** OB-12: what older orders wait for on the same stock, which gets it first; null when none. */
+  ahead: { orders: number; quantity: string } | null;
   productId: string | null;
   variantId: string | null;
   productName: string;
@@ -249,6 +261,8 @@ export interface Order {
   createdAt: string;
   updatedAt: string;
   items: OrderItem[];
+  /** INV-25 (OB-11): how many units its lines still wait for; above zero it can't leave (OB-9). */
+  short: string;
   calls: OrderCall[];
   unansweredCalls: number;
   history: OrderHistory[];

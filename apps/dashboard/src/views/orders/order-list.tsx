@@ -19,13 +19,11 @@ import { RowChevron, RowList } from '@/components/ui/list-row';
 import { Sheet } from '@/components/ui/sheet';
 import { StatusTag } from '@/components/ui/status-tag';
 import { Icon } from '@/components/icon';
-import { courierName } from '@/lib/couriers';
 import { dayLabel, groupByDay } from '@/lib/dates';
+import { bangladeshiPhone } from '@/lib/phone';
 import { useShell } from '@/shell/shell-context';
 import type { OrderSummary } from '@/types/orders';
-import { advancePaid } from './order-auto';
 import { CANCEL_REASONS, atCounter, useOrderWords } from './order-words';
-import { listLineOf } from './parcel-words';
 
 const TAB_WORD: Record<OrderTab, string> = {
   pending: 'tabConfirm',
@@ -59,9 +57,14 @@ function groupsOf(orders: OrderSummary[]): { day: Day; orders: OrderSummary[] }[
 export function OrderTabs({
   filter,
   onTab,
+  short = 0,
+  onShort,
 }: {
   filter: OrderFilter;
   onTab: (tab: OrderTab, reason?: CancelReason) => void;
+  /** INV-25 (ORDERS-BEYOND-STOCK OB-11): how many orders still wait for stock. */
+  short?: number;
+  onShort?: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('orders');
   const [more, setMore] = useState(false);
@@ -70,6 +73,18 @@ export function OrderTabs({
     <>
       {/* Beside an order the column is narrow: the tabs wrap there (the prototype's `.split .list-col .chips`). */}
       <ChipRow role="group" className="lg:flex-wrap lg:overflow-visible">
+        {/* OB-11: the orders still waiting for stock, first in the row, while there are any. */}
+        {onShort && (short > 0 || filter.short === true) ? (
+          <Chip
+            on={filter.short === true}
+            count={short}
+            className={filter.short === true ? 'bg-warning text-white' : 'text-warning'}
+            onClick={onShort}
+          >
+            <Icon name="alert" size={16} />
+            {t('obs.chip')}
+          </Chip>
+        ) : null}
         {ORDER_TABS.map((tab) => (
           <TabChip
             key={tab}
@@ -260,36 +275,11 @@ export function OrderRows({
 }
 
 /**
- * A booked order's courier line under its customer (Part 36's `o36Row`, agreed 2026-11-06): "Steadfast · with the courier", or
- * warning-toned "Needs a look" while a courier reported something staff haven't marked seen.
- */
-function CourierLine({ order }: { order: OrderSummary }): React.JSX.Element | null {
-  const { t } = useTranslation('orders');
-  if (order.attention !== null) {
-    return (
-      <span className="flex items-center gap-1 truncate text-[14px] font-semibold text-warning">
-        <Icon name="alert" size={14} />
-        {t('crLineLook')}
-      </span>
-    );
-  }
-  if (!order.parcel) return null;
-  const line = listLineOf(order.parcel, t, courierName(order.parcel.courierKey));
-  if (!line) return null;
-  return (
-    <span
-      className={`flex items-center gap-1 truncate text-[14px] ${line.warn ? 'text-warning' : 'text-fg-muted'}`}
-    >
-      <Icon name="truck" size={14} />
-      {line.text}
-    </span>
-  );
-}
-
-/**
- * One order (the prototype's `o29Row`): its full number and the customer; where it goes or the counter's chip, its
- * items, and what needs doing -- the unanswered calls, a hold's time, a cancelled order's reason; the total over its
- * status.
+ * One order (the prototype's `o29Row`, as ORDERS-BEYOND-STOCK OB-20 has it -- the owner, 2026-11-25: "in order list just
+ * customer phone number, his address and order total and the image", keeping the status, the "স্টক কম" chip and the
+ * name): the photos its lines were ordered with, the customer's name and phone, the address on two lines (the delivery
+ * line, then thana and zilla, each cut with "…"), the total and the status, and what it still waits for. A locked
+ * pay-as-you-go order shows its masked name and phone and its zilla alone (PF-21, PF-25).
  */
 export function OrderRow({
   order,
@@ -309,46 +299,65 @@ export function OrderRow({
   const { slug } = useShell();
   const words = useOrderWords();
   const shown = words.status(order.status);
-  const note =
-    order.status === OrderStatus.Hold && order.holdUntil ? (
-      <span className="text-warning">{t('callAt', { time: words.time(order.holdUntil) })}</span>
-    ) : order.unansweredCalls > 0 &&
-      (order.status === OrderStatus.Pending || order.status === OrderStatus.Hold) ? (
-      <span className="text-warning">{t('noAnswer', { count: order.unansweredCalls })}</span>
-    ) : order.status === OrderStatus.Cancelled && order.cancelReason ? (
-      words.reason(order.cancelReason)
-    ) : advancePaid(order) ? (
-      // The fixes PR's `fx-autoconfirm-list` (2026-11-14): money already verified, so no call was needed.
-      t('paidTag')
-    ) : null;
+  const short = Number(order.short);
+  // The owner, 2026-11-25: a held order's call-back time stays on its row.
+  const callBack = order.status === OrderStatus.Hold ? order.holdUntil : null;
+  const phone =
+    order.customerPhone === null
+      ? null
+      : // PF-7: a locked order's phone is already masked (017•••••842); any other is one run of digits (#447).
+        order.access === OrderAccess.Locked
+        ? order.customerPhone
+        : bangladeshiPhone.display(order.customerPhone);
   const content = (
     <>
+      {/* OB-20: the number isn't shown, but a screen reader still names the order by it. */}
+      <span className="sr-only">#{order.orderNumber} </span>
+      <OrderThumbs thumbs={order.thumbs} lines={order.items} />
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="truncate text-[16px] font-medium">
-          <span className="num mr-1.5 font-semibold text-fg-muted">#{order.orderNumber}</span>
-          {order.customerErased ? (
-            t('erased')
-          ) : order.access === OrderAccess.Locked ? (
-            // PF-25: a locked row shows its masked phone where the name goes.
-            <span className="num text-fg-muted">
-              {order.customerPhone ?? order.customerName ?? ''}
-            </span>
-          ) : (
-            (order.customerName ?? '')
-          )}
+          {order.customerErased ? t('erased') : (order.customerName ?? '')}
         </span>
-        <span className="truncate text-[14px] text-fg-muted">
-          {atCounter(order) ? (
-            <span className="mr-1.5">
-              <StatusTag tone="neutral">{words.counter(order)}</StatusTag>
-            </span>
-          ) : order.area ? (
-            `${words.area(order.area)} · `
-          ) : null}
-          {t('items', { count: order.items })}
-          {note ? <> · {note}</> : null}
-        </span>
-        <CourierLine order={order} />
+        {phone !== null && !order.customerErased ? (
+          <span className="num truncate text-[15px] text-fg-muted">{phone}</span>
+        ) : null}
+        {atCounter(order) ? (
+          <span>
+            <StatusTag tone="neutral">{words.counter(order)}</StatusTag>
+          </span>
+        ) : (
+          <>
+            {order.deliveryAddress ? (
+              <span className="truncate text-[14px] text-fg-muted">{order.deliveryAddress}</span>
+            ) : null}
+            {order.area ? (
+              <span className="truncate text-[14px] text-fg-muted">{words.area(order.area)}</span>
+            ) : null}
+          </>
+        )}
+        {short > 0 || callBack || order.attention !== null ? (
+          // OB-20 as the owner amended it (2026-11-25): what needs doing, each only when it applies -- the stock it
+          // waits for, a courier's news to look at, and when to call back.
+          <span className="flex flex-wrap items-center gap-1.5">
+            {short > 0 ? (
+              <StatusTag tone="warn">
+                <Icon name="alert" size={14} />
+                {t('obs.short', { count: short })}
+              </StatusTag>
+            ) : null}
+            {order.attention !== null ? (
+              <StatusTag tone="warn">
+                <Icon name="alert" size={14} />
+                {t('crLineLook')}
+              </StatusTag>
+            ) : null}
+            {callBack ? (
+              <span className="text-[14px] font-medium text-warning">
+                {t('obs.callBack', { time: words.time(callBack) })}
+              </span>
+            ) : null}
+          </span>
+        ) : null}
       </span>
       <span
         className={`flex flex-none flex-col items-end gap-1 text-right sm:flex-row sm:items-center sm:gap-4 ${wide ? '' : 'lg:flex-col lg:items-end lg:gap-1'}`}
@@ -374,16 +383,30 @@ export function OrderRow({
   );
   // Picking to print: the row ticks itself rather than opening the order.
   return picking ? (
-    <label className="flex min-h-16 w-full cursor-pointer items-center gap-3 px-4 py-3">
-      <CheckBox
-        checked={picking.picked.has(order.id)}
-        label={`#${order.orderNumber}`}
-        onChange={() => {
-          picking.onToggle(order.id);
-        }}
-      />
-      {content}
-    </label>
+    short > 0 ? (
+      // OB-9: an order still short of stock can't leave, so its label isn't printed.
+      <div
+        className="flex min-h-16 w-full items-center gap-3 px-4 py-3 opacity-80"
+        aria-disabled="true"
+      >
+        <span className="w-6 flex-none" aria-hidden="true" />
+        <span className="flex min-w-0 flex-1 flex-col gap-1">
+          <span className="flex min-w-0 items-center gap-3">{content}</span>
+          <span className="text-[13px] font-medium text-warning">{t('obs.cantPrint')}</span>
+        </span>
+      </div>
+    ) : (
+      <label className="flex min-h-16 w-full cursor-pointer items-center gap-3 px-4 py-3">
+        <CheckBox
+          checked={picking.picked.has(order.id)}
+          label={`#${order.orderNumber}`}
+          onChange={() => {
+            picking.onToggle(order.id);
+          }}
+        />
+        {content}
+      </label>
+    )
   ) : (
     <Link
       to="/$shop/orders/$orderId"
@@ -495,5 +518,43 @@ export function DatesSheet({
         ))}
       </div>
     </Sheet>
+  );
+}
+
+/**
+ * OB-20: the photos an order's first lines were ordered with -- each design's own photo -- stacked, each 14 px further
+ * right so its design shows, then "+N" for the lines beyond them.
+ */
+function OrderThumbs({ thumbs, lines }: { thumbs: string[]; lines: number }): React.JSX.Element {
+  const { t } = useTranslation('orders');
+  const more = lines - thumbs.length;
+  return (
+    <span
+      className="relative h-11 flex-none"
+      style={{ width: `${String(44 + Math.max(0, thumbs.length - 1) * 14)}px` }}
+      aria-hidden="true"
+    >
+      {thumbs.length === 0 ? (
+        <span className="absolute inset-y-0 left-0 grid w-11 place-items-center rounded-[10px] bg-neutral-100 text-fg-muted">
+          <Icon name="box" size={20} />
+        </span>
+      ) : (
+        thumbs.map((url, at) => (
+          <img
+            key={`${String(at)} ${url}`}
+            src={url}
+            alt=""
+            loading="lazy"
+            className="absolute top-0 h-11 w-11 rounded-[10px] border-2 border-surface object-cover"
+            style={{ left: `${String(at * 14)}px`, zIndex: thumbs.length - at }}
+          />
+        ))
+      )}
+      {more > 0 ? (
+        <span className="num absolute -bottom-1 right-[-6px] z-10 rounded-full bg-fg px-1.5 text-[12px] font-semibold text-surface">
+          {t('obs.more', { count: more })}
+        </span>
+      ) : null}
+    </span>
   );
 }

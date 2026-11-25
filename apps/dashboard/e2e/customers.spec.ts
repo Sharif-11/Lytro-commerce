@@ -61,7 +61,7 @@ test('the list: who ordered last first, with orders, spend and an account; found
     .click();
   await expect(page).toHaveURL(`/${SLUG}/customers`);
   const nusrat = row(page, 'Nusrat Jahan').first();
-  await expect(nusrat).toContainText('01711 234 567 · 4 orders · ৳5,890 total');
+  await expect(nusrat).toContainText('01711234567 · 4 orders · ৳5,890 total');
   await expect(nusrat).toContainText('Last order today');
   await expect(nusrat).toContainText('Has an account');
   await expect(row(page, 'Farhana Islam').first()).toContainText('Last order yesterday');
@@ -231,7 +231,12 @@ test('one search: orders, customers and products grouped, each with See all', as
   const log = await open(page, '/search?q=0171');
   const orders = main(page).getByRole('link', { name: /^#261031-0047/ });
   await expect(orders).toBeVisible();
-  await expect(main(page).getByRole('link', { name: /Nusrat Jahan.*01711 234 567/ })).toBeVisible();
+  // The order row now shows the name and phone too (OB-20), so the customer is the link that isn't an order.
+  await expect(
+    main(page)
+      .locator('a:not([href*="/orders/"])')
+      .filter({ hasText: /Nusrat Jahan.*01711234567/ }),
+  ).toBeVisible();
   expect(log.calls.some((call) => call.path === '/orders' && call.query.includes('q=0171'))).toBe(
     true,
   );

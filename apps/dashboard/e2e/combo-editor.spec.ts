@@ -40,7 +40,7 @@ async function expectAccessible(page: Page): Promise<void> {
 
 /** New product, as a combo, its name and price typed. */
 async function newCombo(page: Page, price = '2450'): Promise<void> {
-  await main(page).getByRole('radio', { name: 'Combo pack' }).click();
+  await main(page).getByRole('button', { name: 'Making a combo pack?' }).click();
   await main(page).getByLabel('Name', { exact: true }).fill('Eid combo');
   await main(page).getByLabel('Price', { exact: true }).fill(price);
 }
@@ -64,11 +64,11 @@ test('New product asks Product or Combo pack; a combo has parts in place of vari
   page,
 }) => {
   await open(page, '/products/new');
+  // Quick add (§7.4b): a combo is one link away, and the kind question comes with it.
+  await expect(main(page).getByRole('radio', { name: 'Combo pack' })).toHaveCount(0);
+  await main(page).getByRole('button', { name: 'Making a combo pack?' }).click();
   await expect(main(page)).toContainText("Once made, this can't be changed");
-  await expect(main(page).getByRole('radio', { name: 'Product', exact: true })).toBeChecked();
-  await expect(main(page).getByText('Add-ons', { exact: true })).toBeVisible();
-
-  await main(page).getByRole('radio', { name: 'Combo pack' }).click();
+  await expect(main(page).getByRole('radio', { name: 'Combo pack' })).toBeChecked();
   await expect(main(page).getByRole('heading', { name: "What's inside" })).toBeVisible();
   await expect(main(page)).toContainText('Nothing inside yet. Add the products that go in it.');
   await expect(main(page)).toContainText('A combo holds no stock of its own');

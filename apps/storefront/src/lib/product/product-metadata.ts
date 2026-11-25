@@ -19,7 +19,8 @@ export function productMetadata(
   const title = `${product.name} · ${shop.name}`;
   const summary = product.description?.replace(/\s+/g, ' ').trim().slice(0, 160) ?? '';
   const description = [price, summary || shop.name].filter((part) => part).join(' · ');
-  const image = product.images[0]?.urls.main;
+  // STO-09: the product's cover -- its first photo, else its video's poster.
+  const image = product.cover?.urls.main;
   const images = image ? [{ url: image, alt: product.name }] : [];
   return {
     metadataBase: new URL(origin),

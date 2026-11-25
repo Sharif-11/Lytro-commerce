@@ -196,7 +196,8 @@ test.describe('a combo (CMB-09)', () => {
       };
     });
     await page.goto(shop.url('/p/cotton-panjabi'));
-    await expect(page.locator('.pricerow .st.out')).toHaveText('Sold out');
+    // ORDERS-BEYOND-STOCK OB-18: no stock wording; a part no longer sold still keeps the combo from the cart.
+    await expect(page.locator('.pricerow .st')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Add to cart' })).toHaveCount(0);
   });
 });
@@ -263,11 +264,11 @@ test.describe('the cart (SFT-05, SFT-20)', () => {
     await page.goto(shop.url('/cart'));
     const cart = page.getByRole('dialog');
     await expect(cart.getByText('We do not deliver to Bandarban')).toBeVisible();
-    await expect(cart.getByText('call 01711-223344')).toBeVisible();
+    await expect(cart.getByText('call 01711223344')).toBeVisible();
     await expect(cart.getByRole('button', { name: 'Checkout' })).toBeDisabled();
   });
 
-  test('checks each line: a new price, sold out, no longer sold, options that no longer fit', async ({
+  test('checks each line: a new price, sold out still orderable, no longer sold, options that no longer fit', async ({
     page,
   }) => {
     const shop = await openShop(page);
@@ -298,11 +299,16 @@ test.describe('the cart (SFT-05, SFT-20)', () => {
     const cart = page.getByRole('dialog');
     await expect(cart.locator('.cl').nth(0)).toContainText('Price changed, was ৳1,150');
     await expect(cart.locator('.cl').nth(0).locator('.price')).toHaveText('৳1,250');
-    await expect(cart.locator('.cl.off').nth(0)).toContainText('Sold out, not in the total');
-    await expect(cart.locator('.cl.off').nth(1)).toContainText('No longer sold, not in the total');
-    await expect(cart.locator('.cl.off').nth(2)).toContainText('Its options changed');
-    await expect(cart.locator('.r').first()).toContainText('৳1,250');
-    await expect(cart.locator('.r').first()).toContainText('1 item');
+    // ORDERS-BEYOND-STOCK OB-7, OB-18: a sold-out item is ordered like any other, priced, with no stock wording.
+    const frock = cart.locator('.cl', { hasText: 'Kids Frock' });
+    await expect(frock).not.toHaveClass(/\boff\b/);
+    await expect(frock).not.toContainText(/sold out/i);
+    await expect(frock.locator('.price')).toHaveText('৳690');
+    await expect(cart.locator('.cl.off').nth(0)).toContainText('No longer sold, not in the total');
+    await expect(cart.locator('.cl.off').nth(1)).toContainText('Its options changed');
+    await expect(cart.locator('.cl.off')).toHaveCount(2);
+    await expect(cart.locator('.r').first()).toContainText('৳1,940');
+    await expect(cart.locator('.r').first()).toContainText('2 items');
   });
 
   test('the stepper and Remove work a line by its own picks', async ({ page }) => {

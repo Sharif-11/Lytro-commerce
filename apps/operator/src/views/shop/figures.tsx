@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { OrderStatus, UsageMetric } from '@lytronix/validators';
+import { OrderStatus, phoneShown, UsageMetric } from '@lytronix/validators';
 import { useShopFigures } from '@/api/shops';
 import { ConsoleIcon } from '@/components/ui/console-icon';
 import { ConsoleCard } from '@/components/ui/console-page';
@@ -10,7 +10,6 @@ import { LoadFailed } from '@/components/ui/load-failed';
 import { NOTE } from '@/components/ui/sizes';
 import { StatusChip } from '@/components/ui/status-chip';
 import { formatDay, taka, useAgo } from '@/lib/format';
-import { spacedPhone } from '@/lib/phone-words';
 import { formatSessionTime } from '@/lib/session-time';
 import type { ShopFigures as Figures, ShopUsageFigure } from '@/types/shop-figures';
 
@@ -134,7 +133,7 @@ function SignIns({ figures }: { figures: Figures }): React.JSX.Element {
                 ) : null}
               </span>
               <span className="mono text-[13px] text-fg-muted">
-                {member.phone ? spacedPhone(member.phone) : '—'}
+                {member.phone ? phoneShown(member.phone) : '—'}
               </span>
             </span>
             <span className="flex flex-none flex-col items-end gap-1 text-right text-[13px] text-fg-subtle">

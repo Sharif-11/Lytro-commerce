@@ -8,15 +8,15 @@ import { Icon } from './icon';
 // A card shows this many swatches, then how many more there are.
 const SWATCHES_SHOWN = 5;
 
-/** PRD-09: a product as a list shows it, as the prototype's card draws it: photo, one tag (sold out, few left, or New
-    for one added in the last PRODUCT_NEW_DAYS), name, price or "from", and its colour swatches (ATR-18). `now` is
-    when the page was made, so the server and the browser agree on New. */
+/** PRD-09: a product as a list shows it, as the prototype's card draws it: photo, one tag (few left, or New for one
+    added in the last PRODUCT_NEW_DAYS), name, price or "from", and its colour swatches (ATR-18). `now` is when the
+    page was made, so the server and the browser agree on New. ORDERS-BEYOND-STOCK OB-2, OB-18: a sold-out product
+    shows no stock wording and isn't greyed: it orders like any other, and the seller adds stock or says no. */
 export function ProductCard({ product, words, now }: { product: Card; words: Words; now: number }) {
-  const out = product.stockState === StockState.Out;
   const ranged = product.maxPrice !== null && product.maxPrice !== product.minPrice;
   const more = product.swatches.length - SWATCHES_SHOWN;
   return (
-    <a className={`card${out ? ' out' : ''}`} href={cardHref(product)}>
+    <a className="card" href={cardHref(product)}>
       <div className="img">
         {product.image ? (
           <img src={product.image.urls.thumbnail} alt="" loading="lazy" />
@@ -29,9 +29,7 @@ export function ProductCard({ product, words, now }: { product: Card; words: Wor
             <Icon name="play" />
           </span>
         ) : null}
-        {out ? (
-          <span className="tag out">{words.t('out')}</span>
-        ) : product.stockState === StockState.Low ? (
+        {product.stockState === StockState.Low ? (
           <span className="tag low">{words.t('low')}</span>
         ) : isNew(product.createdAt, now) ? (
           <span className="tag">

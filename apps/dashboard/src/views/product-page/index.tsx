@@ -27,13 +27,12 @@ import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard';
 import { useErrorText } from '@/hooks/use-error-text';
 import { useShopAddress } from '@/hooks/use-shop-address';
 import { todayInputValue } from '@/lib/dates';
-import { bangladeshiPhone } from '@/lib/phone';
 import { linkOf } from '@/lib/product-link';
 import { allows } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
 import type { ProductStock, VariantStock } from '@/types/attribute';
 import type { ProductDetail } from '@/types/product';
-import { useOrderWords } from '@/views/orders/order-words';
+import { OrderRow } from '@/views/orders/order-list';
 import { useCategoryName } from '@/views/products/product-words';
 import { ArchivedProduct } from '@/views/product/archived-product';
 import { InCombosDialog } from '@/views/product/in-combos-dialog';
@@ -296,12 +295,16 @@ function ProductView({ product }: { product: ProductDetail }): React.JSX.Element
                 </Link>
               </div>
               {recent.data && recent.data.orders.length > 0 ? (
+                // The orders list's own row (ORDERS-BEYOND-STOCK OB-20): photos, name, phone, address, total, status.
                 <RowList>
                   {recent.data.orders.map((order) => (
-                    <RecentOrder
+                    <OrderRow
                       key={order.id}
                       order={order}
-                      cover={photos[0]?.urls.thumbnail ?? null}
+                      selected={false}
+                      search={{}}
+                      picking={null}
+                      wide
                     />
                   ))}
                 </RowList>
@@ -327,12 +330,12 @@ function ProductView({ product }: { product: ProductDetail }): React.JSX.Element
                 size="sm"
                 onClick={() => {
                   void copy(url).then((ok) => {
-                    if (ok) showToast(t('psCopiedToast'));
+                    if (ok) showToast(t('qsCopiedToast'));
                   });
                 }}
               >
                 <Icon name={copied ? 'check' : 'copy'} />
-                {copied ? t('psCopied') : t('ppCopy')}
+                {copied ? t('qsCopied') : t('ppCopy')}
               </Button>
               <Button tone="outline" size="sm" onClick={share}>
                 <Icon name="share" />
@@ -537,46 +540,6 @@ function Figure({ value, label }: { value: string; label: string }): React.JSX.E
   );
 }
 
-/** One of the product's newest orders, in the new row style: the photo, name, phone (its digits together), total, status. */
-function RecentOrder({
-  order,
-  cover,
-}: {
-  order: {
-    id: string;
-    customerName: string | null;
-    customerPhone: string | null;
-    grandTotal: string;
-    status: Parameters<ReturnType<typeof useOrderWords>['status']>[0];
-  };
-  cover: string | null;
-}): React.JSX.Element {
-  const { slug } = useShell();
-  const words = useOrderWords();
-  const shown = words.status(order.status);
-  return (
-    <Link
-      to="/$shop/orders/$orderId"
-      params={{ shop: slug, orderId: order.id }}
-      className={`${rowClass} no-underline`}
-    >
-      <span className="size-11 flex-none overflow-hidden rounded-[8px] bg-neutral-100">
-        {cover ? <img src={cover} alt="" className="size-full object-cover" /> : null}
-      </span>
-      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="truncate text-[16px] font-medium">{order.customerName ?? '—'}</span>
-        <span className="num text-[14px] text-fg-muted">
-          {order.customerPhone ? bangladeshiPhone.forField(order.customerPhone) : ''}
-        </span>
-      </span>
-      <span className="flex flex-none flex-col items-end gap-1">
-        <span className="num text-[16px] font-semibold">{formatTakaExact(order.grandTotal)}</span>
-        <StatusTag tone={shown.tone}>{shown.word}</StatusTag>
-      </span>
-    </Link>
-  );
-}
-
 /** Each design's count by size (the sketch's `pd-detail-designs`): sold-out cells red, low ones amber. */
 function DesignGrid({
   product,
@@ -588,6 +551,7 @@ function DesignGrid({
   onAdd: (() => void) | null;
 }): React.JSX.Element {
   const { t } = useTranslation('shop');
+  const { t: orders } = useTranslation('orders');
   const designIds = new Set(product.designs.map((each) => each.id));
   const sizes = product.variantAttributes.find(
     (attribute) => !attribute.options.some((option) => designIds.has(option.id)),
@@ -650,6 +614,8 @@ function DesignGrid({
                   </th>
                   {columns.map((size) => {
                     const cell = cellOf(design.id, size?.id ?? null);
+                    // OB-10: ordered beyond its stock, waiting for more (the sketch's "1টা কম").
+                    const short = Number(cell?.reservedExpired ?? 0);
                     const tone =
                       cell?.state === StockState.Out
                         ? 'bg-danger-soft text-danger'
@@ -659,9 +625,14 @@ function DesignGrid({
                     return (
                       <td
                         key={size?.id ?? 'one'}
-                        className={`num h-11 min-w-16 rounded-[10px] border border-line text-center text-[16px] font-semibold ${tone}`}
+                        className={`num min-h-11 min-w-16 rounded-[10px] py-1 border border-line text-center text-[16px] font-semibold ${tone}`}
                       >
                         {cell ? Number(cell.available) : '–'}
+                        {short > 0 ? (
+                          <span className="block text-[12px] leading-tight font-medium text-danger">
+                            {orders('obs.short', { count: short })}
+                          </span>
+                        ) : null}
                       </td>
                     );
                   })}

@@ -24,6 +24,24 @@ export function bdMobileNumber(input: string): string | null {
   return LOCAL_MOBILE_WITHOUT_ZERO.test(local) ? `0${local}` : null;
 }
 
+/**
+ * How a phone number is shown, everywhere. The owner, 2026-11-25: "don't [use whitespace in phone numbers], all digit are
+ * together everywhere" -- one run of digits, no spaces or dashes. A Bangladeshi mobile shows in its local form
+ * (01711234567); any other number keeps its digits, and its leading + if it had one.
+ */
+export function phoneShown(value: string): string {
+  const local = bdMobileNumber(value);
+  if (local !== null) return local;
+  const trimmed = value.trim();
+  return `${trimmed.startsWith('+') ? '+' : ''}${trimmed.replace(/\D/g, '')}`;
+}
+
+/** The same number where its country code is written, still one run of digits: +8801711234567. */
+export function phoneShownInternational(value: string): string {
+  const local = bdMobileNumber(value);
+  return local === null ? phoneShown(value) : `+88${local}`;
+}
+
 /** WAL-01: the local form of a wallet number of one of these lengths (Rocket's may be 12 digits), or null. */
 export function walletNumber(input: string, lengths: readonly number[]): string | null {
   const local = localForm(input);

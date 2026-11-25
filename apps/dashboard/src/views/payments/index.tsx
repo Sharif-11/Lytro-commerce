@@ -159,7 +159,7 @@ function WaitingRow({
           lines={[
             [
               payment.transactionId ? `TrxID ${payment.transactionId}` : null,
-              payment.senderNumber ? bangladeshiPhone.grouped(payment.senderNumber) : null,
+              payment.senderNumber ? bangladeshiPhone.display(payment.senderNumber) : null,
             ]
               .filter(Boolean)
               .join(' · '),
@@ -411,7 +411,7 @@ function ReceiptList({
                     at={formatTime(receipt.receivedAt, i18n.language)}
                     lines={[
                       receipt.transactionId ? `TrxID ${receipt.transactionId}` : null,
-                      receipt.senderNumber ? bangladeshiPhone.grouped(receipt.senderNumber) : null,
+                      receipt.senderNumber ? bangladeshiPhone.display(receipt.senderNumber) : null,
                     ].filter(Boolean)}
                   />
                   <StatusTag tone={status.tone}>{status.word}</StatusTag>

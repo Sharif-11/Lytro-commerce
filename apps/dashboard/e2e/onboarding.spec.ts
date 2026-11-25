@@ -36,7 +36,7 @@ test('asks an owner verified by Google for a phone before Create shop, keeping w
   await expect(page.getByText('Enter a valid Bangladeshi mobile number')).toBeVisible();
   await page.getByLabel('Phone number').fill('1711234567');
   await page.getByRole('button', { name: 'Continue' }).click();
-  await expect(page.getByText('+880 1711 234 567', { exact: false })).toBeVisible();
+  await expect(page.getByText('+8801711234567', { exact: false })).toBeVisible();
   expect(log.sent('POST', '/me/identities/code')).toEqual({
     kind: 'phone',
     value: PHONE,
@@ -199,12 +199,12 @@ test('signs in with the number typed from 0, with no fixed +880 before the box',
   await field.fill('01711234567');
   await page.getByRole('button', { name: 'এগিয়ে যান' }).click();
   await expect(
-    page.getByText('+880 1711 234 567 নম্বরে 6 সংখ্যার একটি কোড পাঠানো হয়েছে'),
+    page.getByText('+8801711234567 নম্বরে 6 সংখ্যার একটি কোড পাঠানো হয়েছে'),
   ).toBeVisible();
   expect(log.sent('POST', '/auth/phone/code')).toMatchObject({ phone: PHONE });
 });
 
-test('walks a new owner from the website to Home: code, shop, checkout, password, set-up', async ({
+test('walks a new owner from the website to quick add: code, shop, checkout, password, set-up', async ({
   page,
 }) => {
   const log = await mockOnboarding(page);
@@ -216,7 +216,7 @@ test('walks a new owner from the website to Home: code, shop, checkout, password
   await page.getByLabel('ফোন নম্বর').fill('1711234567');
   await page.getByRole('button', { name: 'এগিয়ে যান' }).click();
   await expect(
-    page.getByText('+880 1711 234 567 নম্বরে 6 সংখ্যার একটি কোড পাঠানো হয়েছে'),
+    page.getByText('+8801711234567 নম্বরে 6 সংখ্যার একটি কোড পাঠানো হয়েছে'),
   ).toBeVisible();
   await typeCode(page, '123456');
   await page.getByRole('button', { name: 'ভেরিফাই করুন' }).click();
@@ -262,7 +262,8 @@ test('walks a new owner from the website to Home: code, shop, checkout, password
   await page.getByRole('button', { name: 'পোশাক' }).click();
   await page.getByRole('button', { name: 'সেভ করে ড্যাশবোর্ডে যান' }).click();
 
-  await expect(page).toHaveURL(`/${SLUG}`);
+  // The owner, 2026-11-25 (§7.4b `pq-first`): a brand-new shop lands on quick add, to add a product and share its link.
+  await expect(page).toHaveURL(`/${SLUG}/products/new`);
   expect(log.sent('PUT', '/business-type')).toEqual({ businessType: 'clothing' });
   expect(log.sent('PUT', '/delivery-zones/home-area')).toBeUndefined();
 });

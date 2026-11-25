@@ -401,6 +401,64 @@ describeIfDatabase('design cards (DC-1, DC-5)', () => {
     expect(own.find((card) => card.id === filmed.id)?.hasVideo).toBe(true);
     expect(own.find((card) => card.id === plain.id)?.hasVideo).toBe(false);
   });
+
+  // STO-09 (the owner, 2026-11-25): a product with only a video showed its play mark on an empty picture.
+  it("shows a product with only a video by its video's poster, on its card and as its cover", async () => {
+    const shop = await openShop(port, texts, 'cards-video-only');
+    const photo = await upload(shop, 90);
+    const shot = await product(shop, 'Cotton panjabi', [photo]);
+    const filmed = (await shop.post('/products', {
+      name: 'Panjabi combo',
+      basePrice: 1200,
+      stockTracking: 'not_tracked',
+    })) as { status: number; body: { id: string; slug: string } };
+    expect(filmed.status, JSON.stringify(filmed.body)).toBe(201);
+    // A ready video row of the shop's stands in, as above: the poster's link is all the card shows of it.
+    const film = await admin.query<{ id: string }>(
+      `INSERT INTO tenant.media (tenant_id, kind, purpose, content_type, declared_bytes)
+       VALUES ($1, 'video', 'product_video', 'video/mp4', 4096) RETURNING id`,
+      [shop.tenantId],
+    );
+    const filmId = film.rows[0]?.id ?? '';
+    await admin.query("UPDATE tenant.media SET status = 'processing' WHERE id = $1", [filmId]);
+    const ready = await admin.query<{ hash: string }>(
+      `UPDATE tenant.media SET status = 'ready', ready_at = now(),
+         hash = encode(sha256(convert_to(id::text, 'UTF8')), 'hex')
+       WHERE id = $1 RETURNING hash`,
+      [filmId],
+    );
+    await admin.query('UPDATE tenant.products SET video_id = $1 WHERE id IN ($2, $3)', [
+      filmId,
+      filmed.body.id,
+      shot.id,
+    ]);
+    await admin.query(
+      'UPDATE tenant.catalogue_state SET version = version + 1 WHERE tenant_id = $1',
+      [shop.tenantId],
+    );
+    const poster = `https://media.example.test/tenants/${shop.tenantId}/${filmId}/${ready.rows[0]?.hash ?? ''}.poster.webp`;
+    const key = await keyFor(shop);
+    const cards = (await list(key, 'limit=10')).products as (Card & {
+      image: { id: string; urls: { main: string; thumbnail: string } } | null;
+    })[];
+    // The video-only product: its poster, large and small, with its play mark.
+    const videoOnly = cards.find((card) => card.id === filmed.body.id);
+    expect(videoOnly?.hasVideo).toBe(true);
+    expect(videoOnly?.image).toEqual({ id: filmId, urls: { main: poster, thumbnail: poster } });
+    // A product with a photo and a video keeps its photo.
+    expect(cards.find((card) => card.id === shot.id)?.image?.id).toBe(photo);
+    // Its page: no photo in the gallery, the video as it is, and the poster as the one picture shown for it.
+    const detail = await callApi(`/v1/catalogue/products/${filmed.body.slug}`, key);
+    expect(detail.status, JSON.stringify(detail.body)).toBe(200);
+    const shown = detail.body as {
+      images: unknown[];
+      video: { id: string } | null;
+      cover: { id: string; urls: { main: string; thumbnail: string } } | null;
+    };
+    expect(shown.images).toEqual([]);
+    expect(shown.video?.id).toBe(filmId);
+    expect(shown.cover).toEqual({ id: filmId, urls: { main: poster, thumbnail: poster } });
+  });
 });
 
 describeIfDatabase("the seller's order (DC-6, DC-7)", () => {

@@ -88,7 +88,7 @@ function CustomerBody({ customer }: { customer: Customer }): React.JSX.Element {
           <h1 className="text-[20px] leading-[1.3] font-bold">{name}</h1>
           {customer.phone ? (
             <p className="num mt-0.5 text-[14px] text-fg-muted">
-              {bangladeshiPhone.grouped(customer.phone)}
+              {bangladeshiPhone.display(customer.phone)}
             </p>
           ) : null}
         </div>

@@ -167,7 +167,7 @@ test.describe('sign up (CUS-03, CUS-04, CUS-07)', () => {
     await page.goto(shop.url('/sign-up'));
     await expect(page.getByText('We send a code once')).toBeVisible();
     await toDetailsStep(page);
-    await expect(page.locator('.sub', { hasText: '01811 000000' })).toBeVisible();
+    await expect(page.locator('.sub', { hasText: '01811000000' })).toBeVisible();
     await makeTheAccount(page);
     await page.waitForURL('**/account');
     await expect(page.getByRole('heading', { name: 'Hello, Rafi' })).toBeVisible();

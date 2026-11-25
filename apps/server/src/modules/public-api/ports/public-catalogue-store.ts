@@ -5,6 +5,7 @@ import type {
   FeedAttributeRow,
   FeedImageRow,
   FeedVariantRow,
+  FeedVideoRow,
   PublicCardFacts,
   PublicProductFilter,
   PublicProductRow,
@@ -61,6 +62,8 @@ export interface PublicCatalogueStore {
   /** FED-01, FED-02: every variant on sale of every active product, its photos, and the named attributes' values. */
   listFeedVariants(tx: Transaction, tenantId: string): Promise<FeedVariantRow[]>;
   listFeedImages(tx: Transaction, tenantId: string): Promise<FeedImageRow[]>;
+  /** STO-09: each product's ready video, whose poster stands in when it has no photo. */
+  listFeedVideos(tx: Transaction, tenantId: string): Promise<FeedVideoRow[]>;
   listFeedAttributes(
     tx: Transaction,
     tenantId: string,

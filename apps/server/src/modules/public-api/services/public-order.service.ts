@@ -136,10 +136,11 @@ export class PublicOrderService {
         });
       }
       await this.idempotency.completeWithin(tx, claim, 201, view);
-      return { replayed: false as const, view, order: made.order };
+      const short = await this.orders.shortWithin(tx, tenantId, made.order.id);
+      return { replayed: false as const, view, order: made.order, short };
     });
     if (placed.replayed) return placed;
-    await this.tell(tenantId, placed.order);
+    await this.tell(tenantId, placed.order, placed.short);
     return { replayed: false, order: placed.view };
   }
 
@@ -168,7 +169,7 @@ export class PublicOrderService {
   }
 
   /** ORD-20: tells the shop's staff, after the order has committed; a notice that fails never undoes the order. */
-  private async tell(tenantId: string, order: OrderRecord): Promise<void> {
+  private async tell(tenantId: string, order: OrderRecord, short: boolean): Promise<void> {
     try {
       // ORD-20 as amended (PF-28): a locked order's notice names no one -- its amount, district and source.
       const locked = order.access === OrderAccess.Locked;
@@ -180,6 +181,7 @@ export class PublicOrderService {
         customerName: locked ? null : order.customerName,
         grandTotal: order.grandTotal,
         locked: locked ? await this.lockedNotice(order) : null,
+        short,
       });
     } catch (error) {
       this.logger.error(`could not tell ${tenantId} of order ${order.orderNumber}`, error as Error);

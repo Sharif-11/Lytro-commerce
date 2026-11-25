@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { phoneShown } from '@lytronix/validators';
 import { type Language, Words } from '@/lib/i18n/words';
 import { shopperRequest } from './shopper-request';
 
@@ -30,7 +31,7 @@ export function AccountHead({
       <div>
         <h1 className="pt">{words.t('ac_hello', { n: name })}</h1>
         <div className="sub">
-          {phone} ·{' '}
+          {phoneShown(phone)} ·{' '}
           <button
             type="button"
             className="lnk"

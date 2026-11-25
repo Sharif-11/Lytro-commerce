@@ -365,7 +365,7 @@ describeIfDatabase('what the storefront reads (TEN-16, TEN-30, DLV-01, DLV-07, C
     expect(noDelivery.body).toMatchObject({ zone: { noDelivery: true }, deliverable: false });
   });
 
-  it('answers each line as it stands; prices only what can be ordered (PRD-06, ATR-07, Slice 12b)', async () => {
+  it('answers each line as it stands; prices only what can be ordered, sold out included (PRD-06, ATR-07, INV-25)', async () => {
     const shop = await openShop(port, texts, 'sf');
     const other = await openShop(port, texts, 'sf');
     const sf = await open(shop);
@@ -403,14 +403,15 @@ describeIfDatabase('what the storefront reads (TEN-16, TEN-30, DLV-01, DLV-07, C
         notSold(theirs),
         notSold(hidden),
         notSold(gone),
+        // ORDERS-BEYOND-STOCK OB-7, OB-17: sold out is ordered all the same and priced; the order waits for it.
         {
           variantId: empty.variantId,
           onSale: true,
           price: '500.00',
           stockState: 'out',
-          available: false,
-          itemTotal: null,
-          advance: null,
+          available: true,
+          itemTotal: '500.00',
+          advance: '0.00',
         },
         {
           variantId: shirt.variantId,
@@ -425,7 +426,7 @@ describeIfDatabase('what the storefront reads (TEN-16, TEN-30, DLV-01, DLV-07, C
           choicesFit: true,
         },
       ],
-      subtotal: '900.00',
+      subtotal: '1400.00',
       range: { from: '70.00', to: '130.00' },
       deliverable: true,
       taxes: [],
@@ -433,11 +434,11 @@ describeIfDatabase('what the storefront reads (TEN-16, TEN-30, DLV-01, DLV-07, C
 
     expect((await shop.patch(`/products/${shirt.id}`, { basePrice: 475 })).status).toBe(200);
     const repriced = await asStorefront('POST', '/v1/delivery-estimate', sf, asked);
-    expect(repriced.body).toMatchObject({ subtotal: '950.00' });
+    expect(repriced.body).toMatchObject({ subtotal: '1450.00' });
     expect((repriced.body as { lines: { price: string | null }[] }).lines[4]?.price).toBe('475.00');
 
     const nothing = await asStorefront('POST', '/v1/delivery-estimate', sf, {
-      items: [item(hidden), item(empty)],
+      items: [item(hidden), item(gone)],
       locationId: await thana(shop, 'Dhaka', 'Mirpur'),
     });
     expect(nothing.body).toMatchObject({

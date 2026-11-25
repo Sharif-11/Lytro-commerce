@@ -714,5 +714,32 @@
     "bookFee": "Lytro fee · manual order",
     "bookFeeNote": "A manual order is charged only when its courier is booked through Lytro. Sending it yourself or handing it over is free.",
     "bookBalance": "Balance"
+  },
+  "obs": {
+    "chip": "Short of stock",
+    "short_one": "{{count}} short",
+    "short_other": "{{count}} short",
+    "more": "+{{count}}",
+    "cantPrint": "Short of stock: add stock to print its label",
+    "bannerTitle_one": "{{count}} item out of stock",
+    "bannerTitle_other": "{{count}} items out of stock",
+    "bannerBody": "Add stock before booking a courier or shipping, or cancel the order. Calls, confirming and editing still work.",
+    "addStock": "Add stock",
+    "blockedTitle": "Can't book yet",
+    "blockedBody": "This order's items aren't in stock. A courier can't take a parcel without them, so add stock first, or tell the customer and cancel the order.",
+    "lineShort": "Ordered {{ordered}}, in stock {{held}}",
+    "cancel": "Cancel the order",
+    "filled_one": "Stock given: {{count}} order",
+    "filled_other": "Stock given: {{count}} orders",
+    "olderFirst": "Older orders waiting for it get the stock first.",
+    "quantity": "How many arrived",
+    "openProduct": "Open the product",
+    "added": "Stock added",
+    "callBack": "Call back {{time}}",
+    "breakdown_one": "{{own}} for this order + {{ahead}} for 1 older order",
+    "breakdown_other": "{{own}} for this order + {{ahead}} for {{count}} older orders",
+    "idsChip_one": "The order that got stock",
+    "idsChip_other": "The {{count}} orders that got stock",
+    "idsClear": "Show all orders"
   }
 }

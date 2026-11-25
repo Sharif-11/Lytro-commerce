@@ -60,7 +60,7 @@ export function receiptStatusOf(
   return { word: t(known.word), tone: known.tone };
 }
 
-const phone = (number: string): string => bangladeshiPhone.grouped(number);
+const phone = (number: string): string => bangladeshiPhone.display(number);
 
 export interface ReviewLine {
   tone: 'warn' | 'neutral';
