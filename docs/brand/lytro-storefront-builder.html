@@ -1769,15 +1769,20 @@ Object.assign(EDITOR, {
 Object.assign(EDITOR, {
   'obs-pp-short': { label: ['পণ্যের পেজ: স্টক ০, তবু অর্ডার', 'Product page: stock 0, still orderable'], note: ['প্রস্তাব (২০২৬-১১-২৫): স্টক না থাকলেও কাস্টমার অর্ডার করতে পারেন; স্টকের কোনো কথা দেখায় না। অর্ডারটা বিক্রেতার কাছে "স্টক কম" হয়ে আসে, স্টক যোগ না করা পর্যন্ত শিপ হয় না।', 'Proposal (2026-11-25): a shopper can order with no stock, and sees no stock wording. The order reaches the seller marked short and cannot ship until stock is added.'], render: () => ppPage().replace(/<span class="pp-stock">[^<]*<\/span>/, '') },
 });
-/* ---------- end of orders beyond stock (proposal) ---------- */
+/* ---------- end of orders beyond stock (approved) ---------- */
 
-/* ---------- Every product on the home page (proposal 2026-11-26, docs/STOREFRONT-BUILDER-PLAN.md SB-32). The owner: "we
+/* ---------- Every product on the home page (approved 2026-11-26, docs/STOREFRONT-BUILDER-PLAN.md SB-32). The owner: "we
    need to populate products in home page also, both categorized and uncategorized ... so that the website looks like a
    reputed page and busy shop". ha-now is the home as built today: the Studio theme's starting page with SB-30's category
-   rows. The other ha-* screens are the proposal: "সব পণ্য" after the last row of products, no product shown twice, and
+   rows. The other ha-* screens are the approved design: "সব প্রোডাক্ট" after the last row of products, no product shown twice, and
    no automatic row that cannot fill itself. Cards are the built ThemeCard in the photo style (no heart, no cart button);
    "নতুন" is the built PRODUCT_NEW_DAYS (14 days), "সেরা বিক্রি" SB-22, the notes SB-23 and SB-24. The orange marks and
    the strips are Lytro's notes for the owner, not the shop. ---------- */
+const HA_STEPS = Array.from({ length: 6 }, (_, i) => {
+  const at = (i * 100) / 6;
+  const hold = at + (100 / 6) * 0.8;
+  return `${at.toFixed(3)}%{transform:translateX(-${i * 140}px);animation-timing-function:linear}${hold.toFixed(3)}%{transform:translateX(-${i * 140}px);animation-timing-function:ease-in-out}`;
+}).join('') + '100%{transform:translateX(-840px)}';
 document.head.insertAdjacentHTML('beforeend', `<style>
 .ha-n{font-size:13px;font-weight:600;color:var(--muted);font-style:normal;white-space:nowrap;margin-left:6px}
 .ha-btn{display:flex;align-items:center;justify-content:center;gap:8px;margin:18px auto 4px;height:46px;max-width:340px;border:1.5px solid var(--main);border-radius:var(--r-btn);color:var(--main);font-weight:700;font-size:14.5px}
@@ -1785,6 +1790,12 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 .ha-mark{position:absolute;right:6px;top:6px;z-index:3;background:#f2a516;color:#2a1a00;font:700 11px/1.4 'Inter','Noto Sans Bengali',sans-serif;border-radius:5px;padding:2px 7px}
 .card.ha-rep{outline:3px solid #f2a516;outline-offset:-3px}
 .capstrip.ha-warn{background:#8a4b00}
+.cats.ha-rot{display:block;overflow:hidden}
+.cats.ha-rot .ha-track{display:flex;gap:12px;width:max-content;animation:ha-step 18s infinite}
+.cats.ha-rot .cat{flex:none}
+@keyframes ha-step{${HA_STEPS}}
+@media (prefers-reduced-motion: reduce){.cats.ha-rot .ha-track{animation:none}}
+@container (min-width:900px){.cats.ha-rot{overflow:visible}.cats.ha-rot .ha-track{animation:none;width:auto;flex-wrap:wrap;justify-content:center;gap:18px}.cats.ha-rot .ha-clone{display:none}}
 </style>`);
 const HA_P = (id, bn, en, i, h, price, age, cat, more = {}) => ({ id, n: [bn, en], i, h, price, age, cat, ...more });
 // Megh Fashion with 35 products: 4 panjabis, 6 kurtis, 2 sarees, and 23 added without a category (quick add keeps the
@@ -1833,7 +1844,7 @@ const HA_SHOPS = {
   none: { products: HA_ALL.filter((p) => p.cat === null).slice(0, 18), cats: [], hero: 'U2' },
   small: { products: haById(['K1', 'U1', 'U2', 'U3', 'K2', 'K3', 'S1']), cats: ['kur', 'sar'], hero: 'K1' },
 };
-// The page's sources, as the server orders them: newest first; on sale by the saving; a category newest first; "সব পণ্য"
+// The page's sources, as the server orders them: newest first; on sale by the saving; a category newest first; "সব প্রোডাক্ট"
 // in the shop's own order, which is newest first until the seller drags cards (§5).
 const haNewest = (ps) => [...ps].sort((a, b) => a.age - b.age);
 const haSale = (ps) => ps.filter((p) => p.was).sort((a, b) => pct(b) - pct(a));
@@ -1859,10 +1870,10 @@ function haBanners(shop) {
   const list = [{ i: fresh.i.replace('-tall', ''), k: ['নতুন এসেছে', 'Just in'], b: fresh.n, s: ['', ''], shade: SHOPS.studio.banners[0].shade }, { i: best.i.replace('-tall', ''), k: ['সবচেয়ে বেশি বিক্রি', 'Best seller'], b: best.n, s: ['', ''], shade: SHOPS.studio.banners[1].shade }];
   return bannersHtml(list, 'side', L('অফার ব্যানার · অটো · ২টি', 'Offer banners · auto · 2'));
 }
-function haPage(shop, parts) {
+function haPage(shop, parts, cats) {
   const vars = Object.entries(THEMES.studio.v).map(([k, v]) => `--${k}:${v}`).join(';');
   const data = haShopData(shop);
-  const top = SECTIONS.announce('studio', data) + SECTIONS.header('studio', data) + haHero(HA_ALL.find((p) => p.id === shop.hero)) + (shop.cats.length ? SECTIONS.cats('studio', data) : '');
+  const top = SECTIONS.announce('studio', data) + SECTIONS.header('studio', data) + haHero(HA_ALL.find((p) => p.id === shop.hero)) + (cats ?? (shop.cats.length ? SECTIONS.cats('studio', data) : ''));
   return `<div class="shop ${STATE.outlined ? 'outlined' : ''}" style="${vars}">${top}${parts.join('')}${SECTIONS.trust()}${SECTIONS.footer('studio', data)}<span class="chatbtn">${ic('wa')}</span></div>`;
 }
 const HA_NAME_NEW = () => L('প্রোডাক্ট · অটো: নতুন · গ্রিড', 'Products · auto: newest · grid');
@@ -1898,7 +1909,7 @@ function haNow() {
 
 // The proposal: rows read top to bottom, each skipping what a row above showed; an automatic row shows only when it can
 // fill itself (a grid 4, a carousel 5, what a computer shows at once); SB-30 takes the first three categories that can;
-// then "সব পণ্য": everything not yet shown, in the shop's order, 12 at a time.
+// then "সব প্রোডাক্ট": everything not yet shown, in the shop's order, 12 at a time.
 function haProposal(shop, o = {}) {
   const ps = shop.products;
   const seen = new Set();
@@ -1921,7 +1932,7 @@ function haProposal(shop, o = {}) {
     const dropped = saleAll.length - sale.length;
     if (caps && dropped > 0) parts.push(haCap(`অফার কালেকশন: উপরে দেখানো ${bnNum(dropped)}টি আর আসে না, তবু ${bnNum(sale.length)}টি দিয়ে ভরে।`, `On sale: the ${dropped} shown above don’t come again; ${sale.length} still fill it.`));
   } else if (caps && saleAll.length > 0) {
-    parts.push(haCap(`অফারে মাত্র ${bnNum(saleAll.length)}টি, সারি ভরে না: সারিটা দেখায় না; উপরে না-আসাগুলো সব পণ্যে।`, `Only ${saleAll.length} on sale, not enough to fill a row: no row; any not shown above come in All products.`));
+    parts.push(haCap(`অফারে মাত্র ${bnNum(saleAll.length)}টি, সারি ভরে না: সারিটা দেখায় না; উপরে না-আসাগুলো সব প্রোডাক্টে।`, `Only ${saleAll.length} on sale, not enough to fill a row: no row; any not shown above come in All products.`));
   }
   const skipped = [];
   let rows = 0;
@@ -1935,30 +1946,54 @@ function haProposal(shop, o = {}) {
   });
   if (caps && skipped.length) {
     const what = skipped.map((c) => L(`${HA_CATS[c][0]}র বাকি ${bnNum(haCat(ps, c).filter((p) => !seen.has(p.id)).length)}টি`, `${haCat(ps, c).filter((p) => !seen.has(p.id)).length} more ${HA_CATS[c][1].toLowerCase()}`));
-    parts.push(haCap(`ক্যাটাগরির সারি শুধু যেখানে উপরে না-আসা ৪টি কার্ড আছে। ${what.join(', ')} সারি ভরায় না, তাই নিচে সব পণ্যে।`, `A category row only where 4 cards are still unshown. ${what.join(', ')} can’t fill one, so they come below in All products.`));
+    parts.push(haCap(`ক্যাটাগরির সারি শুধু যেখানে উপরে না-আসা ৪টি কার্ড আছে। ${what.join(', ')} সারি ভরায় না, তাই নিচে সব প্রোডাক্টে।`, `A category row only where 4 cards are still unshown. ${what.join(', ')} can’t fill one, so they come below in All products.`));
   }
   const rest = ps.filter((p) => !seen.has(p.id));
   const shown = o.more ? rest : rest.slice(0, 12);
-  if (caps) parts.push(haCap(o.more ? `“আরও দেখুন” চাপার পর: বাকি ${bnNum(rest.length - 12)}টি এখানেই যোগ হল, পেজ বদলায় না। সব এসে গেলে বোতাম থাকে না।` : `নতুন · সব পণ্য: উপরে যা আসেনি তার সবগুলো, ক্যাটাগরি থাকুক বা না থাকুক (কোনো “অন্যান্য” লেবেল নেই)। ১২টি করে।`, o.more ? `After “See more”: the other ${rest.length - 12} join here, on the same page. Once all are in, the button goes.` : 'New · All products: everything not shown above, with or without a category (no “Other” label). 12 at a time.'));
+  if (caps) parts.push(haCap(o.more ? `“আরও দেখুন” চাপার পর: বাকি ${bnNum(rest.length - 12)}টি এখানেই যোগ হল, পেজ বদলায় না। সব এসে গেলে বোতাম থাকে না।` : `নতুন · সব প্রোডাক্ট: উপরে যা আসেনি তার সবগুলো, ক্যাটাগরি থাকুক বা না থাকুক (কোনো “অন্যান্য” লেবেল নেই)। ১২টি করে।`, o.more ? `After “See more”: the other ${rest.length - 12} join here, on the same page. Once all are in, the button goes.` : 'New · All products: everything not shown above, with or without a category (no “Other” label). 12 at a time.'));
   if (rest.length) {
-    const title = `${L('সব পণ্য', 'All products')}<span class="ha-n">· ${L(`${ps.length}টি`, `${ps.length}`)}</span>`;
-    const more = rest.length > shown.length ? `<a class="ha-btn">${L(`আরও ${rest.length - shown.length}টি পণ্য দেখুন`, `See ${rest.length - shown.length} more`)} ${ic('down')}</a>` : '';
-    parts.push(`<section class="sec" data-sec="${L('প্রোডাক্ট · অটো: সব পণ্য · ১২টি করে (নতুন)', 'Products · auto: all products · 12 at a time (new)')}"><div class="wrap">${head('studio', title)}<div class="grid">${shown.map((p) => haCard(p)).join('')}</div>${more}</div></section>`);
+    const title = `${L('সব প্রোডাক্ট', 'All products')}<span class="ha-n">· ${L(`${ps.length}টি`, `${ps.length}`)}</span>`;
+    const more = rest.length > shown.length ? `<a class="ha-btn">${L(`আরও ${rest.length - shown.length}টি প্রোডাক্ট দেখুন`, `See ${rest.length - shown.length} more`)} ${ic('down')}</a>` : '';
+    parts.push(`<section class="sec" data-sec="${L('প্রোডাক্ট · অটো: সব প্রোডাক্ট · ১২টি করে (নতুন)', 'Products · auto: all products · 12 at a time (new)')}"><div class="wrap">${head('studio', title)}<div class="grid">${shown.map((p) => haCard(p)).join('')}</div>${more}</div></section>`);
   }
-  if (caps && o.small) parts.push(haCap(`৭টি পণ্য, প্রতিটি একবার। সব পণ্যের শেষ লাইনে একটা কার্ড থাকতে পারে, যেমন ক্যাটাগরি পেজে; ওটা তালিকার শেষ, খালি সারি নয়।`, 'Seven products, each once. All products may end on a single card, as a category page does: the end of a list, not an empty row.'));
+  if (caps && o.small) parts.push(haCap(`৭টি পণ্য, প্রতিটি একবার। সব প্রোডাক্টের শেষ লাইনে একটা কার্ড থাকতে পারে, যেমন ক্যাটাগরি পেজে; ওটা তালিকার শেষ, খালি সারি নয়।`, 'Seven products, each once. All products may end on a single card, as a category page does: the end of a list, not an empty row.'));
   return haPage(shop, parts);
 }
 const STARTING_CATEGORY_ROWS_SKETCH = 3;
 
+// ha-cat-rotate (the owner, 2026-11-26: "category must be rotated automatically along horizontal axis if applicable. if
+// the category completely fitted then not necessary"): the home's categories section, when its tiles overflow the
+// strip, slides one tile every 3 s and loops on copies of its first tiles (aria-hidden, out of the tab order). It holds
+// while the shopper touches, drags, hovers or focuses it, and goes on after 4 s idle; off-screen, in a hidden tab or
+// with reduced motion it never moves. On a computer the tiles wrap and fit, so nothing moves. The chips under the
+// header never move.
+Object.assign(HA_CATS, { shi: ['শার্ট', 'Shirts', 'fashion-3-tall'], polo: ['পোলো', 'Polo', 'fashion-1-tall'], swe: ['সোয়েটার', 'Sweaters', 'fashion-2-tall'] });
+HA_SHOPS.six = { products: HA_ALL, cats: ['pan', 'kur', 'sar', 'shi', 'polo', 'swe'], hero: 'K1' };
+function haRotatingCats(shop) {
+  const tile = ([bn, en, im], clone) => `<a class="cat${clone ? ' ha-clone' : ''}"${clone ? ' aria-hidden="true" tabindex="-1"' : ''}><div class="im"><img src="${img(im)}" alt=""></div><span>${L(bn, en)} →</span></a>`;
+  const cats = shop.cats.map((c) => HA_CATS[c]);
+  const tiles = cats.map((c) => tile(c, false)).join('') + cats.slice(0, 3).map((c) => tile(c, true)).join('');
+  return `<section class="sec" data-sec="${L('ক্যাটাগরি · টাইল ধরে না, তাই ঘোরে (নতুন)', 'Categories · tiles overflow, so they rotate (new)')}"><div class="wrap">${head('studio', L('ক্যাটাগরি অনুযায়ী কিনুন', 'Shop by category'), false)}<div class="cats tall ha-rot"><div class="ha-track">${tiles}</div></div></div></section>`;
+}
+function haCatRotate() {
+  const shop = HA_SHOPS.six;
+  const parts = [
+    haCap('ফোনে ৬টি ক্যাটাগরির টাইল স্ট্রিপে ধরে না, তাই নিজে থেকে ঘোরে: ৩ সেকেন্ডে একটা টাইল সরে, শেষেরটার পর আবার প্রথমগুলো আসে (লাফ দিয়ে শুরুতে ফেরে না)। ছুঁলে, টানলে, মাউস রাখলে বা ফোকাস করলে থামে, ৪ সেকেন্ড পর আবার চলে; হাতে টেনে দেখা আগের মতোই।', 'On a phone the 6 category tiles overflow the strip, so it rotates: one tile every 3 s, and after the last the first ones follow (no jump back). It holds while touched, dragged, hovered or focused and goes on after 4 s idle; swiping by hand works as before.'),
+    haCap('স্ক্রিনের বাইরে, ট্যাব লুকানো থাকলে বা ফোনে “কম নড়াচড়া” (reduced motion) চালু থাকলে নড়ে না। কম্পিউটারে সব টাইল ধরে যায়, তাই কিছুই নড়ে না। হেডারের নিচের ক্যাটাগরি চিপ কখনো নড়ে না।', 'Off-screen, in a hidden tab or with reduced motion it never moves. On a computer every tile fits, so nothing moves. The category chips under the header never move.'),
+  ];
+  return haPage(shop, parts, haRotatingCats(shop));
+}
+
 Object.assign(EDITOR, {
   'ha-now': { label: ['হোম: আজ যেমন', 'Home: as built'], note: ['বিল্ট হোম, ৩৫টি পণ্যের দোকানে (২৩টি ক্যাটাগরি ছাড়া)। প্রতিটি সারি আলাদা পড়ে: একই কার্ড বারবার, ২টি পণ্যের সারি, আর বেশিরভাগ পণ্য হোমে আসেই না।', 'The built home for a 35-product shop (23 with no category). Each row reads on its own: the same cards again, a row of 2, and most products never on the home page.'], render: () => haNow() },
-  'ha-mixed': { label: ['হোম: সব পণ্য (প্রস্তাব)', 'Home: all products (proposal)'], note: ['প্রস্তাব (২০২৬-১১-২৬): কোনো কার্ড দুবার নয়, যে সারি ভরে না সেটা নেই, আর শেষে “সব পণ্য”: বাকি সবগুলো, ক্যাটাগরি থাকুক বা না থাকুক, ১২টি করে।', 'Proposal (2026-11-26): no card twice, no row that cannot fill, and “All products” at the end: everything else, with or without a category, 12 at a time.'], render: () => haProposal(HA_SHOPS.mixed) },
+  'ha-mixed': { label: ['হোম: সব প্রোডাক্ট (অনুমোদিত)', 'Home: all products (approved)'], note: ['অনুমোদিত (২০২৬-১১-২৬): কোনো কার্ড দুবার নয়, যে সারি ভরে না সেটা নেই, আর শেষে “সব প্রোডাক্ট”: বাকি সবগুলো, ক্যাটাগরি থাকুক বা না থাকুক, ১২টি করে।', 'Approved (2026-11-26): no card twice, no row that cannot fill, and “All products” at the end: everything else, with or without a category, 12 at a time.'], render: () => haProposal(HA_SHOPS.mixed) },
   'ha-more': { label: ['হোম: আরও দেখুনের পর', 'Home: after See more'], note: ['“আরও দেখুন” একবার চাপার পর: বাকি ১০টি একই জায়গায় যোগ হয়; সব এসে গেলে বোতাম থাকে না।', 'After one “See more”: the other 10 join in place; once all are in, the button goes.'], render: () => haProposal(HA_SHOPS.mixed, { more: true }) },
-  'ha-no-categories': { label: ['হোম: ক্যাটাগরি নেই', 'Home: no categories'], note: ['১৮টি পণ্য, কোনো ক্যাটাগরি নেই: ক্যাটাগরির সেকশন নেই, অফারের সারি ভরে না বলে নেই; নতুন ৪টি, তারপর সব পণ্য।', '18 products and no categories: no category section, no on-sale row (it cannot fill); the 4 newest, then All products.'], render: () => haProposal(HA_SHOPS.none) },
+  'ha-no-categories': { label: ['হোম: ক্যাটাগরি নেই', 'Home: no categories'], note: ['১৮টি পণ্য, কোনো ক্যাটাগরি নেই: ক্যাটাগরির সেকশন নেই, অফারের সারি ভরে না বলে নেই; নতুন ৪টি, তারপর সব প্রোডাক্ট।', '18 products and no categories: no category section, no on-sale row (it cannot fill); the 4 newest, then All products.'], render: () => haProposal(HA_SHOPS.none) },
   'ha-small': { label: ['হোম: ৭টি পণ্যের দোকান', 'Home: a 7-product shop'], note: ['৭টি পণ্য: প্রতিটি একবার, কোনো আধা-খালি সারি নেই।', 'Seven products: each once, no half-empty row.'], render: () => haProposal(HA_SHOPS.small, { small: true }) },
-  'ha-desktop': { label: ['হোম: সব পণ্য, কম্পিউটারে', 'Home: all products, computer'], note: ['ha-mixed, ১২৮০ পিক্সেলে: সব পণ্য ৪টি করে কলামে, ১২টি = ৩ লাইন।', 'ha-mixed at 1280 px: All products 4 across, 12 = 3 lines.'], render: () => haProposal(HA_SHOPS.mixed) },
+  'ha-cat-rotate': { label: ['হোম: ক্যাটাগরি ঘোরে', 'Home: categories rotate'], note: ['মালিকের যোগ (২০২৬-১১-২৬): ক্যাটাগরির টাইল না ধরলে নিজে থেকে ঘোরে, ধরে গেলে নড়ে না।', 'The owner’s addition (2026-11-26): category tiles that overflow rotate by themselves; tiles that fit never move.'], render: () => haCatRotate() },
+  'ha-desktop': { label: ['হোম: সব প্রোডাক্ট, কম্পিউটারে', 'Home: all products, computer'], note: ['ha-mixed, ১২৮০ পিক্সেলে: সব প্রোডাক্ট ৪টি করে কলামে, ১২টি = ৩ লাইন।', 'ha-mixed at 1280 px: All products 4 across, 12 = 3 lines.'], render: () => haProposal(HA_SHOPS.mixed) },
 });
-/* ---------- end of every product on the home page (proposal) ---------- */
+/* ---------- end of every product on the home page (approved) ---------- */
 
 function render() {
   const theme = THEMES[STATE.screen];
