@@ -163,7 +163,7 @@ export const APP_COPY = {
   // range of the shop's own zones' charges, as the home said before: zones carry the shop's own names.
   sb_offer: ['অফার', 'Offer'],
   sb_offers: ['অফার', 'Offers'],
-  sb_all: ['সব পণ্য', 'All products'],
+  sb_all: ['সব প্রোডাক্ট', 'All products'],
   sb_shop_h: ['কেনাকাটা', 'Shop'],
   sb_contact: ['যোগাযোগ', 'Contact'],
   // The owner, 2026-11-19: the shop's WhatsApp and Facebook page by name in the footer's contact column.
@@ -313,5 +313,5 @@ export const APP_COPY = {
   pp_dcharge: ['ডেলিভারি চার্জ', 'Delivery charge'],
   pp_payment: ['পেমেন্ট', 'Payment'],
   pp_more_shop: ['এই দোকানের আরও পণ্য', 'More from this shop'],
-  pp_all: ['সব পণ্য দেখুন', 'See every product'],
+  pp_all: ['সব প্রোডাক্ট দেখুন', 'See every product'],
 } as const satisfies Record<string, readonly [string, string]>;

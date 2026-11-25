@@ -177,8 +177,8 @@ those not already shown above.
 
 **The categories rotate when they don't fit.** The owner's addition, 2026-11-26: "category must be rotated
 automatically along horizontal axis if applicable. if the category completely fitted then not necessary", and "i am
-not talking about category chips, i am talking about category under first banner". The sketch is `ha-cat-rotate`. It
-is drawn, and the build waits for the owner's approval.
+not talking about category chips, i am talking about category under first banner". **APPROVED 2026-11-26**, with the
+picture rule below. The sketch is `ha-cat-rotate` and `ha-cat-noimage`.
 - **Where.** The home's categories section under the hero ("ক্যাটাগরি অনুযায়ী কিনুন"), in every tile style. The category
   chips under the header never move.
 - **Only when they overflow.** The strip rotates only while its tiles overflow it, measured live, and again after a
@@ -189,6 +189,11 @@ is drawn, and the build waits for the owner's approval.
   Swiping by hand works as before.
 - **When it never moves.** Off-screen (IntersectionObserver), in a hidden tab, or with reduced motion.
 - **Cost.** No new requests and no layout shifts: transform or scroll only, and no new library.
+- **Only categories with a picture** (the owner, 2026-11-26: "if a category has no image then skip it from this section
+  and we have category chip after header already"). The section shows a category only when it has its own picture or
+  the SB-9 cover, the product photo the server lends. A category that would draw an empty tile is left out of this
+  section; the header chips, the menu and its own page keep it. With none left, the section hides. The overflow check
+  counts only the tiles shown. The filter is in the storefront's render; the public category list is unchanged.
 
 **`ha-small`, 7 products.** Each product shows once and no row is half empty. "সব প্রোডাক্ট" can end on one card, as a
 category page does. That is the end of a list, not an empty row.

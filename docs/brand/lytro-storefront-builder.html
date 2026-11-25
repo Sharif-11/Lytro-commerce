@@ -868,7 +868,7 @@ const SECTIONS = {
   header: (theme, shop) => {
     const kind = THEMES[theme].header;
     const logo = shop.logo ? `<a class="logo img">${LOGO(40)}</a>` : `<a class="logo"><span class="mk">${shop.mark}</span><span>${T(shop.name)}<small>${T(shop.tag)}</small></span></a>`;
-    const nav = [L('সব পণ্য', 'All products'), L('অফার', 'Offers'), ...shop.cats.slice(0, 5).map((c) => T([c[0], c[1]]))];
+    const nav = [L('সব প্রোডাক্ট', 'All products'), L('অফার', 'Offers'), ...shop.cats.slice(0, 5).map((c) => T([c[0], c[1]]))];
     return `<header class="hd ${kind}" data-sec="${T(SEC_NAMES.header)}"><div class="wrap row"><span class="menu">${ic('menu')}</span>${logo}<div class="search"><span>${L('পণ্য খুঁজুন...', 'Search products...')}</span><i>${ic('search')}</i></div><div class="icons"><span class="srch">${ic('search')}</span><a class="trk" aria-label="${L('অর্ডার ট্র্যাক', 'Track order')}">${ic('truck')}<span><b>${L('অর্ডার ট্র্যাক', 'Track order')}</b>${L('অর্ডার কোথায় আছে', 'Where your order is')}</span></a>${ic('user')}<span class="cart">${ic('cart')}<sup>2</sup></span></div></div><nav class="nav">${nav.map((n, i) => `<a class="${i === 0 ? 'on' : ''}">${n}</a>`).join('')}</nav></header>`;
   },
 
@@ -918,7 +918,7 @@ const SECTIONS = {
 
   quotes: (theme, shop) => `<section class="sec" data-sec="${T(SEC_NAMES.quotes)}"><div class="wrap">${head(theme, L('ক্রেতারা যা বলছেন', 'What our customers say'), false)}<div class="quotes">${shop.quotes.map(([name, place, text]) => `<div class="q"><p>“${T(text)}”</p><div class="who"><span class="av">${T(name).slice(0, 1)}</span><span><b>${T(name)}</b>${T(place)}</span></div></div>`).join('')}</div></div></section>`,
 
-  footer: (theme, shop) => `<footer class="ft" data-sec="${T(SEC_NAMES.footer)}"><div class="wrap"><div class="cols"><div class="about"><a class="logo"><span class="mk">${shop.mark}</span><span>${T(shop.name)}<small>${T(shop.tag)}</small></span></a><div class="soc"><span>${ic('wa')}</span><span>${ic('msg')}</span><span>${ic('fb')}</span></div></div><div><h3>${L('কেনাকাটা', 'Shop')}</h3><ul><li>${L('সব পণ্য', 'All products')}</li><li>${L('অফার', 'Offers')}</li><li>${L('নতুন এসেছে', 'Just in')}</li><li>${L('অর্ডার ট্র্যাক', 'Track order')}</li></ul></div><div><h3>${L('ক্যাটাগরি', 'Categories')}</h3><ul>${shop.cats.slice(0, 4).map((c) => `<li>${T([c[0], c[1]])}</li>`).join('')}</ul></div><div><h3>${L('যোগাযোগ', 'Contact')}</h3><ul><li>01711 223344</li><li>${L('মিরপুর ১০, ঢাকা', 'Mirpur 10, Dhaka')}</li></ul></div></div><div class="base"><span>© 2026 ${T(shop.name)}</span><span class="pbl"><i><svg viewBox="0 0 64 64"><path d="M15 15V49H31L49 29"/></svg></i>Powered by Lytro</span></div></div></footer>`,
+  footer: (theme, shop) => `<footer class="ft" data-sec="${T(SEC_NAMES.footer)}"><div class="wrap"><div class="cols"><div class="about"><a class="logo"><span class="mk">${shop.mark}</span><span>${T(shop.name)}<small>${T(shop.tag)}</small></span></a><div class="soc"><span>${ic('wa')}</span><span>${ic('msg')}</span><span>${ic('fb')}</span></div></div><div><h3>${L('কেনাকাটা', 'Shop')}</h3><ul><li>${L('সব প্রোডাক্ট', 'All products')}</li><li>${L('অফার', 'Offers')}</li><li>${L('নতুন এসেছে', 'Just in')}</li><li>${L('অর্ডার ট্র্যাক', 'Track order')}</li></ul></div><div><h3>${L('ক্যাটাগরি', 'Categories')}</h3><ul>${shop.cats.slice(0, 4).map((c) => `<li>${T([c[0], c[1]])}</li>`).join('')}</ul></div><div><h3>${L('যোগাযোগ', 'Contact')}</h3><ul><li>01711 223344</li><li>${L('মিরপুর ১০, ঢাকা', 'Mirpur 10, Dhaka')}</li></ul></div></div><div class="base"><span>© 2026 ${T(shop.name)}</span><span class="pbl"><i><svg viewBox="0 0 64 64"><path d="M15 15V49H31L49 29"/></svg></i>Powered by Lytro</span></div></div></footer>`,
 };
 
 function renderShop(theme, outlined, light, given) {
@@ -1511,13 +1511,13 @@ Object.assign(EDITOR, {
   },
   'v-menu': {
     label: ['দোকান: মেনু', 'Shop: the menu'],
-    note: ['মেনুর (☰) ড্রয়ার, Bonik AI-এর মতো (মালিকের সিদ্ধান্ত, ২০২৬-১১-১৯): দোকানের নাম আর ✕; সব পণ্য, অফার; ক্যাটাগরি, প্রতিটির পণ্যের সংখ্যা; অর্ডার ট্র্যাক, আমার অ্যাকাউন্ট (সাইন ইন না থাকলে সাইন ইনে নেয়), WhatsApp-এ চ্যাট (দোকান নম্বর দিলে); ভাষা। শুধু ফোনে: কম্পিউটারে হেডারেই সব থাকে।', "The menu's (☰) drawer, as Bonik AI's (the owner, 2026-11-19): the shop's name and ✕; All products, Offers; the categories, each with its product count; Track your order, My account (to sign in when signed out), Chat on WhatsApp (when the shop gave a number); the language. Phones only: on a computer the header holds it all."],
+    note: ['মেনুর (☰) ড্রয়ার, Bonik AI-এর মতো (মালিকের সিদ্ধান্ত, ২০২৬-১১-১৯): দোকানের নাম আর ✕; সব প্রোডাক্ট, অফার; ক্যাটাগরি, প্রতিটির পণ্যের সংখ্যা; অর্ডার ট্র্যাক, আমার অ্যাকাউন্ট (সাইন ইন না থাকলে সাইন ইনে নেয়), WhatsApp-এ চ্যাট (দোকান নম্বর দিলে); ভাষা। শুধু ফোনে: কম্পিউটারে হেডারেই সব থাকে।', "The menu's (☰) drawer, as Bonik AI's (the owner, 2026-11-19): the shop's name and ✕; All products, Offers; the categories, each with its product count; Track your order, My account (to sign in when signed out), Chat on WhatsApp (when the shop gave a number); the language. Phones only: on a computer the header holds it all."],
     render: () => {
       const shop = SHOPS.royal;
       const row = (words, end, cls = '', icon = '') => `<a class="row ${cls}">${icon ? ic(icon) : ''}<span>${words}</span>${end}</a>`;
       const go = `<span class="go">${ic('chev')}</span>`;
       const drawer = `<div class="dscrim"></div><nav class="drawer" aria-label="${L('মেনু', 'Menu')}"><div class="dh"><b>${T(shop.name)}</b>${ic('plus').replace('<svg class="ico ', '<svg style="transform:rotate(45deg)" class="ico ')}</div>`
-        + row(L('সব পণ্য', 'All products'), go, 'on') + row(L('অফার', 'Offers'), go)
+        + row(L('সব প্রোডাক্ট', 'All products'), go, 'on') + row(L('অফার', 'Offers'), go)
         + `<div class="lab">${L('ক্যাটাগরি', 'Categories')}</div>`
         + shop.cats.map(([bn, en, , n]) => row(L(bn, en), `<span class="n">${n}</span>`)).join('')
         + `<div class="lab">${L('সাহায্য', 'Help')}</div>`
@@ -1610,7 +1610,7 @@ SECTIONS.offerHead = (theme, shop) => `<section class="sec ofhead" data-sec="${T
 SECTIONS.offerGrid = (theme, shop) => `<section class="sec" data-sec="${T(SEC_NAMES.offerGrid)}"><div class="wrap"><div class="ofbar"><span>${L('১৪টি পণ্য', '14 products')}</span><span class="sort">${L('সাজান: ফিচার্ড', 'Sort: Featured')}</span></div><div class="grid ofgrid">${shop.products.map((p) => ofCard(theme, p)).join('')}</div></div></section>`;
 const OF_SHOP = (ended) => ({ ...SHOPS.studio, products: ended ? OF_ENDED_CARDS() : OF_CARDS(), offerEnded: ended, layout: ['announce', 'header', 'offerHead', 'offerGrid', 'trust', 'footer'] });
 // On an offer's page the header's Offers link is the one lit.
-const ofLit = (h) => h.replace(`<a class="on">${L('সব পণ্য', 'All products')}</a><a class="">${L('অফার', 'Offers')}</a>`, `<a class="">${L('সব পণ্য', 'All products')}</a><a class="on">${L('অফার', 'Offers')}</a>`);
+const ofLit = (h) => h.replace(`<a class="on">${L('সব প্রোডাক্ট', 'All products')}</a><a class="">${L('অফার', 'Offers')}</a>`, `<a class="">${L('সব পণ্য', 'All products')}</a><a class="on">${L('অফার', 'Offers')}</a>`);
 
 Object.assign(EDITOR, {
   'o-row': {
@@ -1693,7 +1693,7 @@ const PPW = {
   f_cod: ['ক্যাশ অন ডেলিভারি, অগ্রিম টাকা লাগবে না', 'cash on delivery, nothing in advance'],
   price: ['দাম', 'Price'], regular: ['আগের দাম', 'Regular price'], regular_v: ['{n} ({p}% ছাড়)', '{n} ({p}% off)'], designs: ['ডিজাইন', 'Designs'], sizes: ['সাইজ', 'Sizes'],
   fabric: ['কাপড়', 'Fabric'], shop: ['দোকান', 'Shop'], dcharge: ['ডেলিভারি চার্জ', 'Delivery charge'], payment: ['পেমেন্ট', 'Payment'], code: ['পণ্য কোড', 'Product code'],
-  more_shop: ['এই দোকানের আরও পণ্য', 'More from this shop'], all: ['সব পণ্য দেখুন', 'See every product'], order: ['অর্ডার করুন', 'Order now'], out: ['স্টক শেষ', 'Sold out'],
+  more_shop: ['এই দোকানের আরও পণ্য', 'More from this shop'], all: ['সব প্রোডাক্ট দেখুন', 'See every product'], order: ['অর্ডার করুন', 'Order now'], out: ['স্টক শেষ', 'Sold out'],
 };
 const pw = (k, v) => { let x = T(PPW[k]); if (v) for (const [a, b] of Object.entries(v)) x = x.split('{' + a + '}').join(b); return x; };
 // The kurti in its four designs: one photo shoot, each design's own colour (as a shop's real design photos would be).
@@ -1778,11 +1778,11 @@ Object.assign(EDITOR, {
    no automatic row that cannot fill itself. Cards are the built ThemeCard in the photo style (no heart, no cart button);
    "নতুন" is the built PRODUCT_NEW_DAYS (14 days), "সেরা বিক্রি" SB-22, the notes SB-23 and SB-24. The orange marks and
    the strips are Lytro's notes for the owner, not the shop. ---------- */
-const HA_STEPS = Array.from({ length: 6 }, (_, i) => {
-  const at = (i * 100) / 6;
-  const hold = at + (100 / 6) * 0.8;
+const haSteps = (n) => Array.from({ length: n }, (_, i) => {
+  const at = (i * 100) / n;
+  const hold = at + (100 / n) * 0.8;
   return `${at.toFixed(3)}%{transform:translateX(-${i * 140}px);animation-timing-function:linear}${hold.toFixed(3)}%{transform:translateX(-${i * 140}px);animation-timing-function:ease-in-out}`;
-}).join('') + '100%{transform:translateX(-840px)}';
+}).join('') + `100%{transform:translateX(-${n * 140}px)}`;
 document.head.insertAdjacentHTML('beforeend', `<style>
 .ha-n{font-size:13px;font-weight:600;color:var(--muted);font-style:normal;white-space:nowrap;margin-left:6px}
 .ha-btn{display:flex;align-items:center;justify-content:center;gap:8px;margin:18px auto 4px;height:46px;max-width:340px;border:1.5px solid var(--main);border-radius:var(--r-btn);color:var(--main);font-weight:700;font-size:14.5px}
@@ -1791,9 +1791,11 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 .card.ha-rep{outline:3px solid #f2a516;outline-offset:-3px}
 .capstrip.ha-warn{background:#8a4b00}
 .cats.ha-rot{display:block;overflow:hidden}
-.cats.ha-rot .ha-track{display:flex;gap:12px;width:max-content;animation:ha-step 18s infinite}
+.cats.ha-rot .ha-track{display:flex;gap:12px;width:max-content;animation:ha-step-6 18s infinite}
+.cats.ha-rot .ha-track.ha-n4{animation:ha-step-4 12s infinite}
 .cats.ha-rot .cat{flex:none}
-@keyframes ha-step{${HA_STEPS}}
+@keyframes ha-step-6{${haSteps(6)}}
+@keyframes ha-step-4{${haSteps(4)}}
 @media (prefers-reduced-motion: reduce){.cats.ha-rot .ha-track{animation:none}}
 @container (min-width:900px){.cats.ha-rot{overflow:visible}.cats.ha-rot .ha-track{animation:none;width:auto;flex-wrap:wrap;justify-content:center;gap:18px}.cats.ha-rot .ha-clone{display:none}}
 </style>`);
@@ -1967,19 +1969,31 @@ const STARTING_CATEGORY_ROWS_SKETCH = 3;
 // while the shopper touches, drags, hovers or focuses it, and goes on after 4 s idle; off-screen, in a hidden tab or
 // with reduced motion it never moves. On a computer the tiles wrap and fit, so nothing moves. The chips under the
 // header never move.
-Object.assign(HA_CATS, { shi: ['শার্ট', 'Shirts', 'fashion-3-tall'], polo: ['পোলো', 'Polo', 'fashion-1-tall'], swe: ['সোয়েটার', 'Sweaters', 'fashion-2-tall'] });
+Object.assign(HA_CATS, { shi: ['শার্ট', 'Shirts', 'fashion-3-tall'], polo: ['পোলো', 'Polo', 'fashion-1-tall'], swe: ['সোয়েটার', 'Sweaters', 'fashion-2-tall'], gift: ['উপহার', 'Gifts', null], acc: ['এক্সেসরিজ', 'Accessories', null] });
+// ha-cat-noimage: two categories with no picture at all (none of their own, and no product photo to borrow).
+HA_SHOPS.noimage = { products: HA_ALL, cats: ['pan', 'gift', 'kur', 'acc', 'sar', 'shi'], hero: 'K1' };
 HA_SHOPS.six = { products: HA_ALL, cats: ['pan', 'kur', 'sar', 'shi', 'polo', 'swe'], hero: 'K1' };
 function haRotatingCats(shop) {
   const tile = ([bn, en, im], clone) => `<a class="cat${clone ? ' ha-clone' : ''}"${clone ? ' aria-hidden="true" tabindex="-1"' : ''}><div class="im"><img src="${img(im)}" alt=""></div><span>${L(bn, en)} →</span></a>`;
-  const cats = shop.cats.map((c) => HA_CATS[c]);
+  // The owner, 2026-11-26: only categories with a picture (their own, else the product photo the server lends); the
+  // header chips keep the others.
+  const cats = shop.cats.map((c) => HA_CATS[c]).filter((c) => c[2]);
   const tiles = cats.map((c) => tile(c, false)).join('') + cats.slice(0, 3).map((c) => tile(c, true)).join('');
-  return `<section class="sec" data-sec="${L('ক্যাটাগরি · টাইল ধরে না, তাই ঘোরে (নতুন)', 'Categories · tiles overflow, so they rotate (new)')}"><div class="wrap">${head('studio', L('ক্যাটাগরি অনুযায়ী কিনুন', 'Shop by category'), false)}<div class="cats tall ha-rot"><div class="ha-track">${tiles}</div></div></div></section>`;
+  return `<section class="sec" data-sec="${L('ক্যাটাগরি · টাইল ধরে না, তাই ঘোরে (নতুন)', 'Categories · tiles overflow, so they rotate (new)')}"><div class="wrap">${head('studio', L('ক্যাটাগরি অনুযায়ী কিনুন', 'Shop by category'), false)}<div class="cats tall ha-rot"><div class="ha-track ha-n${cats.length}">${tiles}</div></div></div></section>`;
 }
 function haCatRotate() {
   const shop = HA_SHOPS.six;
   const parts = [
     haCap('ফোনে ৬টি ক্যাটাগরির টাইল স্ট্রিপে ধরে না, তাই নিজে থেকে ঘোরে: ৩ সেকেন্ডে একটা টাইল সরে, শেষেরটার পর আবার প্রথমগুলো আসে (লাফ দিয়ে শুরুতে ফেরে না)। ছুঁলে, টানলে, মাউস রাখলে বা ফোকাস করলে থামে, ৪ সেকেন্ড পর আবার চলে; হাতে টেনে দেখা আগের মতোই।', 'On a phone the 6 category tiles overflow the strip, so it rotates: one tile every 3 s, and after the last the first ones follow (no jump back). It holds while touched, dragged, hovered or focused and goes on after 4 s idle; swiping by hand works as before.'),
     haCap('স্ক্রিনের বাইরে, ট্যাব লুকানো থাকলে বা ফোনে “কম নড়াচড়া” (reduced motion) চালু থাকলে নড়ে না। কম্পিউটারে সব টাইল ধরে যায়, তাই কিছুই নড়ে না। হেডারের নিচের ক্যাটাগরি চিপ কখনো নড়ে না।', 'Off-screen, in a hidden tab or with reduced motion it never moves. On a computer every tile fits, so nothing moves. The category chips under the header never move.'),
+  ];
+  return haPage(shop, parts, haRotatingCats(shop));
+}
+function haCatNoImage() {
+  const shop = HA_SHOPS.noimage;
+  const parts = [
+    haCap('৬টি ক্যাটাগরির ২টির (উপহার, এক্সেসরিজ) কোনো ছবি নেই: নিজের ছবি নেই, প্রোডাক্টেরও ছবি নেই। খালি টাইল দেখাবে বলে এই সেকশনে আসে না; হেডারের চিপে আর নিজের পেজে আগের মতোই আছে। বাকি ৪টি ধরে না বলে ঘোরে।', 'Two of the 6 categories (Gifts, Accessories) have no picture: none of their own and no product photo. They would draw an empty tile, so this section leaves them out; the header chips and their own pages keep them. The other 4 overflow, so they rotate.'),
+    haCap('কোনো ক্যাটাগরিরই ছবি না থাকলে সেকশনটাই দেখায় না।', 'When no category has a picture, the section does not show.'),
   ];
   return haPage(shop, parts, haRotatingCats(shop));
 }
@@ -1991,6 +2005,7 @@ Object.assign(EDITOR, {
   'ha-no-categories': { label: ['হোম: ক্যাটাগরি নেই', 'Home: no categories'], note: ['১৮টি পণ্য, কোনো ক্যাটাগরি নেই: ক্যাটাগরির সেকশন নেই, অফারের সারি ভরে না বলে নেই; নতুন ৪টি, তারপর সব প্রোডাক্ট।', '18 products and no categories: no category section, no on-sale row (it cannot fill); the 4 newest, then All products.'], render: () => haProposal(HA_SHOPS.none) },
   'ha-small': { label: ['হোম: ৭টি পণ্যের দোকান', 'Home: a 7-product shop'], note: ['৭টি পণ্য: প্রতিটি একবার, কোনো আধা-খালি সারি নেই।', 'Seven products: each once, no half-empty row.'], render: () => haProposal(HA_SHOPS.small, { small: true }) },
   'ha-cat-rotate': { label: ['হোম: ক্যাটাগরি ঘোরে', 'Home: categories rotate'], note: ['মালিকের যোগ (২০২৬-১১-২৬): ক্যাটাগরির টাইল না ধরলে নিজে থেকে ঘোরে, ধরে গেলে নড়ে না।', 'The owner’s addition (2026-11-26): category tiles that overflow rotate by themselves; tiles that fit never move.'], render: () => haCatRotate() },
+  'ha-cat-noimage': { label: ['হোম: ছবিহীন ক্যাটাগরি বাদ', 'Home: categories without a picture left out'], note: ['মালিক (২০২৬-১১-২৬): ছবি ছাড়া ক্যাটাগরি এই সেকশনে আসে না; হেডারে চিপ তো আছেই।', 'The owner (2026-11-26): a category without a picture is left out of this section; the header has its chip anyway.'], render: () => haCatNoImage() },
   'ha-desktop': { label: ['হোম: সব প্রোডাক্ট, কম্পিউটারে', 'Home: all products, computer'], note: ['ha-mixed, ১২৮০ পিক্সেলে: সব প্রোডাক্ট ৪টি করে কলামে, ১২টি = ৩ লাইন।', 'ha-mixed at 1280 px: All products 4 across, 12 = 3 lines.'], render: () => haProposal(HA_SHOPS.mixed) },
 });
 /* ---------- end of every product on the home page (approved) ---------- */
