@@ -72,7 +72,8 @@ export default withBusyPage(async function SearchPage({ searchParams }: Props) {
     const offered = offeredCategories(frame.categories);
     const theme = pageTheme(page.info);
     results = (
-      <div className="page tight" style={{ paddingTop: 12 }}>
+      // The wrapper holds a size container (`.sfb`), which takes no width from its content: it spans the panel.
+      <div className="page tight" style={{ paddingTop: 12, width: '100%' }}>
         <EmptyFrame theme={theme} plain>
           <EmptyBox
             icon="search"

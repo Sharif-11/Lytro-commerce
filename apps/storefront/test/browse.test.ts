@@ -8,6 +8,7 @@ import {
   isNew,
   listHref,
   listParams,
+  offeredCategories,
   searchOf,
 } from '../src/lib/catalogue/browse';
 import { Words } from '../src/lib/i18n/words';
@@ -98,5 +99,31 @@ describe('the storefront browse rules (Slice 12b)', () => {
     expect(searchOf({ q: '  lal   panjabi ' })).toBe('lal panjabi');
     expect(searchOf({ q: '   ' })).toBeNull();
     expect(searchOf({ q: ['a', 'b'] })).toBeNull();
+  });
+});
+
+// SB-33, Q4 (the owner, 2026-11-26): only categories with something to see are offered in the header, menu and footer.
+describe('offeredCategories', () => {
+  const counted = (slug: string, productCount: number, children: PublicCategory[] = []) => ({
+    ...category(slug, children),
+    productCount,
+  });
+
+  it('leaves out a category holding no product, keeps one holding any, sold out or not', () => {
+    const offered = offeredCategories([counted('empty', 0), counted('sold-out', 2)]);
+    expect(offered.map((each) => each.slug)).toEqual(['sold-out']);
+  });
+
+  it('keeps a parent whose subcategories hold products, and only those subcategories', () => {
+    // The count is the server's, its subcategories' included, so the parent's is theirs.
+    const tree = [counted('women', 3, [counted('sarees', 3), counted('hijab', 0)])];
+    const [women] = offeredCategories(tree);
+    expect(women?.children.map((each) => each.slug)).toEqual(['sarees']);
+  });
+
+  it("keeps a category page's own chip, and drops its empty siblings", () => {
+    const empty = counted('empty', 0);
+    const found = findCategory([counted('panjabi', 4), empty, counted('shirts', 0)], 'empty');
+    expect(found && chipsFor(found).chips.map((each) => each.slug)).toEqual(['panjabi', 'empty']);
   });
 });
