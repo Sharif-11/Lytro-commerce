@@ -366,16 +366,17 @@ describeIfDatabase("a shop's storefront design (SB-11 to SB-16)", () => {
         expect(created.status, JSON.stringify(created.body)).toBe(201);
         return created.body as { id: string; slug: string };
       };
-      // SB-32 (2026-11-26): a category's row needs a grid's four products to show, so a category counts with four.
-      const products = async (name: string, categoryId: string, count: number) => {
+      // SB-32 (2026-11-26): a category's row needs a grid's four products to show, so a category counts with four. A
+      // product may sit in two categories, which keeps the shop within its plan's products.
+      const products = async (name: string, categoryIds: string[], count: number) => {
         for (let at = 1; at <= count; at += 1) {
-          await product(shop, `${name} ${String(at)}`, { categoryIds: [categoryId] });
+          await product(shop, `${name} ${String(at)}`, { categoryIds });
         }
       };
-      // In the shop's order: one with nothing in it, one hidden and one with three (all left out); one whose products
-      // include a sold-out one, which counts since 2026-11-25 (the owner: "the storefront must be populated even if
-      // there is no stock"); then two with four, the second through its sub-category; and one more, left out past the
-      // first three.
+      // In the shop's order: one with nothing in it, one hidden with four and one with three (all left out); one whose
+      // four include a sold-out one, which counts since 2026-11-25 (the owner: "the storefront must be populated even
+      // if there is no stock"); then two with four, the second through its sub-category; and one more with four, left
+      // out past the first three.
       await made('Empty', { sortOrder: 1 });
       const hidden = await made('Hidden', { sortOrder: 2, visible: false });
       const small = await made('Small', { sortOrder: 3 });
@@ -384,17 +385,14 @@ describeIfDatabase("a shop's storefront design (SB-11 to SB-16)", () => {
       const women = await made('Women', { sortOrder: 6 });
       const saree = await made('Saree', { sortOrder: 1, parentId: women.id });
       const shoes = await made('Shoes', { sortOrder: 7 });
-      await products('Hidden kurti', hidden.id, 4);
-      await products('Small', small.id, 3);
       const gone = await product(shop, 'Gone', {
         categoryIds: [soldOut.id],
         variants: [{ optionIds: [], openingStock: 0 }],
       });
       expect((await shop.get(`/products/${gone.id}`)).body).toMatchObject({ stockState: 'out' });
-      await products('Kept', soldOut.id, 3);
-      await products('Kurti', kurti.id, 4);
-      await products('Saree', saree.id, 4);
-      await products('Sneaker', shoes.id, 4);
+      await products('Kept', [soldOut.id, small.id], 3);
+      await products('Kurti', [kurti.id, shoes.id], 4);
+      await products('Saree', [saree.id, hidden.id], 4);
 
       const editor = await editorOf(shop);
       const start = startingDesign(editor.startingTheme, [soldOut.id, kurti.id, women.id]);
@@ -410,8 +408,8 @@ describeIfDatabase("a shop's storefront design (SB-11 to SB-16)", () => {
       expect(shown.design.categories.map((category) => category.id).sort()).toEqual(
         [soldOut.id, kurti.id, women.id].sort(),
       );
-      // SB-32: "সব প্রোডাক্ট · Nটি" counts every active product, a hidden category's and a sold-out one included.
-      expect(shown.productCount).toBe(4 + 3 + 4 + 4 + 4 + 4);
+      // SB-32: "সব প্রোডাক্ট · Nটি" counts every active product, a sold-out one included, each once.
+      expect(shown.productCount).toBe(1 + 3 + 4 + 4);
 
       // A page the shop published is its own: categories never add rows to it.
       const own = startingDesign(editor.startingTheme);
