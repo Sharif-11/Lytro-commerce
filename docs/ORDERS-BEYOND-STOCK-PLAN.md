@@ -43,9 +43,9 @@ oldest first. While a line is short, the order can't leave the shop.
 | OB-7 | **Placing an order holds `min(asked, available)` and records the rest as short**, inside the order's own transaction and with the same lock order (products, then levels, then reservations, then shortfalls). `NotEnoughStockForOrder` is no longer raised for a tracked product. `WholeUnitsOnly` and `WholePacksOnly` still refuse. | One rule for the storefront, landing pages, the public API (`POST /v1/orders`) and orders typed in the dashboard. |
 | OB-8 | **The fill runs wherever free stock appears, in the same transaction:** a receipt (PUR), an adjustment up (INV-06), a stock check that finds more (INV-07), opening stock, a sellable return (INV-17), a booking cancelled before pickup (CRR-28), and a reservation released by a cancelled or edited order. Oldest shortfall first (`created_at`, then id). Each fill moves up to the free quantity from the shortfall into the line's reservation, raising reserved, in INV-24 stock units and whole packs for shared stock. | Stock freed by one cancelled order goes to the next waiting order, the way the owner's "oldest first" reads. |
 | OB-9 | **One guard for leaving the shop:** `ReservationService.consume` refuses with `conflict` `OrderShortOfStock`, naming the product, while any shortfall of the order remains. Shipping (`ship`), hand-over (`handOver`), courier booking (whose stock trial, `checkStockWithin`, runs before the courier is called) and marking shipped all go through it. The dashboard shows the reason first and greys the buttons, so the refusal is a backstop. Label printing is a dashboard rule: a short order can't be picked for printing, with the reason shown. | The courier is never called for an order that can't leave. |
-| OB-10 | **The seller hears about it.** The new-order alert, push and SMS (when on) carry "স্টক কম". When a fill completes orders, one notice says so: "স্টক দেওয়া হলো: ৩টা অর্ডারে". | The seller acts on short orders before calling the customer. |
+| OB-10 | **The seller hears about it.** The new-order alert, push and SMS (when on) carry "স্টক কম". When a fill completes orders, one notice says so: "স্টক দেওয়া হলো: {n}টা অর্ডারে". | The seller acts on short orders before calling the customer. |
 | OB-11 | **The orders list gets a "স্টক কম" chip,** with its count, beside the status chips, and each short order's row says "২টা কম" in the warning colour. The order shows the short line, an orange banner and the blocked next step. | The work is easy to find. |
-| OB-12 | **"স্টক যোগ করুন" opens the add-stock sheet prefilled with the shortfall**, with the reason "নতুন স্টক এসেছে" (INV-06). Saving fills this order first only if it is the oldest; otherwise the order states where it stands ("আরও ১টা অর্ডার আগে অপেক্ষায়"). | The rule stays oldest first, and the seller sees why. |
+| OB-12 | **"স্টক যোগ করুন" opens the add-stock sheet for that variant, prefilled with what covers this order**: its own shortfall plus any older waiting order's (in the sketch 3 = 1 for an older order, then 2 for this one), with the reason "নতুন মাল এসেছে" (INV-06). The sheet lists where the stock goes, oldest first; more than that is free stock. | The rule stays oldest first, and the seller sees why before saving. |
 | OB-13 | **Order edits:** raising a quantity holds what is free and shorts the rest. Lowering it takes from the shortfall first, then releases held units. Removing a line drops both. | Least surprise: held stock stays held. |
 | OB-14 | **Combos:** each component variant holds and shorts on its own; the combo line is short while any component is. **Shared stock (INV-24):** the shortfall sits on the stock holder in stock units and fills in whole packs. **Photo designs:** a design is a variant, nothing more. | The model already reserves per component and per holder. |
 | OB-15 | **Batches and serials don't change.** Batches are drawn (FEFO) and serials named when the order leaves, and a short order can't leave, so neither is touched early. | INV-12 and INV-14 stay as built. |
@@ -57,18 +57,21 @@ oldest first. While a line is short, the order can't leave the shop.
 ## 3. Screens
 
 **Dashboard (`docs/brand/lytro-dashboard.html`, `obs-*`), drawn from the built orders screens (`o29-*`):**
-- `obs-list`: the orders list with the "স্টক কম" chip, and short rows marked "২টা কম".
+- `obs-list`: the orders list with the "স্টক কম" chip first in the row (with its count), and short rows marked "2টা কম".
+- `obs-list-short`: that chip on, only short orders listed.
 - `obs-order`: a short order with the banner "২টা পণ্যের স্টক নেই · কুরিয়ার বুক বা শিপ করার আগে স্টক যোগ করুন", the
-  short line ("কটন টি-শার্ট · L · কালো · ২টা কম"), the shipping card's blocked step, and the action bar's greyed
-  "শিপ করুন" beside "স্টক যোগ করুন".
+  short line ("চিকনকারি কুর্তি · গোলাপি · M · 2টা কম", and why it waits), the shipping card's blocked step, and the
+  action bar's greyed "কুরিয়ার বুক করুন" beside "স্টক যোগ করুন". Also `obs-order-desktop`.
 - `obs-book-blocked`: the courier booking sheet opened on a short order: the reason instead of the courier fields.
-- `obs-add-stock`: the add-stock sheet launched from the order, prefilled with 2 and the reason "নতুন স্টক এসেছে".
-- `obs-filled`: after saving: the line covered, "শিপ করুন" live, and the toast "স্টক দেওয়া হলো: ৩টা অর্ডারে".
-- `obs-alert`: the new-order notification for a short order.
+- `obs-add-stock`: the add-stock sheet launched from the order, its variant fixed, the reason "নতুন মাল এসেছে", and where
+  the stock goes: the older waiting order first (1), then this one (2), so 3 covers both.
+- `obs-filled`: after saving: the line covered, "কুরিয়ার বুক করুন" live, and the toast "স্টক দেওয়া হলো: 2টা অর্ডারে".
+- `obs-alert`: the bell: the new order arrived short, and the earlier fill notice.
 - `obs-print`: picking orders to print labels, with a short order unpickable and its reason.
 
 **Storefront (`docs/brand/lytro-storefront-builder.html`, `obs-pp-short`):** the one product page for a sold-out
 product: the same page as an in-stock one, with no stock wording and the order form and button working.
+`before-pp-out.png` shows today's sold-out page (no form) for comparison.
 
 ## 4. Proposed SRS amendments (text only; `SRS-detailed.md` changes in the build PR)
 
