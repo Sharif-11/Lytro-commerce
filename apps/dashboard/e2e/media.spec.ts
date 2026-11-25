@@ -170,6 +170,9 @@ test('adds a video, shown with its length and size, and Remove takes it off', as
   await expect(toast(page)).toBeVisible();
   const [sent] = sentBodies(log, 'PUT', '/products/p-1/video') as { mediaId: string }[];
   expect(sent?.mediaId).toMatch(/^m-up-/);
+  // §7.4c: Save returns to the product's page; Edit opens the editor again.
+  await expect(page).toHaveURL(`/${SLUG}/products/p-1`);
+  await main(page).getByRole('link', { name: 'Edit' }).click();
 
   await main(page).getByRole('button', { name: 'Video' }).click();
   await sheet(page).getByRole('button', { name: 'Remove', exact: true }).click();

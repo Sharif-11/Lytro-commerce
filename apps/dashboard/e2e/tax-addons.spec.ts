@@ -182,6 +182,9 @@ test('add-ons: a group with a rule and options is saved with the product, read b
       },
     ],
   });
+  // §7.4c: Save returns to the product's page; Edit opens the editor again.
+  await expect(page).toHaveURL(`/${SLUG}/products/p-1`);
+  await main(page).getByRole('link', { name: 'Edit' }).click();
   await page.reload();
   await expect(main(page).getByRole('button', { name: /^Alteration/ })).toContainText(
     'Optional, any number',
@@ -240,6 +243,9 @@ test('a saved tax class and add-on group are saved: a second Save sends nothing,
   await adding.getByRole('button', { name: 'Save' }).click();
   await main(page).getByRole('button', { name: 'Save' }).first().click();
   await expect.poll(() => sent(log, 'PATCH', '/products/p-1').length).toBe(1);
+  // §7.4c: Save returns to the product's page; Edit opens the editor again.
+  await expect(page).toHaveURL(`/${SLUG}/products/p-1`);
+  await main(page).getByRole('link', { name: 'Edit' }).click();
   await main(page).getByRole('button', { name: 'Save' }).first().click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   expect(sent(log, 'PATCH', '/products/p-1')).toHaveLength(1);

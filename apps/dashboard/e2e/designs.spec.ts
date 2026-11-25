@@ -111,6 +111,9 @@ test('the photos sheet names each photo’s design; a photo becomes its own desi
   );
   expect(designSplit?.optionIds).toEqual(['d-1', 'd-2', expect.stringMatching(/^d-new-/)]);
   expect(JSON.stringify(variants)).not.toContain(key);
+  // §7.4c: Save returns to the product's page; Edit opens the editor again.
+  await expect(page).toHaveURL(`/${SLUG}/products/p-burka`);
+  await main(page).getByRole('link', { name: 'Edit' }).click();
   // Saved: nothing is left to save.
   await expect(save(page)).toHaveText('Save');
   await save(page).click();
