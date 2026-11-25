@@ -1340,7 +1340,7 @@ function ProductPage({
             />
           </div>
           <div className="flex flex-col gap-section">
-            {product ? <LinkCard product={product} readOnly={!mayManage} /> : null}
+            {product ? <LinkCard product={product} /> : null}
             {product && mayReadStock && kind.tracked && !isCombo ? (
               <StockCard
                 product={product}

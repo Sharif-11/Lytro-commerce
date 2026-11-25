@@ -330,7 +330,7 @@ describeIfDatabase('the Meta catalog feed (FED-01 to FED-05)', () => {
       availability: 'in stock',
       condition: 'used',
       price: '1500.00 BDT',
-      link: `http://${shop.slug}.localhost/l/${shirt.slug}?v=${variantOf(small)}`,
+      link: `http://${shop.slug}.localhost/l/${shirt.id}?v=${variantOf(small)}`,
       brand: 'Aarong',
     });
     expect(bySize.get('M')).toMatchObject({ price: '1600.00 BDT', availability: 'out of stock' });

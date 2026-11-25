@@ -1,17 +1,12 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ApiClientError } from '@lytronix/api-client';
-import { PRODUCT_SLUG_MAX_LENGTH } from '@lytronix/validators';
-import { useChangeSlug } from '@/api/products';
 import { LinkShare } from '@/components/link-share';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Field, SelectField } from '@/components/ui/field';
+import { SelectField } from '@/components/ui/field';
 import { Sheet } from '@/components/ui/sheet';
-import { useErrorText } from '@/hooks/use-error-text';
 import { useShopAddress } from '@/hooks/use-shop-address';
 import { linkOf } from '@/lib/product-link';
-import { useShell } from '@/shell/shell-context';
 import type { ProductDetail } from '@/types/product';
 
 /** A variant by the options that name it ("M · Black"). */
@@ -29,15 +24,11 @@ function variantName(product: ProductDetail, optionIds: readonly string[]): stri
 
 /**
  * The product link (TENANT-DASHBOARD-DESIGN §7.4, the prototype's link card; LND-04, LND-06): the address with Copy,
- * Facebook and WhatsApp, and the line that opens its sheet -- a variant for the link, and changing it.
+ * Facebook and WhatsApp, and, for a product of several variants, the line that opens its sheet to pick one for the
+ * link. The owner, 2026-11-25: the link names the product by its ID, so "Change the link" (its slug) is gone from here;
+ * the server still makes and keeps slugs, and an old slug link still opens.
  */
-export function LinkCard({
-  product,
-  readOnly,
-}: {
-  product: ProductDetail;
-  readOnly: boolean;
-}): React.JSX.Element {
+export function LinkCard({ product }: { product: ProductDetail }): React.JSX.Element {
   const { t } = useTranslation('shop');
   const { host } = useShopAddress();
   const [open, setOpen] = useState(false);
@@ -50,7 +41,7 @@ export function LinkCard({
         url={`https://${shown}`}
         shown={shown}
         note={
-          several || !readOnly ? (
+          several ? (
             <button
               type="button"
               className="text-left font-medium text-primary underline-offset-2 hover:underline"
@@ -58,7 +49,7 @@ export function LinkCard({
                 setOpen(true);
               }}
             >
-              {several ? t('linkPick') : t('linkChange')}
+              {t('linkPick')}
             </button>
           ) : null
         }
@@ -67,7 +58,6 @@ export function LinkCard({
         open={open}
         product={product}
         host={host}
-        readOnly={readOnly}
         onClose={() => {
           setOpen(false);
         }}
@@ -77,31 +67,24 @@ export function LinkCard({
 }
 
 /**
- * The product link's sheet (the prototype's `sh-link`): the link with Copy and sharing, a variant to open it with
- * (`?v=`), and Change the link, the old one redirecting (LND-04).
+ * The product link's sheet (the prototype's `sh-link`): the link with Copy and sharing, and a variant to open it with
+ * (`?v=`).
  */
 function LinkSheet({
   open,
   product,
   host,
-  readOnly,
   onClose,
 }: {
   open: boolean;
   product: ProductDetail;
   host: string;
-  readOnly: boolean;
   onClose: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('shop');
-  const errorText = useErrorText();
-  const { showToast } = useShell();
-  const change = useChangeSlug(product.id);
   const [variantId, setVariantId] = useState('');
-  const [typed, setTyped] = useState(product.slug);
   const live = product.variants.filter((variant) => variant.active);
   const shown = linkOf(host, product, variantId || null);
-  const problems = change.error instanceof ApiClientError ? change.error.fieldProblems() : {};
   return (
     <Sheet
       open={open}
@@ -134,48 +117,6 @@ function LinkSheet({
             }}
           />
         ) : null}
-        {readOnly ? null : (
-          <details>
-            <summary className="cursor-pointer font-semibold text-primary">
-              {t('linkChange')}
-            </summary>
-            <div className="mt-2.5 flex flex-col gap-3">
-              <Field
-                label={t('linkName')}
-                prefix="/l/"
-                value={typed}
-                maxLength={PRODUCT_SLUG_MAX_LENGTH}
-                help={t('linkChangeNote')}
-                error={problems.slug}
-                onChange={(event) => {
-                  setTyped(event.target.value.trim().toLowerCase());
-                }}
-              />
-              <div>
-                <Button
-                  tone="outline"
-                  size="sm"
-                  busy={change.isPending}
-                  disabled={typed === '' || typed === product.slug}
-                  onClick={() => {
-                    change.mutate(typed, {
-                      onSuccess: () => {
-                        showToast(t('linkChanged'));
-                      },
-                    });
-                  }}
-                >
-                  {t('linkChange')}
-                </Button>
-              </div>
-              {change.isError && !problems.slug ? (
-                <p className="text-[14px] font-medium text-danger-text">
-                  {errorText(change.error)}
-                </p>
-              ) : null}
-            </div>
-          </details>
-        )}
       </div>
     </Sheet>
   );

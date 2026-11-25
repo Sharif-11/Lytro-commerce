@@ -30,8 +30,9 @@ import {
 // made for it, so tests run side by side; `GET /__orders/:slug` says what that shop was sent. Its pricing is a small
 // copy of the server's rule, for the numbers a page shows; the real rule is proven by the server's own tests.
 
-export const MOCK_PORT = 4181;
-export const STOREFRONT_PORT = 4180;
+// A run beside another worktree's may name its own ports.
+export const MOCK_PORT = Number(process.env['E2E_MOCK_PORT'] ?? 4181);
+export const STOREFRONT_PORT = Number(process.env['E2E_STOREFRONT_PORT'] ?? 4180);
 /** D9-33: a second storefront, with the page cache's Redis (REDIS_TEST_URL), for e2e/page-cache.spec.ts alone. */
 export const PAGE_CACHE_PORT = 4182;
 
@@ -785,9 +786,12 @@ async function publicApi(
   }
   const product = /^\/v1\/catalogue\/products\/(.+)$/.exec(path);
   if (product?.[1]) {
-    const slug = decodeURIComponent(product[1]);
-    const current = fixture.moved[slug] ?? slug;
-    const row = fixture.products.find((each) => each.product.slug === current);
+    // As the API: by the product's ID, or a slug from a link made before, current or old.
+    const link = decodeURIComponent(product[1]);
+    const current = fixture.moved[link] ?? link;
+    const row =
+      fixture.products.find((each) => each.product.id === link) ??
+      fixture.products.find((each) => each.product.slug === current);
     if (!row) {
       fail(response, 404, 'not_found');
       return;

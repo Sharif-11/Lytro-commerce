@@ -3,7 +3,7 @@ import { pathToFileURL } from 'node:url';
 import { StockState, StorefrontThemeKey } from '@lytronix/validators';
 import { type Browser, expect, type Page, test } from '@playwright/test';
 import { builderShop, type SketchShop } from './support/builder-fixtures';
-import type { Language } from './support/fixtures';
+import { idOf, type Language } from './support/fixtures';
 import { GOOD_PREVIEW } from './support/mock-server';
 import { openShop } from './support/shop';
 
@@ -173,7 +173,8 @@ test.describe('the designed home (SB-8 to SB-10)', () => {
     await expect(oud.locator('.sb-tag.sb-best')).toHaveText('Best seller');
     await expect(oud.locator('.sb-pr s')).toHaveText('৳5,500');
     await expect(oud.locator('.sb-sold')).toHaveText('Ordered 64 times');
-    await expect(oud).toHaveAttribute('href', '/p/oud-royale-100-ml');
+    // The owner, 2026-11-25: a card's link names its product by its ID.
+    await expect(oud).toHaveAttribute('href', `/p/${idOf('product-Oud Royale, 100 ml')}`);
   });
 
   test('lists what is on sale at /offers, the biggest saving first', async ({ page, browser }) => {
@@ -250,6 +251,40 @@ test.describe("every page in the theme's header, footer and card (SB-8, SB-17, S
     // The old header and footer are gone.
     await expect(page.locator('.hdr')).toHaveCount(0);
     await expect(page.locator('footer.foot')).toHaveCount(0);
+  });
+
+  // The owner, 2026-11-25: no অফার link while nothing is on sale; it comes back when something is.
+  test('names Offers only while something is on sale; /offers itself still opens', async ({
+    page,
+    browser,
+  }) => {
+    const shops = await sketchShops(browser);
+    const nothing = { products: 0, bestDiscount: 0 };
+    const shop = await openShop(page, (language) => {
+      const made = builderShop(StorefrontThemeKey.Bold, shops.bold, language);
+      return { ...made, info: { ...made.info, sale: nothing } };
+    });
+    const offers = (where: string) => page.locator(`${where} a[href="/offers"]`);
+    await page.goto(shop.url('/'));
+    await expect(page.locator('.sfb-bar .sb-hd .sb-nav a').first()).toHaveText('All products');
+    await expect(offers('.sfb-bar .sb-hd .sb-nav')).toHaveCount(0);
+    await expect(offers('.sfb-foot .sb-ft')).toHaveCount(0);
+    if (test.info().project.name === 'phone') {
+      await page.getByRole('button', { name: 'Menu' }).click();
+      const drawer = page.getByRole('dialog', { name: 'Menu' });
+      await expect(drawer.getByRole('link', { name: 'All products' })).toBeVisible();
+      await expect(drawer.getByRole('link', { name: 'Offers' })).toHaveCount(0);
+    }
+    expect((await page.goto(shop.url('/offers')))?.status()).toBe(200);
+
+    // The same shop with its sketch's sale prices.
+    const onSale = await openShop(page, (language) =>
+      builderShop(StorefrontThemeKey.Bold, shops.bold, language),
+    );
+    expect(onSale.fixture.info.sale?.products).toBeGreaterThan(0);
+    await page.goto(onSale.url('/'));
+    await expect(offers('.sfb-bar .sb-hd .sb-nav')).toHaveText('Offers');
+    await expect(offers('.sfb-foot .sb-ft')).toHaveText('Offers');
   });
 
   test('strikes the regular price through on the product page, with its saving', async ({

@@ -283,7 +283,7 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   // Phase 3 Slice 9a, checked in test/public-catalogue.e2e.spec.ts: the catalogue of the key's shop only.
   'GET /public/catalogue/version': "the key's own shop's version only",
   'GET /public/catalogue/products': "lists and searches only the key's own shop's active products",
-  'GET /public/catalogue/products/:slug': "another shop's product, by its link, is not found",
+  'GET /public/catalogue/products/:id': "another shop's product, by its link, is not found",
   // OFFERS-PLAN, checked in test/offers.e2e.spec.ts: an offer's link answers only on its own shop's key.
   'GET /public/catalogue/offers/:slug': "another shop's offer, by its link, is not found",
   'GET /public/catalogue/categories': "only the key's own shop's visible categories",

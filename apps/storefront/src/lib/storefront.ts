@@ -163,11 +163,11 @@ export async function leadToMainAddress(page: ShopPage): Promise<void> {
   if (target !== null) permanentRedirect(target);
 }
 
-/** A product by its link, read once per request (the page and its preview tags share it). */
-export const loadProduct = cache(async (slug: string) => {
+/** A product by its link (its ID, or a slug from before), read once per request (the page and its preview tags share it). */
+export const loadProduct = cache(async (link: string) => {
   const page = await loadShopPage();
   if (page.state !== 'open') return null;
-  return storefrontApi.product(page.shop, page.shopper, slug);
+  return storefrontApi.product(page.shop, page.shopper, link);
 });
 
 /** The token of the shopper signed in on this browser, as the cookie the storefront's server set holds it. */

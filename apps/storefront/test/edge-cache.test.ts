@@ -217,6 +217,23 @@ describe("the middleware's render for the edge", () => {
     }
   });
 
+  it("leads a redirect to the shopper's own host, so the middleware can answer it", async () => {
+    const fake = storefront(308, '', {
+      location: '/p/0b8f3c52-1e6a-4d7b-9c2f-8a5e3d1b6c40?v=2&fbclid=abc',
+    });
+    const answer = await new EdgeRenderer('http://127.0.0.1:3001', fake.fetcher).render(
+      shopperPage,
+      EDGE_LIFETIMES.page,
+    );
+    expect(answer?.status).toBe(308);
+    expect(answer?.headers.get('location')).toBe(
+      'http://megh.lytro.app/p/0b8f3c52-1e6a-4d7b-9c2f-8a5e3d1b6c40?v=2&fbclid=abc',
+    );
+    // Kept nowhere: the edge keeps a product's page whatever its query, so a kept redirect would hand one link's
+    // `?v=` to every other.
+    expect(answer?.headers.has('cloudflare-cdn-cache-control')).toBe(false);
+  });
+
   it('leaves the page to the usual render when the storefront could not be asked', async () => {
     const failing = (() => Promise.reject(new Error('refused'))) as typeof fetch;
     expect(

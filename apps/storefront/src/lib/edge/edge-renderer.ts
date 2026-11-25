@@ -97,6 +97,11 @@ export class EdgeRenderer {
     // The marks stay in the page: its React data carries them too, and they name nothing a shopper can't see.
     const own = new Headers(inner.headers);
     for (const name of DROPPED_RESPONSE_HEADERS) own.delete(name);
+    // A page that leads elsewhere (a product's slug link, led to its ID's) names the place from the storefront's own
+    // root; the middleware's answer must name it whole, on the shopper's host, or Next refuses it (Invalid URL) and the
+    // shopper gets a 500. Next names it from the root again on the way out.
+    const location = own.get('location');
+    if (location !== null) own.set('location', new URL(location, request.url).toString());
     return { status: inner.status, headers: own, html, marks: readEdgeMarks(html) };
   }
 

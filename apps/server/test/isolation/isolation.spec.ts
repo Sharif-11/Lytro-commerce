@@ -241,7 +241,7 @@ describeIfDatabase('route inventory against the application (SEC-02)', () => {
       'GET /public/catalogue/categories',
       'GET /public/catalogue/offers/:slug',
       'GET /public/catalogue/products',
-      'GET /public/catalogue/products/:slug',
+      'GET /public/catalogue/products/:id',
       'GET /public/catalogue/version',
       'GET /public/feeds/meta/:file',
       'GET /public/listener/messages',

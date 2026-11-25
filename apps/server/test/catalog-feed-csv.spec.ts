@@ -100,10 +100,10 @@ describe('a catalog feed row (FED-02, FED-03)', () => {
     // FED-03: low is still in stock; out is out.
     expect(red).toContain(',in stock,');
     expect(blue).toContain(',out of stock,');
-    // LND-06: the variant chosen in the product's landing link, the Bangla slug written for a URL.
-    expect(red).toContain(
-      `,https://my-shop.lytro.app/l/${encodeURIComponent('সুতি-পাঞ্জাবি')}?v=${RED},`,
-    );
+    // LND-06: the variant chosen in the product's landing link, which names the product by its ID, never its slug
+    // (the owner, 2026-11-25: a Bangla slug made a very long link).
+    expect(red).toContain(`,https://my-shop.lytro.app/l/${PRODUCT}?v=${RED},`);
+    expect(red).not.toContain(encodeURIComponent('সুতি-পাঞ্জাবি'));
   });
 
   it("leads a design's variant with its design's photos, cover first, then the plain ones (PD-23)", async () => {

@@ -161,7 +161,7 @@ const CONTROLLERS: readonly Type[] = [
   PublicPaymentMethodsController,
 ];
 
-/** "GET /public/catalogue/products/:slug": each route a public controller serves. */
+/** "GET /public/catalogue/products/:id": each route a public controller serves. */
 function servedRoutes(): string[] {
   return CONTROLLERS.flatMap((controller) => {
     const base = String(Reflect.getMetadata(PATH_METADATA, controller) ?? '');

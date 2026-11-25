@@ -626,7 +626,7 @@ export class DrizzleProductStore implements ProductStore {
     return this.products.listRedirects(tx, tenantId, productId);
   }
 
-  refreshPriceRange(tx: Transaction, tenantId: string, productId: string): Promise<void> {
+  refreshPriceRange(tx: Transaction, tenantId: string, productId: string): Promise<boolean> {
     return this.products.refreshPriceRange(tx, tenantId, productId);
   }
 

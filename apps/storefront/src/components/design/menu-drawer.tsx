@@ -20,6 +20,7 @@ export function MenuDrawer({
   language,
   variables,
   current,
+  offers,
 }: {
   shopName: string;
   categories: readonly PublicCategory[];
@@ -30,6 +31,8 @@ export function MenuDrawer({
   variables: Record<string, string>;
   /** Which of the lists the page is ('all', 'offers' or a category's link), lit in the drawer. */
   current: string | null;
+  /** The owner, 2026-11-25: whether anything is on sale, so the অফার row shows. */
+  offers: boolean;
 }) {
   const words = new Words(language);
   const [open, setOpen] = useState(false);
@@ -116,7 +119,7 @@ export function MenuDrawer({
                   </button>
                 </div>
                 {row('/new', words.t('sb_all'), current === 'all', go)}
-                {row('/offers', words.t('sb_offers'), current === 'offers', go)}
+                {offers ? row('/offers', words.t('sb_offers'), current === 'offers', go) : null}
                 {categories.length > 0 ? (
                   <>
                     <div className="sb-lab">{words.t('categories')}</div>

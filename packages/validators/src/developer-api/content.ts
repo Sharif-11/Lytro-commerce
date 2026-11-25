@@ -441,20 +441,20 @@ export const DOC_ROUTES: readonly DocRoute[] = [
     id: 'product',
     g: 'catalogue',
     m: 'GET',
-    p: '/catalogue/products/{slug}',
-    ex: '/catalogue/products/jamdani-saree',
+    p: '/catalogue/products/{id}',
+    ex: `/catalogue/products/${P1}`,
     what: [
       'একটি প্রোডাক্টের পুরো পেজ: ছবি, অপশন, প্রতিটি ভ্যারিয়েন্টের দাম ও স্টক। অর্ডারে variantId এখান থেকে নিন।',
       "One product's whole page: photos, options, each variant's price and stock. Take the order's variantId from here.",
     ],
     params: [
       P(
-        'slug',
+        'id',
         'path',
         'string',
         true,
-        'প্রোডাক্টের লিংকের নাম। পুরোনো লিংকেও বর্তমান প্রোডাক্ট আসে।',
-        "The product's link name. An old link answers with the product as it is now.",
+        'প্রোডাক্টের ID। আগের লিংকের slug (বর্তমান বা পুরোনো) দিলেও প্রোডাক্টটি আসে।',
+        "The product's ID. A slug from an earlier link, current or old, answers with the product too.",
       ),
       P('v', 'query', 'string', false, 'ক্যাটালগ ভার্সন।', 'The catalogue version.'),
     ],
@@ -534,8 +534,8 @@ export const DOC_ROUTES: readonly DocRoute[] = [
       ],
     ],
     note: [
-      'উত্তরের slug আপনার পাঠানোটা না হলে লিংক বদলেছে: নতুন লিংকে রিডাইরেক্ট করুন।',
-      'If the answer\u2019s slug is not the one you sent, the link has changed: redirect to the new one.',
+      'প্রোডাক্টের লিংক ID দিয়ে বানান: /p/{id}। slug দিয়ে চাইলে উত্তরের id-র লিংকে রিডাইরেক্ট করুন।',
+      'Make a product’s link with its ID: /p/{id}. Asked by a slug, redirect to the link of the answer’s id.',
     ],
   },
   {

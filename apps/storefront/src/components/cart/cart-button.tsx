@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { areaCookieValue } from '@/lib/area';
 import { PaymentPolicy } from '@lytronix/validators/enums';
 import { checkCart, type CheckedCart, type CheckedLine } from '@/lib/cart/cart-check';
+import { productPath } from '@/lib/design/card-links';
 import {
   browserCart,
   CART_OPEN,
@@ -263,7 +264,10 @@ function CartLineRow({
     <span className="th">{Array.from(line.name.trim())[0]}</span>
   );
   const name = (
-    <a className="nm" href={`/p/${line.productSlug}`}>
+    <a
+      className="nm"
+      href={line.productId ? productPath(line.productId) : `/p/${line.productSlug}`}
+    >
       {line.name}
     </a>
   );

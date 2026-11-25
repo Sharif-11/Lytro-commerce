@@ -543,9 +543,12 @@ export interface ShopperRequest {
   forEdge?: boolean;
 }
 
-/** A product read: the product, or the link it now lives at (LND-04), or nothing. */
+/**
+ * A product read: the product, or the ID its link names it by now (LND-04; the owner, 2026-11-25: a slug, current or
+ * old, is led to the ID's link), or nothing.
+ */
 export type ProductRead =
-  { kind: 'found'; product: PublicProduct } | { kind: 'moved'; slug: string } | { kind: 'missing' };
+  { kind: 'found'; product: PublicProduct } | { kind: 'moved'; id: string } | { kind: 'missing' };
 
 // Slice 9.10 (STOREFRONT-DESIGN §7h): "too many requests" (429, RTE-06) and "busy" (503) mean wait, not that something is
 // wrong, so a page says so and tries again after the server's wait. Every other refusal stays a fault and shows the error
@@ -768,22 +771,21 @@ export class StorefrontApi {
     return StorefrontApi.required(answer, 'the offer');
   }
 
+  /** A product by its link: its ID, or a slug (current or old) from a link made before. */
   async product(
     shop: StorefrontShopContext,
     shopper: ShopperRequest,
-    slug: string,
+    link: string,
   ): Promise<ProductRead> {
     const answer = await this.call<PublicProduct>(
       shop,
       shopper,
       'GET',
-      `/v1/catalogue/products/${encodeURIComponent(slug)}`,
+      `/v1/catalogue/products/${encodeURIComponent(link)}`,
     );
     if (answer.status === 404) return { kind: 'missing' };
     const product = StorefrontApi.required(answer, 'the product');
-    return product.slug === slug
-      ? { kind: 'found', product }
-      : { kind: 'moved', slug: product.slug };
+    return product.id === link ? { kind: 'found', product } : { kind: 'moved', id: product.id };
   }
 
   async locations(shop: StorefrontShopContext, shopper: ShopperRequest): Promise<Locations> {

@@ -6,7 +6,7 @@ import type {
   ShopperPaymentMethod,
 } from '@/lib/api/storefront-api';
 import { categoryById, findCategory } from '@/lib/catalogue/browse';
-import { cardKey, spreadsDesigns } from '@/lib/design/card-links';
+import { cardKey, productPath, spreadsDesigns } from '@/lib/design/card-links';
 import { pageTheme } from '@/lib/design/design-look';
 import { productOpening } from '@/lib/product/opening';
 import { shopChatOf } from '@/lib/shop/shop-chat';
@@ -121,7 +121,7 @@ export function OnePageInShop({
         methods={data.methods}
         source={source}
         storefrontOn
-        shareUrl={`${page.shop.publicOrigin}/p/${product.slug}`}
+        shareUrl={`${page.shop.publicOrigin}${productPath(product.id)}`}
       />
       {more.length > 0 ? (
         <section className="sec pp-sec">

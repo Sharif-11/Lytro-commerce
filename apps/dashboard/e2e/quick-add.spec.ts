@@ -343,10 +343,10 @@ test('pq-saved: the first save shows the landing link to copy and open, the shar
   await expect(saved).toBeVisible();
   await expect(saved).toContainText('Panjabi');
   await expect(saved).toContainText('৳1,250');
-  await expect(saved.getByText('megh.lytro.app/l/panjabi', { exact: true })).toBeVisible();
+  await expect(saved.getByText('megh.lytro.app/l/p-new-1', { exact: true })).toBeVisible();
   await expect(saved.getByRole('link', { name: 'See the page' })).toHaveAttribute(
     'href',
-    'https://megh.lytro.app/l/panjabi',
+    'https://megh.lytro.app/l/p-new-1',
   );
   await expect(saved.getByRole('link', { name: 'See the page' })).toHaveAttribute(
     'target',
@@ -355,11 +355,11 @@ test('pq-saved: the first save shows the landing link to copy and open, the shar
   // No share sheet in this browser: WhatsApp, Facebook and Messenger instead (the first two before the shop link's).
   await expect(saved.getByRole('link', { name: 'WhatsApp' }).first()).toHaveAttribute(
     'href',
-    'https://wa.me/?text=https%3A%2F%2Fmegh.lytro.app%2Fl%2Fpanjabi',
+    'https://wa.me/?text=https%3A%2F%2Fmegh.lytro.app%2Fl%2Fp-new-1',
   );
   await expect(saved.getByRole('link', { name: 'Facebook' }).first()).toHaveAttribute(
     'href',
-    'https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fmegh.lytro.app%2Fl%2Fpanjabi',
+    'https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fmegh.lytro.app%2Fl%2Fp-new-1',
   );
   await expect(saved.getByRole('link', { name: 'Messenger' })).toBeVisible();
   await expectAccessible(page);
@@ -369,7 +369,7 @@ test('pq-saved: the first save shows the landing link to copy and open, the shar
   await expect(saved.getByRole('button', { name: 'Copied' })).toBeVisible();
   await expect(page.getByRole('status').filter({ hasText: 'Link copied' })).toBeVisible();
   expect(await page.evaluate(() => (window as unknown as { copied: string[] }).copied)).toEqual([
-    'https://megh.lytro.app/l/panjabi',
+    'https://megh.lytro.app/l/p-new-1',
   ]);
   await expect(saved.getByRole('button', { name: 'Copy link' })).toBeVisible({ timeout: 3000 });
 
@@ -390,7 +390,7 @@ test('pq-saved: the phone share sheet when there is one, and Go to the product',
   const saved = savedSheet(page);
   await saved.getByRole('button', { name: 'Share' }).click();
   expect(await page.evaluate(() => (window as unknown as { shared: unknown[] }).shared)).toEqual([
-    { title: 'Panjabi', url: 'https://megh.lytro.app/l/panjabi' },
+    { title: 'Panjabi', url: 'https://megh.lytro.app/l/p-new-1' },
   ]);
   // The fallbacks are for a browser with no share sheet; the shop link keeps its own Facebook and WhatsApp.
   await expect(saved.getByRole('link', { name: 'Messenger' })).toHaveCount(0);
@@ -407,7 +407,7 @@ test('pq-saved-paused: a storefront waiting for its top-up still gets the link, 
   await stockBox(page).fill('8');
   await save(page).click();
   const saved = savedSheet(page);
-  await expect(saved.getByText('megh.lytro.app/l/panjabi', { exact: true })).toBeVisible();
+  await expect(saved.getByText('megh.lytro.app/l/p-new-1', { exact: true })).toBeVisible();
   await expect(saved).toContainText('The link opens once a ৳10 top-up opens the shop.');
   await expect(saved.getByRole('link', { name: 'Top up' })).toHaveAttribute(
     'href',
@@ -459,7 +459,7 @@ test("pq-saved: the shop's link under the product's, each copied or shared ticki
   await stockBox(page).fill('8');
   await save(page).click();
   const saved = savedSheet(page);
-  await expect(saved.getByText('megh.lytro.app/l/panjabi', { exact: true })).toBeVisible();
+  await expect(saved.getByText('megh.lytro.app/l/p-new-1', { exact: true })).toBeVisible();
   const shop = saved.getByRole('region', { name: 'Your shop link' });
   await expect(shop.getByText('megh.lytro.app', { exact: true })).toBeVisible();
   await expect(shop.getByRole('link', { name: 'WhatsApp' })).toHaveAttribute(
@@ -475,7 +475,7 @@ test("pq-saved: the shop's link under the product's, each copied or shared ticki
   await expect(shop.getByRole('button', { name: 'Copied' })).toBeVisible();
   await expect.poll(marked).toBe(2);
   expect(await page.evaluate(() => (window as unknown as { copied: string[] }).copied)).toEqual([
-    'https://megh.lytro.app/l/panjabi',
+    'https://megh.lytro.app/l/p-new-1',
     'https://megh.lytro.app',
   ]);
 });

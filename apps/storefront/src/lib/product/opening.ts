@@ -35,8 +35,3 @@ export async function productOpening(
     : null;
   return { linkedVariantId, areaId, estimate, openInBrowser };
 }
-
-/** The query string a moved link keeps (`?v=`), so the redirect lands on the same variant. */
-export function keptQuery(v: string | string[] | undefined): string {
-  return typeof v === 'string' && v.length > 0 ? `?v=${encodeURIComponent(v)}` : '';
-}

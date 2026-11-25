@@ -220,7 +220,7 @@ test.describe('ordering on the product page (SB-31)', () => {
     await expect(
       page.getByRole('heading', { name: 'Thank you! Your order is placed' }),
     ).toBeVisible();
-    expect(page.url()).toBe(shop.url('/p/cotton-panjabi'));
+    expect(page.url()).toBe(shop.url('/p/panjabi'));
     const {
       orders: [sent],
     } = await shop.sent();

@@ -14,6 +14,9 @@ import { escapeLike } from '../like';
 import { counted } from '../orders/sales.repository';
 import { bestSellersSince, FAR_FUTURE, orderedLine } from './card-facts.repository';
 
+// A product's ID as a link names it; anything else is a slug, never compared with the ID column (a uuid).
+const PRODUCT_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
 /** CCH-02, KNOWN-GAPS §66: the shop's catalogue version and the platform library's, together naming what is shown. */
 export interface CatalogueVersions {
   shop: number;
@@ -856,13 +859,25 @@ export class PublicCatalogueRepository {
     }));
   }
 
-  /** LND-04: the active product a link names, by its current slug or an old one; with its current slug. */
-  async findBySlug(
+  /**
+   * LND-04: the active product a link names -- by its ID, as every link names it since the owner's 2026-11-25 call
+   * (a Bangla name's slug made a very long link), or by its current slug or an old one, as links made before did; with
+   * its current slug.
+   */
+  async findByLink(
     tx: Transaction,
     tenantId: string,
-    slug: string,
+    link: string,
   ): Promise<{ productId: string; slug: string } | null> {
     await this.transactions.setTenantContext(tx, tenantId);
+    if (PRODUCT_ID_PATTERN.test(link)) {
+      const byId = await tx.execute<{ id: string; slug: string }>(sql`
+        SELECT p.id, p.slug FROM tenant.products p
+        WHERE p.tenant_id = ${tenantId} AND p.id = ${link}::uuid AND p.active AND p.deleted_at IS NULL`);
+      const row = byId.rows[0];
+      if (row) return { productId: row.id, slug: row.slug };
+    }
+    const slug = link;
     const result = await tx.execute<{ id: string; slug: string }>(sql`
       SELECT p.id, p.slug FROM tenant.products p
       WHERE p.tenant_id = ${tenantId} AND p.slug = ${slug} AND p.active AND p.deleted_at IS NULL

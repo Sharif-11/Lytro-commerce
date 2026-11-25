@@ -66,8 +66,8 @@ test('opens a product with its Basics and link, and one Save sends only what cha
     '100% cotton, pre-shrunk. Keeps its size after washing.',
   );
   await expect(main(page).getByText('In stock')).toBeVisible();
-  // The card's own (its sheet, closed, carries the same link).
-  await expect(main(page).getByText('megh.lytro.app/l/cotton-t-shirt').first()).toBeVisible();
+  // The card's own (its sheet, closed, carries the same link), by the product's ID (the owner, 2026-11-25).
+  await expect(main(page).getByText('megh.lytro.app/l/p-1').first()).toBeVisible();
   await expectAccessible(page);
 
   await main(page).getByLabel('Price', { exact: true }).fill('470');
@@ -252,25 +252,21 @@ test('a refused field is said under it, and Save counts what is left to fix', as
   await expect(save(page)).toHaveText('Fix 1 thing to save');
 });
 
-test('the link: Copy, a variant for it, and changing it', async ({ page }) => {
-  const log = await open(page, 'p-1', {
-    products: { ...drawnProducts(), refuse: { slug: 'taken' } },
-  });
+// The owner, 2026-11-25: the link names the product by its ID, so its name (the slug) is no longer changed here.
+test("the link: by the product's ID, a variant for it, and no changing its name", async ({
+  page,
+}) => {
+  await open(page, 'p-1');
   await main(page)
     .getByRole('button', { name: 'Pick a variant and the link opens on it.' })
     .click();
   await sheet(page).getByLabel('Pick a variant (optional)').selectOption({ label: 'M · Black' });
-  await expect(sheet(page).getByText('megh.lytro.app/l/cotton-t-shirt?v=p-1-v3')).toBeVisible();
-  await sheet(page).getByText('Change the link', { exact: true }).first().click();
-  await sheet(page).getByLabel('Link name').fill('taken');
-  await sheet(page).getByRole('button', { name: 'Change the link' }).click();
-  await expect(sheet(page).getByText('Another product has that link.')).toBeVisible();
-  await sheet(page).getByLabel('Link name').fill('cotton-tee');
-  await sheet(page).getByRole('button', { name: 'Change the link' }).click();
-  await expect(toast(page)).toHaveText('Link changed');
-  expect(log.sent('PUT', '/products/p-1/slug')).toEqual({ slug: 'cotton-tee' });
+  await expect(sheet(page).getByText('megh.lytro.app/l/p-1?v=p-1-v3')).toBeVisible();
+  await expect(sheet(page).getByText('Change the link')).toHaveCount(0);
+  await expect(sheet(page).getByLabel('Link name')).toHaveCount(0);
   await sheet(page).getByRole('button', { name: 'Done' }).click();
-  await expect(main(page).getByText('megh.lytro.app/l/cotton-tee').first()).toBeVisible();
+  await expect(main(page).getByText('megh.lytro.app/l/p-1').first()).toBeVisible();
+  await expect(main(page).getByText('cotton-t-shirt')).toHaveCount(0);
 });
 
 test('Duplicate opens the copy, and at the limit says so first', async ({ page }) => {

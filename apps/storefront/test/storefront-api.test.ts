@@ -162,21 +162,25 @@ describe('StorefrontApi', () => {
     expect(fake.calls[0]?.path).toBe('/v1/track/K7F2M9QX');
   });
 
-  it('turns an old link into a redirect and an unknown one into missing (LND-03, LND-04)', async () => {
-    const fake = server(ok({ slug: 'cotton-panjabi' }), ok({ slug: 'cotton-panjabi' }), {
+  // The owner, 2026-11-25: a product's link names its ID; a slug, current or old, is led to the ID's link.
+  it('finds a product by its ID, leads a slug link to the ID, and an unknown one is missing (LND-03, LND-04)', async () => {
+    const product = { id: 'p-1', slug: 'cotton-panjabi' };
+    const fake = server(ok(product), ok(product), ok(product), {
       status: 404,
       data: null,
       code: 'not_found',
       details: {},
     });
     const api = new StorefrontApi(fake, env);
-    expect(await api.product(shop, shopper, 'cotton-panjabi')).toMatchObject({ kind: 'found' });
-    expect(await api.product(shop, shopper, 'old-panjabi')).toEqual({
+    expect(await api.product(shop, shopper, 'p-1')).toMatchObject({ kind: 'found' });
+    expect(await api.product(shop, shopper, 'cotton-panjabi')).toEqual({
       kind: 'moved',
-      slug: 'cotton-panjabi',
+      id: 'p-1',
     });
+    expect(await api.product(shop, shopper, 'old-panjabi')).toEqual({ kind: 'moved', id: 'p-1' });
     expect(await api.product(shop, shopper, 'gone')).toEqual({ kind: 'missing' });
-    expect(fake.calls[1]?.path).toBe('/v1/catalogue/products/old-panjabi');
+    expect(fake.calls[0]?.path).toBe('/v1/catalogue/products/p-1');
+    expect(fake.calls[2]?.path).toBe('/v1/catalogue/products/old-panjabi');
   });
 
   it('answers null for items the server refuses, and fails loudly on anything else', async () => {
@@ -353,7 +357,7 @@ describe('a server too busy to answer (Slice 9.10, RTE-06)', () => {
 
   it('waits 30 seconds when the server names no wait', async () => {
     const api = new StorefrontApi(server(refused(429)), env);
-    expect(await thrown(api.product(shop, shopper, 'cotton-panjabi'))).toMatchObject({
+    expect(await thrown(api.product(shop, shopper, 'p-1'))).toMatchObject({
       status: 429,
       retryAfter: 30,
     });

@@ -16,6 +16,7 @@ import {
 import { money, type Words } from '@/lib/i18n/words';
 import { DesignIcon } from './design-icon';
 import { linkHref } from '@/lib/design/links';
+import { productPath } from '@/lib/design/card-links';
 import { FocusedPhoto } from './design-parts';
 import { HeroRotator } from './hero-rotator';
 
@@ -72,7 +73,7 @@ function productSlides(products: readonly ProductCard[], words: Words): Slide[] 
         headline: product.name,
         description: null,
         button: words.t('buy_now'),
-        href: `/p/${product.slug}`,
+        href: productPath(product.id),
         badge: saving > 0 ? `−${String(saving)}%` : null,
         price: { now: money(product.minPrice), regular: product.minRegularPrice ?? null },
       },

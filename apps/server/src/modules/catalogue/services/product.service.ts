@@ -495,7 +495,7 @@ export class ProductService {
       await this.writeVariants(tx, shop.id, product.id, matrix.planned, [], variants, shared);
       // PD-10: a new product's variants without a SKU get one.
       await this.fillSkus(tx, shop.id, product.id);
-      await this.products.refreshPriceRange(tx, shop.id, product.id);
+      await this.refreshPrices(tx, shop.id, product.id);
       if (combo) {
         await this.combos.write(tx, shop.id, product.id, parts);
         // CMB-02: what its parts can make sets its state now.
@@ -722,7 +722,7 @@ export class ProductService {
         copy.id,
         await this.products.listDeliveryZoneIds(tx, shop.id, productId),
       );
-      await this.products.refreshPriceRange(tx, shop.id, copy.id);
+      await this.refreshPrices(tx, shop.id, copy.id);
       // CMB-10: a duplicated combo has the same parts.
       if (source.kind === ProductKind.Combo) {
         await this.combos.copy(tx, shop.id, productId, copy.id);
@@ -785,7 +785,7 @@ export class ProductService {
             going.map((row) => row.id),
           )
           .catch(refuseHeld);
-        await this.products.refreshPriceRange(tx, shop.id, productId);
+        await this.refreshPrices(tx, shop.id, productId);
         await stock?.refreshStockState(tx, shop.id, productId);
       }
       await this.record(tx, shop.id, who, AuditAction.ProductImagesSaved, productId, {
@@ -851,6 +851,17 @@ export class ProductService {
       await this.edge.products(tx, shop.id, [productId]);
       return this.detail(tx, shop.id, productId);
     });
+  }
+
+  /**
+   * CCH-11: the product's price range again. The owner, 2026-11-25: the storefront's অফার link shows only while
+   * something is on sale, on every page's header, so a product going on sale or coming off it drops the shop's kept
+   * pages too (an offer starting or ending already does, through the catalogue version).
+   */
+  private async refreshPrices(tx: Transaction, tenantId: string, productId: string): Promise<void> {
+    if (await this.products.refreshPriceRange(tx, tenantId, productId)) {
+      await this.edge.shop(tx, tenantId);
+    }
   }
 
   /** DLV-07: the zones a product may be delivered to, each once; one the shop does not have is refused by `field`. */
@@ -1016,7 +1027,7 @@ export class ProductService {
       const priceChanged = updated.basePrice !== current.basePrice;
       // SB-21: the regular price moves the struck-through price and the saving the lists show.
       if (priceChanged || updated.regularPrice !== current.regularPrice) {
-        await this.products.refreshPriceRange(tx, shop.id, productId);
+        await this.refreshPrices(tx, shop.id, productId);
       }
 
       await this.record(tx, shop.id, who, AuditAction.ProductUpdated, productId, {
@@ -1132,7 +1143,7 @@ export class ProductService {
         else await this.retireStockHolder(tx, shop.id, productId);
         await this.switchSharing(tx, shop.id, productId, shared);
       }
-      await this.products.refreshPriceRange(tx, shop.id, productId);
+      await this.refreshPrices(tx, shop.id, productId);
       // CCH-08: a retired variant no longer sells, whatever it still holds (its stock stays, visible to the shop).
       await stock?.refreshStockState(tx, shop.id, productId);
       await this.record(tx, shop.id, who, AuditAction.ProductVariantsSaved, productId, {

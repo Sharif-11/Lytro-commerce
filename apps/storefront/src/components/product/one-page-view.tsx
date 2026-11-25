@@ -163,6 +163,7 @@ export function OnePageView(props: OnePageViewProps) {
     if (!picked?.available) return null;
     return {
       variantId: picked.id,
+      productId: product.id,
       productSlug: product.slug,
       name: product.name,
       choice: choiceTextOf(product, lineSelection, words),

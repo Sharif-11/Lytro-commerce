@@ -110,7 +110,8 @@ export class CatalogFeedCsv {
             availability: row.stockState === StockState.Out ? 'out of stock' : 'in stock',
             condition: row.condition,
             price: `${row.price} BDT`,
-            link: `${origin}/l/${encodeURIComponent(row.productSlug)}?v=${row.variantId}`,
+            // The owner, 2026-11-25: a product's links name its ID, never its slug (a Bangla name made a very long link).
+            link: `${origin}/l/${row.productId}?v=${row.variantId}`,
             image_link: coverOf(photos, videos.get(row.productId) ?? null)?.urls.main ?? '',
             additional_image_link: photos
               .slice(1, 1 + MORE_IMAGES)

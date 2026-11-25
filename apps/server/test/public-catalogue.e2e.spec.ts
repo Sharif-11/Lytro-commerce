@@ -572,6 +572,33 @@ describeIfDatabase('a product page (PRD-09, ATR-07, LND-04)', () => {
     expect(notOurs.status).toBe(404);
     expect(errorOf(notOurs).code).toBe('not_found');
   });
+
+  // The owner, 2026-11-25: a product's links name its ID; its slug, current or old, still finds it.
+  it("finds a product by its ID; never another shop's, nor an inactive one", async () => {
+    const shop = await openShop(port, texts, 'pub-ids');
+    const other = await openShop(port, texts, 'pub-ids-b');
+    const key = await keyFor(shop);
+    const lamp = await simple(shop, 'Desk Lamp', 1200);
+    const moved = await shop.put(`/products/${lamp.id}/slug`, { slug: 'reading-lamp' });
+    expect(moved.status, JSON.stringify(moved.body)).toBe(200);
+
+    for (const link of [lamp.id, lamp.id.toUpperCase(), 'reading-lamp', lamp.slug]) {
+      const found = await callApi(`/v1/catalogue/products/${link}`, key);
+      expect(found.status, link).toBe(200);
+      expect((found.body as Detail).id, link).toBe(lamp.id);
+      expect((found.body as Detail).slug, link).toBe('reading-lamp');
+    }
+    // A slug shaped like an ID that names nothing is looked up as a slug, and found by neither.
+    expect((await callApi(`/v1/catalogue/products/${randomUUID()}`, key)).status).toBe(404);
+
+    const theirs = await simple(other, 'Their lamp', 100);
+    const notOurs = await callApi(`/v1/catalogue/products/${theirs.id}`, key);
+    expect(notOurs.status).toBe(404);
+    expect(errorOf(notOurs).code).toBe('not_found');
+
+    expect((await shop.patch(`/products/${lamp.id}`, { active: false })).status).toBe(200);
+    expect((await callApi(`/v1/catalogue/products/${lamp.id}`, key)).status).toBe(404);
+  });
 });
 
 describeIfDatabase('the category tree (PRD-03)', () => {
