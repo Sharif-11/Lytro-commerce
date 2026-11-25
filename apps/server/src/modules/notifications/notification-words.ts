@@ -63,8 +63,11 @@ export function orderPlacedText(input: {
   grandTotal: string;
   source: OrderSource;
   locked?: { district: { bn: string; en: string } | null; fee: string } | null;
+  /** INV-25 (ORDERS-BEYOND-STOCK OB-10): it arrived short of stock. */
+  short?: boolean;
 }): NotificationText {
   const source = SOURCES[input.source];
+  const short = input.short === true;
   // PF-28: a locked order -- its amount, district and source, and what opening it costs; no name.
   if (input.locked) {
     const fee = Number(input.locked.fee).toLocaleString('en-US', { maximumFractionDigits: 2 });
@@ -72,13 +75,13 @@ export function orderPlacedText(input: {
     return {
       bn: {
         title: `নতুন অর্ডার ${input.orderNumber}`,
-        body: [`৳${input.grandTotal}`, where?.bn, source.bn, `খুলতে ৳${fee}`]
+        body: [`৳${input.grandTotal}`, where?.bn, source.bn, `খুলতে ৳${fee}`, short ? 'স্টক কম' : null]
           .filter(Boolean)
           .join(' · '),
       },
       en: {
         title: `New order ${input.orderNumber}`,
-        body: [`${input.grandTotal} TK`, where?.en, source.en, `${fee} TK to open`]
+        body: [`${input.grandTotal} TK`, where?.en, source.en, `${fee} TK to open`, short ? 'Short of stock' : null]
           .filter(Boolean)
           .join(' · '),
       },
@@ -87,11 +90,11 @@ export function orderPlacedText(input: {
   return {
     bn: {
       title: `নতুন অর্ডার ${input.orderNumber}`,
-      body: `${input.customerName ?? 'একজন কাস্টমার'} · ৳${input.grandTotal} · ${source.bn}`,
+      body: `${input.customerName ?? 'একজন কাস্টমার'} · ৳${input.grandTotal} · ${source.bn}${short ? ' · স্টক কম' : ''}`,
     },
     en: {
       title: `New order ${input.orderNumber}`,
-      body: `${input.customerName ?? 'A customer'} · ${input.grandTotal} TK · ${source.en}`,
+      body: `${input.customerName ?? 'A customer'} · ${input.grandTotal} TK · ${source.en}${short ? ' · Short of stock' : ''}`,
     },
   };
 }

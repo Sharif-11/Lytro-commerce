@@ -93,7 +93,15 @@ interface Order {
   trackingId: string;
   status: string;
   fulfillmentStatus: string;
-  items: { id: string; productName: string; unitPrice: string; components: Component[] }[];
+  /** INV-25: what the order still waits for. */
+  short: string;
+  items: {
+    id: string;
+    productName: string;
+    unitPrice: string;
+    components: Component[];
+    short: string;
+  }[];
   history: { field: string; note: string | null }[];
 }
 

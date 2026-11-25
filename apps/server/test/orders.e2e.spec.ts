@@ -60,6 +60,8 @@ interface Product {
 
 interface Item {
   id: string;
+  /** INV-25: what the line still waits for. */
+  short: string;
   productId: string | null;
   variantId: string | null;
   productName: string;
@@ -75,6 +77,8 @@ interface Item {
 
 interface Order {
   id: string;
+  /** INV-25: what the order still waits for. */
+  short: string;
   orderNumber: string;
   trackingId: string;
   status: string;
@@ -259,26 +263,17 @@ describeIfDatabase('entering an order (ORD-01, ORD-04, ORD-05, ORD-06, PRD-07)',
     expect(next.deliveryCharge).toBe('70.00');
   });
 
-  it('refuses an order asking more than is free, naming the product, and gives its number to the next one', async () => {
+  it('takes an order asking more than is free, holding what is free and waiting for the rest (INV-25, OB-7)', async () => {
     const shop = await openShop(port, texts, 'ord');
     const vase = await product(shop, 'Clay vase', 800, 1);
-    const refused = await send(shop, {
+    const placed = await place(shop, {
       ...(await delivery(shop)),
       items: [{ variantId: vase.variantId, quantity: 2 }],
     });
-    expect(refused.status).toBe(409);
-    expect(errorOf(refused).message).toContain('Clay vase');
-    const count = await admin.query<{ n: number }>(
-      'SELECT count(*)::int AS n FROM tenant.orders WHERE tenant_id = $1',
-      [shop.tenantId],
-    );
-    expect(count.rows[0]?.n).toBe(0);
-    expect(await reserved(vase.variantId)).toBe('0.000');
-    const placed = await place(shop, {
-      ...(await delivery(shop)),
-      items: [{ variantId: vase.variantId, quantity: 1 }],
-    });
     expect(placed.orderNumber).toBe(`${today()}-0001`);
+    expect(placed.short).toBe('1.000');
+    expect(placed.items[0]?.short).toBe('1.000');
+    expect(await reserved(vase.variantId)).toBe('1.000');
   });
 
   it('gives 50 orders made at once 50 distinct consecutive numbers (ORD-04)', async () => {
@@ -350,7 +345,7 @@ describeIfDatabase('entering an order (ORD-01, ORD-04, ORD-05, ORD-06, PRD-07)',
     expect(await reserved(shirt.variantId)).toBe('1.000');
   });
 
-  it('gives two orders racing for the last unit one order and one refusal, never overselling (INV-01)', async () => {
+  it('takes two orders racing for the last unit, one holding it and the other waiting, never overselling (INV-01, INV-25)', async () => {
     const shop = await openShop(port, texts, 'ord');
     const vase = await product(shop, 'Last vase', 900, 1);
     const [one, two] = await Promise.all([
@@ -363,8 +358,9 @@ describeIfDatabase('entering an order (ORD-01, ORD-04, ORD-05, ORD-06, PRD-07)',
         items: [{ variantId: vase.variantId, quantity: 1 }],
       }),
     ]);
-    expect([one.status, two.status].sort()).toEqual([201, 409]);
+    expect([one.status, two.status]).toEqual([201, 201]);
     expect(await reserved(vase.variantId)).toBe('1.000');
+    expect([(one.body as Order).short, (two.body as Order).short].sort()).toEqual(['0.000', '1.000']);
   });
 
   it('starts a confirmed order confirmed, and never refuses a made-to-order item for stock', async () => {
@@ -962,7 +958,7 @@ describeIfDatabase('the line as it was (ORD-46, ATR-08, ATR-09, PRD-13)', () => 
 });
 
 describeIfDatabase('changing an order (ORD-11)', () => {
-  it('re-holds changed items, keeps prices ordered at, records hand-set prices, refuses a shortfall whole', async () => {
+  it('re-holds changed items, keeps prices ordered at, records hand-set prices, and a raise beyond stock waits (OB-13)', async () => {
     const shop = await openShop(port, texts, 'ord');
     const shirt = await product(shop, 'Shirt', 500, 5);
     const cap = await product(shop, 'Cap', 200, 5);
@@ -996,12 +992,14 @@ describeIfDatabase('changing an order (ORD-11)', () => {
     expect(await reserved(shirt.variantId)).toBe('3.000');
     expect(await reserved(cap.variantId)).toBe('1.000');
 
+    // INV-25 (ORDERS-BEYOND-STOCK OB-13): raised to 9 of 5, the line holds the 5 and waits for 4; the cap is let go.
     const short = await shop.patch(`/orders/${order.id}`, {
       items: [{ lineId: line, variantId: shirt.variantId, quantity: 9 }],
     });
-    expect(short.status).toBe(409);
-    expect(await reserved(shirt.variantId)).toBe('3.000');
-    expect(await reserved(cap.variantId)).toBe('1.000');
+    expect(short.status, JSON.stringify(short.body)).toBe(200);
+    expect((short.body as Order).short).toBe('4.000');
+    expect(await reserved(shirt.variantId)).toBe('5.000');
+    expect(await reserved(cap.variantId)).toBe('0.000');
 
     const dropped = await shop.patch(`/orders/${order.id}`, {
       items: [{ lineId: line, variantId: shirt.variantId, quantity: 3 }],
@@ -1009,8 +1007,10 @@ describeIfDatabase('changing an order (ORD-11)', () => {
     });
     expect(dropped.status).toBe(200);
     expect((dropped.body as Order).items).toHaveLength(1);
+    expect((dropped.body as Order).short).toBe('0.000');
+    expect(await reserved(shirt.variantId)).toBe('3.000');
     expect(await reserved(cap.variantId)).toBe('0.000');
-    expect(await activity(shop.tenantId, AuditAction.OrderUpdated)).toBe(2);
+    expect(await activity(shop.tenantId, AuditAction.OrderUpdated)).toBe(3);
   });
 });
 
@@ -1355,7 +1355,7 @@ describeIfDatabase('idempotency on order creation (API-11, ORD-21, D4-8)', () =>
     expect(other.status).toBe(422);
   });
 
-  it('makes one order from two requests sent at once with one key, and lets a failed one run again', async () => {
+  it('makes one order from two requests sent at once with one key', async () => {
     const shop = await openShop(port, texts, 'ord');
     const vase = await product(shop, 'Vase', 900, 1);
     const body = { ...(await delivery(shop)), items: [{ variantId: vase.variantId, quantity: 1 }] };
@@ -1368,19 +1368,8 @@ describeIfDatabase('idempotency on order creation (API-11, ORD-21, D4-8)', () =>
       [shop.tenantId],
     );
     expect(count.rows[0]?.n).toBe(1);
-
-    const retryKey = randomUUID();
-    const short = { ...body, items: [{ variantId: vase.variantId, quantity: 1 }] };
-    expect((await send(shop, short, retryKey)).status).toBe(409);
-    // D4-8: the refused request gave its key back, so once stock arrives the same key runs again.
-    const added = await shop.post(
-      `/products/${vase.id}/variants/${vase.variantId}/stock-additions`,
-      {
-        quantity: 1,
-      },
-    );
-    expect(added.status, JSON.stringify(added.body)).toBe(200);
-    expect((await send(shop, short, retryKey)).status).toBe(201);
+    // D4-8's retry after a refusal: an order is no longer refused for stock (INV-25), and the key coming back after a
+    // refusal is the idempotency interceptor's, proven in plan-purchase.e2e.spec.ts.
   });
 });
 

@@ -333,6 +333,8 @@ export function OrderRow({
   const phone = order.customerPhone === null ? null : bangladeshiPhone.forField(order.customerPhone);
   const content = (
     <>
+      {/* OB-20: the number isn't shown, but a screen reader still names the order by it. */}
+      <span className="sr-only">#{order.orderNumber} </span>
       <OrderThumbs thumbs={order.thumbs} lines={order.items} />
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="truncate text-[16px] font-medium">

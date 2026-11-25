@@ -225,7 +225,7 @@ test('takeaway needs no address or charge, a table its number; the charge by han
   await expect(figure(page, /^Total/)).toHaveText('৳500');
 });
 
-test('a shortfall saves nothing and marks its line; a zone the shop doesn’t reach warns, and the order still saves', async ({
+test('an item beyond stock still saves (INV-25); a zone the shop doesn’t reach warns, and the order still saves', async ({
   page,
 }) => {
   const log = await open(page, '/orders/new');
@@ -244,17 +244,11 @@ test('a shortfall saves nothing and marks its line; a zone the shop doesn’t re
   );
   await expect(figure(page, 'Delivery · Set by hand')).toHaveText('—');
 
-  await main(page).getByRole('button', { name: 'Create order' }).first().click();
-  await expect(main(page)).toContainText(
-    'Only 1 Denim jacket is left, so the order was not saved. Lower the number or take the item off.',
-  );
-  await expect(page).toHaveURL(`/${SLUG}/orders/new`);
-  await main(page).getByRole('button', { name: 'Denim jacket −' }).click();
+  // ORDERS-BEYOND-STOCK OB-7: two jackets with one left saves; the order waits for the other.
   await main(page).getByRole('button', { name: 'Create order' }).first().click();
   await expect(page).toHaveURL(`/${SLUG}/orders/o-new-48`);
-  // D4-8: a new key once the server refused the first.
-  const keys = log.calls.filter((call) => call.method === 'POST' && call.path === '/orders');
-  expect(keys).toHaveLength(2);
+  const made = log.calls.filter((call) => call.method === 'POST' && call.path === '/orders');
+  expect(made).toHaveLength(1);
 });
 
 test('the customer already paid: bKash with its number and TrxID; Already confirmed starts it Confirmed', async ({

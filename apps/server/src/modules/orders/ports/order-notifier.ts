@@ -13,6 +13,8 @@ export interface PlacedOrderNotice {
    * it costs; null for an order the shop can already see.
    */
   locked?: { district: { bn: string; en: string } | null; fee: string } | null;
+  /** INV-25 (ORDERS-BEYOND-STOCK OB-10): it arrived short of stock, so the notice says so. */
+  short?: boolean;
 }
 
 /**

@@ -456,8 +456,8 @@ function itemOf(item: SentItem): OrderItemFixture | null {
 const problem = (field: string, message: string) => ({ field, problem: 'required', message });
 
 /**
- * POST /orders: the order made from what was typed, or refused as the server would -- each missing field named, an
- * item asking more than is left naming its variant (NotEnoughStockForOrder).
+ * POST /orders: the order made from what was typed, or refused as the server would -- each missing field named. An item
+ * asking more than is left is taken, the order waiting for the rest (INV-25, ORDERS-BEYOND-STOCK OB-7).
  */
 export function madeOrder(
   body: Record<string, unknown>,
@@ -490,20 +490,6 @@ export function madeOrder(
         details: { fields },
       },
     };
-  }
-  const items = (body.items ?? []) as SentItem[];
-  for (const item of items) {
-    const found = variantOf(item.variantId);
-    if (found && found.variant.available !== null && item.quantity > found.variant.available) {
-      return {
-        refused: {
-          status: 409,
-          code: 'conflict',
-          message: `There is not enough "${found.product.name[1]}" in stock for this order.`,
-          details: { productId: found.product.id, variantId: found.variant.id },
-        },
-      };
-    }
   }
   const next =
     48 + orders.filter((each) => each.source === 'dashboard' && each.id.startsWith('o-new')).length;

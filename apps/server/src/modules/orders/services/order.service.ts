@@ -1778,6 +1778,11 @@ export class OrderService {
     }
   }
 
+  /** INV-25 (ORDERS-BEYOND-STOCK OB-10): whether any line of the order waits for stock, in the caller's transaction. */
+  async shortWithin(tx: Transaction, tenantId: string, orderId: string): Promise<boolean> {
+    return (await this.reservations.listShortfalls(tx, tenantId, [orderId])).length > 0;
+  }
+
   /**
    * ORD-14: the order with its items, calls, history and payments, and who made each, in the caller's transaction;
    * with what it was just told (warnings, QTA-03's prompt) when it was just made or moved.
