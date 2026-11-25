@@ -295,6 +295,12 @@ confirm-order tick draws once (400 ms). `prefers-reduced-motion` turns every tra
 
 ## 6. Onboarding and sign-in
 
+**Amended 2026-11-25, every phone field** (the owner: "in mobile number input box the +88 is fixed since customer
+intrinsically start with 0"). The box takes the number as people write it, from 0: no fixed `+880` before it, the
+placeholder `01XXXXXXXXX`, a saved number shown as `01712345678`. One reader (`apps/dashboard/src/lib/phone.ts`, on
+the server's own `bdMobileNumber`) takes 01…, 1…, 880… and +880… with spaces or dashes, and the server still gets
+`+8801XXXXXXXXX`. The sketches still draw the prefix; this note stands for every one of them.
+
 The flow, routing and refusals are `ONBOARDING-FLOW-DESIGN.md` §2 (AUTH-28 to AUTH-31, TEN-31). This section
 draws the screens in the dashboard's language: one 480 px column, the Lytro wordmark (no shop exists yet),
 the language toggle, a four-segment progress bar on the owner's steps, one white card, and "Powered by

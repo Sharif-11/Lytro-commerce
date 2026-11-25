@@ -117,6 +117,11 @@ describe('a Bangladeshi mobile number (AUTH-02, ORD-01)', () => {
   it('keeps the local form, and refuses anything else', () => {
     expect(bdMobileNumber('+880 1711-000000')).toBe('01711000000');
     expect(bdMobileNumber('8801711000000')).toBe('01711000000');
+    // The owner, 2026-11-25: a number with its 0 left off still reads, however it is spaced.
+    expect(bdMobileNumber('1711000000')).toBe('01711000000');
+    expect(bdMobileNumber('1711 000 000')).toBe('01711000000');
+    expect(bdMobileNumber('1211000000')).toBeNull();
+    expect(bdMobileNumber('171100000')).toBeNull();
     expect(bdMobileNumber('01211000000')).toBeNull();
   });
 });

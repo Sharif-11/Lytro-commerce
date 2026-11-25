@@ -31,14 +31,14 @@ const OAUTH_ICON: Record<OauthProvider, React.JSX.Element> = {
   [OauthProvider.Facebook]: <FacebookIcon />,
 };
 
-/** The local part a `+880…` number carries, for the field's fixed prefix. */
+/** A `+880…` number carried in the address, as the field shows it (01XXXXXXXXX). */
 function localPartOf(phone: string | undefined): string {
-  return phone ? phone.replace(/\D/g, '').replace(/^880/, '').replace(/^0/, '') : '';
+  return phone ? bangladeshiPhone.forField(phone) : '';
 }
 
 /**
  * Step 1, identity (AUTH-28; TENANT-DASHBOARD-DESIGN §6, the prototype's `ob-signin`): one door for new and returning
- * people (AUTH-12). A phone with the fixed +880 and a code, or a password; Google and Facebook where the server has
+ * people (AUTH-12). A phone (typed from 0) and a code, or a password; Google and Facebook where the server has
  * them; the terms box (LEG-01) and the staff link (AUTH-31). What the guest brought from the website shows as chips
  * and is kept for create-shop and the checkout (AUTH-29).
  *
@@ -78,8 +78,8 @@ export function SignIn(): React.JSX.Element {
   function handleSubmit(event: SyntheticEvent<HTMLFormElement>): void {
     event.preventDefault();
     if (!agreed) return;
-    const phone = bangladeshiPhone.fromLocalPart(localPhone);
-    if (!bangladeshiPhone.isValid(phone)) {
+    const phone = bangladeshiPhone.read(localPhone);
+    if (phone === null) {
       setPhoneError(t('invalidPhone'));
       return;
     }
@@ -119,13 +119,12 @@ export function SignIn(): React.JSX.Element {
           type="tel"
           inputMode="numeric"
           autoComplete="tel-national"
-          prefix="+880"
-          placeholder="1XXXXXXXXX"
+          placeholder="01XXXXXXXXX"
           value={localPhone}
           error={phoneError}
           invalid={cantPay}
           onChange={(event) => {
-            setLocalPhone(event.target.value.replace(/[^\d\s-]/g, ''));
+            setLocalPhone(event.target.value.replace(/[^\d\s+-]/g, ''));
             requestCode.reset();
           }}
         />
