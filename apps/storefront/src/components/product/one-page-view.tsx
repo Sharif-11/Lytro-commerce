@@ -608,20 +608,18 @@ export function OnePageView(props: OnePageViewProps) {
               </div>
               <div className="field">
                 <label htmlFor="order-phone">{words.t('phone_')}</label>
-                <div className="pp-phone">
-                  <span aria-hidden="true">+88</span>
-                  <input
-                    id="order-phone"
-                    className={problems.includes('phone') ? 'input bad' : 'input'}
-                    inputMode="tel"
-                    autoComplete="tel-national"
-                    placeholder="01XXXXXXXXX"
-                    value={fields.phone}
-                    onChange={(event) => {
-                      placing.setField('phone', event.target.value);
-                    }}
-                  />
-                </div>
+                {/* The owner, 2026-11-25: no fixed +88 before the box; the number is typed from 0, as people write it. */}
+                <input
+                  id="order-phone"
+                  className={problems.includes('phone') ? 'input bad' : 'input'}
+                  inputMode="tel"
+                  autoComplete="tel-national"
+                  placeholder="01XXXXXXXXX"
+                  value={fields.phone}
+                  onChange={(event) => {
+                    placing.setField('phone', event.target.value);
+                  }}
+                />
                 {problems.includes('phone') ? (
                   <div className="err">{words.t('err_phone')}</div>
                 ) : null}

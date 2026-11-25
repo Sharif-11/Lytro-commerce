@@ -561,6 +561,10 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'Pay-as-you-go plan retrieved.',
     bn: 'পে-অ্যাজ-ইউ-গো প্ল্যান পাওয়া গেছে।',
   },
+  PaygApiChargeRetrieved: {
+    en: 'Pay-as-you-go API charge retrieved.',
+    bn: 'পে-অ্যাজ-ইউ-গো API চার্জ পাওয়া গেছে।',
+  },
   PlanCreated: { en: 'Plan created.', bn: 'প্ল্যান তৈরি হয়েছে।' },
   PlanVersionsRetrieved: {
     en: 'Plan versions retrieved.',

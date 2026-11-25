@@ -198,6 +198,7 @@ export const MESSAGE_KEYS = [
   'LimitOverrideRemoved',
   'PlansListed',
   'PayAsYouGoPlanRetrieved',
+  'PaygApiChargeRetrieved',
   'PlanCreated',
   'PlanVersionsRetrieved',
   'PlanUpdated',

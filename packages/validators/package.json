@@ -4,6 +4,13 @@
   "private": true,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "developer-api": [
+        "./dist/developer-api/index.d.ts"
+      ]
+    }
+  },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
@@ -37,6 +44,10 @@
     "./plans": {
       "types": "./dist/db/plans/plan-limits.d.ts",
       "default": "./dist/db/plans/plan-limits.js"
+    },
+    "./developer-api": {
+      "types": "./dist/developer-api/index.d.ts",
+      "default": "./dist/developer-api/index.js"
     }
   }
 }

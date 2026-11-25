@@ -75,8 +75,8 @@ const publicShopViewSchema = z.object({
   // BL-10: what a kilo over the first adds to any zone's charge; the bar says "up to" only without it (RAT-14).
   extraDeliveryChargePerKg: z.string(),
 });
-class PublicShopViewDto extends createZodDto(publicShopViewSchema) {}
-class PublicShopQueryDto extends createZodDto(publicShopQuerySchema) {}
+export class PublicShopViewDto extends createZodDto(publicShopViewSchema) {}
+export class PublicShopQueryDto extends createZodDto(publicShopQuerySchema) {}
 
 // D3-1, API-07: the public API's first route: which shop a public key belongs to. The catalogue's routes sit behind the
 // same gate (public-catalogue.controller.ts).

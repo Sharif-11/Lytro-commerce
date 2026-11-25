@@ -2306,8 +2306,9 @@ Slice 7.7 built the dashboard's and the console's Phase 7 screens to the sketch 
 
 - **Push needs the owner's keys and a phone.** NTF-02's "the test arrives" can only be seen with Lytro's VAPID keys set and a
   real browser subscribed. On an iPhone, push works only once the dashboard is added to the Home Screen.
-- **The update prompt** ("A new version of Lytro is ready", D7-44) needs two deployments to see. No browser test covers it,
-  and the worker registers itself only in a built app.
+- **The new version taking over by itself** (NTF-07 as amended 2026-11-25; the prompt is gone) needs two deployments to
+  see. Unit tests cover the page-change and fresh-start rules; no browser test covers a real update, and the worker
+  registers itself only in a built app.
 - **An SMS's words are edited as text.** The sketch draws each variable as a pill; the editor writes them as `[Order
   number]` in a plain box. The same rules refuse a template without the order number before it saves.
 - **Paisa aren't drawn smaller.** The sketch writes ৳29.15 with the paisa small. Amounts inside sentences use one size, so
