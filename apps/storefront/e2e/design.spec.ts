@@ -74,11 +74,18 @@ test.describe('the designed home (SB-8 to SB-10)', () => {
       'Up to 18% off on 3 products',
     );
     await expect(home.locator('.sb-hero h1')).toHaveText('Discover your signature scent');
-    await expect(home.locator('.sb-cat')).toHaveCount(shops.royal.cats.length);
-    // Best sellers, most ordered first; then the biggest saving first.
+    // SB-32: the copies a moving strip adds are hidden from screen readers and not counted.
+    await expect(home.locator('.sb-cat:not(.sb-copy)')).toHaveCount(shops.royal.cats.length);
+    // Best sellers, most ordered first. SB-32: the three on sale are all in it, so the on-sale carousel can't fill and
+    // leaves; the two products neither row shows come in "সব প্রোডাক্ট".
     const rows = home.locator('.sb-sec:has(.sb-card)');
+    await expect(rows).toHaveCount(2);
     await expect(rows.nth(0).locator('.sb-nm').first()).toHaveText('Oud Royale, 100 ml');
-    await expect(rows.nth(1).locator('.sb-nm').first()).toHaveText('Oud Royale, 100 ml');
+    await expect(rows.nth(1).locator('h2')).toHaveText('All products· 6');
+    await expect(rows.nth(1).locator('.sb-nm')).toHaveText([
+      'Discovery set (4 vials)',
+      'Blanc, 100 ml',
+    ]);
     await expect(home.locator('.sb-trust .sb-it')).toHaveCount(4);
     const asked = (await shop.sent()).listRequests;
     expect(asked).toContainEqual(expect.stringContaining('sort=best_selling'));

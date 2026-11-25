@@ -130,6 +130,74 @@ photo's shape but is never taller than square, nor than the screen less the head
 name and the order bar; a photo the cap shortens shows whole (`object-fit: contain`) on the gallery's soft background.
 The computer's grid is unchanged.
 
+**SB-32: every product on the home page. The owner's ask, 2026-11-26** ("the main principal is, we need to populate
+products in home page also, both categorized and uncategorized. but how to do this nicely so that the website looks like
+a reputed page and busy shop"). **APPROVED 2026-11-26** ("use সব প্রোডাক্ট. point 1: yes, point 2 and 3: yes, 4: not
+now, 5: accept, 6: drop it."). It is drawn as the builder sketch's `ha-*` screens:
+- `ha-now` is the home as built;
+- `ha-mixed`, `ha-more`, `ha-no-categories`, `ha-small` and `ha-desktop` are the design;
+- `ha-cat-rotate` is the owner's addition, described below.
+
+**Why it's needed.** Quick add (#446) puts the category in more settings, so most new products arrive without one.
+Every row on the home page reads on its own. In a 35-product shop with 23 uncategorised products (`ha-now`):
+- the home shows 15 products;
+- 18 of the 23 uncategorised products, and 2 categorised ones, appear nowhere on it;
+- 5 cards show twice;
+- the saree row holds 2 cards, which is half empty on a computer.
+
+| # | Decision | Decided |
+|---|---|---|
+| SB-32 | **"সব প্রোডাক্ট" on the home page.** | **The new section.** After the page's last row of products (where SB-30 puts its rows), a section "সব প্রোডাক্ট · 35টি" with See all. It holds every active product the rows above did not show, categorised or not, in the shop's own order (§5), with sold-out products last. There's no "অন্যান্য" label or chip: an uncategorised product is just a product. On a phone it is 2 across, on a computer 4, 12 at a time. "আরও Nটি প্রোডাক্ট দেখুন" adds the next 12 in place; the button goes once everything is in.<br>**Nothing shows twice.** The product rows read top to bottom, and each skips what a row above it showed.<br>**No row that cannot fill.** An automatic row (newest, on sale, best sellers, a category, a running offer) shows only when it can fill itself: a grid needs 4 and a carousel 5, because a computer shows 5 at once. If it can't, its products come in "সব প্রোডাক্ট".<br>**SB-30** takes the first three categories that can still fill a row.<br>**Cards** are unchanged: the built "নতুন" (PRODUCT_NEW_DAYS, 14 days), "সেরা বিক্রি" (SB-22), "N বার অর্ডার হয়েছে" (SB-23) and "মাত্র Nটি বাকি" (SB-24). There are no made-up signals: no invented sold counts and no "someone just ordered" pop-ups. |
+
+**The words.** The owner chose "সব প্রোডাক্ট" ("use সব প্রোডাক্ট", then "yes change spelling"). It is the shopper
+storefront's word everywhere "সব পণ্য" was: this section, the header chip, the menu, the footer link and the all-products
+page. The dashboard's own words are unchanged. The count uses Latin digits ("35টি"), as the built cards do ("মাত্র 12টি
+বাকি"). The heading counts every product the shop shows, which is what See all opens. The grid under it holds only
+those not already shown above.
+
+**The owner's answers, 2026-11-26:**
+1. **Q1. Homes the seller has designed and published: yes.** "সব প্রোডাক্ট" goes on these too, automatically, after
+   their last row of products. With no product row, it goes before the trust strip, or at the end. A seller can't
+   remove it, since a home that hides products is what this fixes.
+2. **Q2. Which rows the rules cover: yes, automatic rows only.** Newest, on sale, best sellers, a category and a running
+   offer must fill, and skip what an earlier row showed. A row the seller picked by hand (SB-29) always shows as chosen;
+   the automatic rows below it skip its products.
+3. **Q3. "নতুন": yes, keep 14 days** (PRODUCT_NEW_DAYS, already built); nothing to build.
+4. **Q4. A dashboard nudge, "Xটা প্রোডাক্টের ক্যাটাগরি নেই": not now.**
+5. **Q5. The cost: accepted.**
+   - Each home render makes one more catalogue read ("সব প্রোডাক্ট", 12 plus the cards above, at most 60). Today a
+     starting page makes about 5 to 7 (hero, newest, on sale, up to 3 categories, the banners).
+   - The rows skip repeats by asking for their count plus what is above, which adds no reads.
+   - Choosing the categories that can fill reads at most 6 candidates instead of 3.
+   - The home page is page-cached, so these reads happen only when the cache refreshes.
+   - Each "আরও দেখুন" tap is one read from the shopper's browser, like paging a category.
+   - All of these count toward the shop's request allowance, as category pages do.
+6. **Q6. A row that loses cards to the rows above: drop it.** In `ha-mixed`, the panjabis have 4, but one is already in
+   On sale. The row drops, its 3 come in "সব প্রোডাক্ট", and its tile stays under "ক্যাটাগরি অনুযায়ী কিনুন".
+
+**The categories rotate when they don't fit.** The owner's addition, 2026-11-26: "category must be rotated
+automatically along horizontal axis if applicable. if the category completely fitted then not necessary", and "i am
+not talking about category chips, i am talking about category under first banner". **APPROVED 2026-11-26**, with the
+picture rule below. The sketch is `ha-cat-rotate` and `ha-cat-noimage`.
+- **Where.** The home's categories section under the hero ("ক্যাটাগরি অনুযায়ী কিনুন"), in every tile style. The category
+  chips under the header never move.
+- **Only when they overflow.** The strip rotates only while its tiles overflow it, measured live, and again after a
+  resize or a turn of the phone. When every tile fits (usually on a computer, where the tiles wrap), nothing moves.
+- **How it moves.** One tile every 3 seconds, with a smooth ease. After the last tile the first ones follow: copies of
+  the first tiles, hidden from screen readers and out of the tab order, rather than a jump back to the start.
+- **When it holds.** While the shopper touches, drags, hovers over or focuses a tile, and for 4 idle seconds after.
+  Swiping by hand works as before.
+- **When it never moves.** Off-screen (IntersectionObserver), in a hidden tab, or with reduced motion.
+- **Cost.** No new requests and no layout shifts: transform or scroll only, and no new library.
+- **Only categories with a picture** (the owner, 2026-11-26: "if a category has no image then skip it from this section
+  and we have category chip after header already"). The section shows a category only when it has its own picture or
+  the SB-9 cover, the product photo the server lends. A category that would draw an empty tile is left out of this
+  section; the header chips, the menu and its own page keep it. With none left, the section hides. The overflow check
+  counts only the tiles shown. The filter is in the storefront's render; the public category list is unchanged.
+
+**`ha-small`, 7 products.** Each product shows once and no row is half empty. "সব প্রোডাক্ট" can end on one card, as a
+category page does. That is the end of a list, not an empty row.
+
 ---
 
 ## 3. Requirement changes (`SRS-detailed.md`)

@@ -294,6 +294,8 @@ export function builderShop(
         products: onSale.length,
         bestDiscount: Math.max(0, ...onSale.map((row) => row.card.bestDiscount ?? 0)),
       },
+      // SB-32: "সব প্রোডাক্ট · Nটি".
+      productCount: products.length,
     },
   };
 }

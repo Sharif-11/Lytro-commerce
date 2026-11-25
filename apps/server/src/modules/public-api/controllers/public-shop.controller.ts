@@ -52,6 +52,8 @@ const publicShopViewSchema = z.object({
   design: publicStorefrontSchema,
   // SB-9: what is on sale now, for the announcement that writes itself.
   sale: z.object({ products: z.number(), bestDiscount: z.number() }),
+  // SB-32: how many active products the shop has, for the home's "সব প্রোডাক্ট · Nটি".
+  productCount: z.number(),
   contact: z.object({
     phone: z.string().nullable(),
     email: z.string().nullable(),
@@ -119,6 +121,7 @@ export class PublicShopController {
     );
     const delivery = await this.zones.settings(tenantId);
     const fairUseOn = await this.fairUse.isOn();
+    const figures = await this.designs.figures(tenantId);
     // PYG-29 (PF-15, PF-40, PFQ-4): a pay-as-you-go storefront shows no direct contact -- its address and Facebook page
     // stay -- so the shop can't be used as a catalogue only.
     const hidden = contactHidden(fairUseOn, shop.row.state);
@@ -132,7 +135,8 @@ export class PublicShopController {
       logo: await this.media.logoOf(tenantId),
       icon: await this.media.iconOf(tenantId),
       design,
-      sale: await this.designs.sale(tenantId),
+      sale: figures.sale,
+      productCount: figures.productCount,
       contact: {
         phone: hidden ? null : (contact?.contactPhone ?? null),
         email: hidden ? null : (contact?.contactEmail ?? null),

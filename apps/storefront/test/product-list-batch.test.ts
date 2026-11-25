@@ -17,6 +17,16 @@ function server(answer?: (queries: ProductQuery[]) => Promise<(ProductPage | nul
 }
 
 describe('ProductListBatch (load fix 3)', () => {
+  // SB-32: twelve sections' rows and "সব প্রোডাক্ট" are more than one call takes (STOREFRONT_CATALOGUE_LISTS_MAX).
+  it('sends what one call cannot take in the next, each list answered from its own call', async () => {
+    const fake = server();
+    const lists = new ProductListBatch(fake.ask);
+    const asked = Array.from({ length: 13 }, (_, at) => ({ category: `c${String(at)}` }));
+    const pages = await Promise.all(asked.map((query) => lists.read(query)));
+    expect(fake.calls.map((call) => call.length)).toEqual([12, 1]);
+    expect(pages.map((page) => page?.nextCursor)).toEqual(asked.map((query) => query.category));
+  });
+
   it("asks for a designed home's rows, heroes and tiles in one call: nine lists, one request", async () => {
     const fake = server();
     const lists = new ProductListBatch(fake.ask);

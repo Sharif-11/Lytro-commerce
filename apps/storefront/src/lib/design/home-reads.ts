@@ -1,19 +1,24 @@
 import {
   HeroDesign,
   ProductRowSource,
+  PUBLIC_PAGE_SIZE_MAX,
+  STOREFRONT_ALL_PRODUCTS_PAGE,
   STOREFRONT_THEMES,
   StorefrontFill,
   StorefrontSectionKind,
+  storefrontRowFill,
   type HeroSource,
   type StorefrontCollection,
   type StorefrontSection,
 } from '@lytronix/validators';
 import type {
   ProductCard,
+  ProductPage,
   ProductQuery,
   PublicStorefrontDesign,
   ShopperPaymentMethod,
 } from '../api/storefront-api';
+import { cardKey } from './card-links';
 import { collectionKey, FALLBACK_COLLECTIONS } from './collections';
 
 // STOREFRONT-BUILDER-PLAN SB-9: what the designed home reads besides the shop -- each product row's products, and what
@@ -89,10 +94,34 @@ export function hasTiles(
   return (section.design ?? STOREFRONT_THEMES[design.theme].hero) === HeroDesign.SlideTiles;
 }
 
+/**
+ * SB-32 (the owner, 2026-11-26): a row the seller picked by hand shows as chosen; every other row fills itself, skips
+ * what a row above it showed, and shows only when it can still fill (`storefrontRowFill`).
+ */
+export function fillsItself(section: ProductsSection): boolean {
+  return section.source !== ProductRowSource.Picked;
+}
+
+/** SB-32: "সব প্রোডাক্ট" -- the cards the rows above did not show. */
+export interface AllProducts {
+  /** The first page. */
+  shown: ProductCard[];
+  /** What the read held past the first page, shown before the list is read further. */
+  queued: ProductCard[];
+  /** Where the list goes on; null at its end. */
+  cursor: string | null;
+  /** Every card on the page or queued, by `cardKey`, so a later page skips them. */
+  seen: string[];
+  /** The products the rows above show, by ID, for the button's "আরও Nটি". */
+  above: string[];
+}
+
 /** What the home's reads came back with, by section where a section has its own. */
 export interface DesignedHomeReads {
-  /** Each product row's products, by section ID; a row reading nothing is left out. */
+  /** Each product row's products as it shows them, by section ID; a row with nothing to show is left out. */
   rows: ReadonlyMap<string, ProductCard[]>;
+  /** SB-32: "সব প্রোডাক্ট". */
+  all: AllProducts;
   /** SB-9, BL-3: each auto hero's products, by section ID. */
   heroes: ReadonlyMap<string, ProductCard[]>;
   /** BL-12, BL-13: each collection's products, by `collectionKey`, the ones read in an empty one's place included. */
@@ -108,10 +137,25 @@ export interface HomeReadPlan {
   /** BL-3, BL-9: the collections the heroes' tiles and the auto banners show, once each. */
   collections: StorefrontCollection[];
   methods: boolean;
+  /** SB-32: "সব প্রোডাক্ট", in the shop's own order: its first page and as many again as the rows above may show. */
+  all: ProductQuery;
+}
+
+/** SB-32: a list asked for its own count and as many again as the rows above may show, so it fills after skipping them. */
+function withRoom(count: number, above: number): number {
+  return Math.min(PUBLIC_PAGE_SIZE_MAX, count + above);
 }
 
 export function homeReadPlan(design: PublicStorefrontDesign): HomeReadPlan {
-  const plan: HomeReadPlan = { rows: [], heroes: [], collections: [], methods: false };
+  const plan: HomeReadPlan = {
+    rows: [],
+    heroes: [],
+    collections: [],
+    methods: false,
+    all: { sort: 'featured', limit: STOREFRONT_ALL_PRODUCTS_PAGE },
+  };
+  // SB-32: how many cards the product rows read so far may show.
+  let above = 0;
   const want = (collections: readonly StorefrontCollection[]): void => {
     for (const collection of collections) {
       const key = collectionKey(collection);
@@ -124,7 +168,15 @@ export function homeReadPlan(design: PublicStorefrontDesign): HomeReadPlan {
     switch (section.kind) {
       case StorefrontSectionKind.Products: {
         const query = rowQuery(section, design);
-        if (query) plan.rows.push({ sectionId: section.id, query });
+        if (query) {
+          plan.rows.push({
+            sectionId: section.id,
+            query: fillsItself(section)
+              ? { ...query, limit: withRoom(section.count, above) }
+              : query,
+          });
+          above += section.count;
+        }
         break;
       }
       case StorefrontSectionKind.Hero:
@@ -143,7 +195,62 @@ export function homeReadPlan(design: PublicStorefrontDesign): HomeReadPlan {
         break;
     }
   }
+  plan.all = { sort: 'featured', limit: withRoom(STOREFRONT_ALL_PRODUCTS_PAGE, above) };
   return plan;
+}
+
+/**
+ * SB-32 Q1: where "সব প্রোডাক্ট" goes on every home, the seller's own included -- after the page's last row of
+ * products; with none, before the trust strip, else at the end. The index of the section it goes before.
+ */
+export function allProductsAt(sections: readonly StorefrontSection[]): number {
+  let last = -1;
+  sections.forEach((section, index) => {
+    if (section.kind === StorefrontSectionKind.Products) last = index;
+  });
+  if (last >= 0) return last + 1;
+  const trust = sections.findIndex((section) => section.kind === StorefrontSectionKind.Trust);
+  return trust >= 0 ? trust : sections.length;
+}
+
+/**
+ * SB-32: what the rows and "সব প্রোডাক্ট" show, from what they read. Top to bottom, a row that fills itself skips the
+ * cards a row above it showed and takes its count of the rest; one left short of its fill shows nothing, and its cards
+ * come in "সব প্রোডাক্ট" (Q6). A picked row shows as chosen. "সব প্রোডাক্ট" holds every card not shown above.
+ */
+export function homeLayout(
+  design: Pick<PublicStorefrontDesign, 'sections'>,
+  rows: ReadonlyMap<string, readonly ProductCard[]>,
+  all: ProductPage,
+): { rows: Map<string, ProductCard[]>; all: AllProducts } {
+  const seen = new Set<string>();
+  const above = new Set<string>();
+  const shown = new Map<string, ProductCard[]>();
+  for (const section of design.sections) {
+    if (section.kind !== StorefrontSectionKind.Products) continue;
+    const read = rows.get(section.id) ?? [];
+    const cards = fillsItself(section)
+      ? read.filter((card) => !seen.has(cardKey(card))).slice(0, section.count)
+      : [...read];
+    if (cards.length === 0) continue;
+    if (fillsItself(section) && cards.length < storefrontRowFill(section)) continue;
+    for (const card of cards) {
+      seen.add(cardKey(card));
+      above.add(card.id);
+    }
+    shown.set(section.id, cards);
+  }
+  const rest = all.products.filter((card) => !seen.has(cardKey(card)));
+  return {
+    rows: shown,
+    all: {
+      shown: rest.slice(0, STOREFRONT_ALL_PRODUCTS_PAGE),
+      queued: rest.slice(STOREFRONT_ALL_PRODUCTS_PAGE),
+      cursor: all.nextCursor,
+      seen: [...seen, ...rest.map(cardKey)],
+      above: [...above],
+    },
+  };
 }
 
 /**

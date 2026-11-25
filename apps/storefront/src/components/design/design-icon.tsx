@@ -4,6 +4,7 @@ const PATHS = {
   menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
   user: '<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>',
   arrow: '<path d="M5 12h14M13 6l6 6-6 6"/>',
+  down: '<path d="M6 10l6 6 6-6"/>',
   leaf: '<path d="M5 19C5 10 11 5 20 4c-1 9-6 15-15 15z"/><path d="M5 19c3-4 6-7 10-9"/>',
   cash: '<rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/>',
   truck:

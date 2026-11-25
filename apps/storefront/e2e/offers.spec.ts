@@ -120,11 +120,55 @@ test.describe("an offer's page (OF-8, OF-12)", () => {
       offers: [{ id: OFFER_ID, slug: 'eid-offer', name: 'Eid offer' }],
       preview: false,
     };
-    const shop = await openOfferShop(page, design);
+    // SB-32: a row fills its grid's four or leaves, so this offer runs on four products.
+    const SHAWL = makeProduct({ id: 'shawl', slug: 'silk-shawl', name: 'Silk shawl', price: 1800 });
+    const shop = await openShop(page, (language) => ({
+      products: [SAREE, SCARF, KURTI, SHAWL],
+      offers: offers().map((offer) =>
+        offer.slug === 'eid-offer'
+          ? {
+              ...offer,
+              products: 4,
+              productIds: [SAREE, SCARF, KURTI, SHAWL].map((p) => p.card.id),
+            }
+          : offer,
+      ),
+      info: { ...meghShop(language).info, design },
+    }));
     await page.goto(shop.url('/'));
-    const row = page.locator('.sb-sec:has(.sb-card)');
+    const row = page.locator('.sb-sec:has(.sb-card)').first();
     await expect(row.locator('h2')).toHaveText('Eid offer');
-    await expect(row.locator('.sb-card')).toHaveCount(2);
+    await expect(row.locator('.sb-card')).toHaveCount(4);
     await expect(row.locator('.sb-all')).toHaveAttribute('href', '/offers/eid-offer');
+  });
+
+  // SB-32 (the owner, 2026-11-26): an offer's row short of its grid leaves; its products come in "সব প্রোডাক্ট".
+  test("leaves out an offer's row it can't fill, its cards in All products", async ({ page }) => {
+    const shop = await openOfferShop(page, {
+      theme: StorefrontThemeKey.Studio,
+      palette: 0,
+      sections: [
+        {
+          id: 'eid-row',
+          visible: true,
+          kind: StorefrontSectionKind.Products,
+          source: ProductRowSource.Offer,
+          categoryId: null,
+          offerId: OFFER_ID,
+          productIds: [],
+          title: null,
+          layout: ProductRowLayout.Grid,
+          count: 4,
+        },
+      ],
+      images: {},
+      categories: [],
+      products: [],
+      offers: [{ id: OFFER_ID, slug: 'eid-offer', name: 'Eid offer' }],
+      preview: false,
+    });
+    await page.goto(shop.url('/'));
+    await expect(page.locator('.sb-sec h2', { hasText: 'Eid offer' })).toHaveCount(0);
+    await expect(page.locator('#all-products .sb-card')).toHaveCount(3);
   });
 });

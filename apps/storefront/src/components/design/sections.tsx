@@ -29,6 +29,7 @@ import { deliveryRange } from '@/lib/catalogue/browse';
 import { money, type Words } from '@/lib/i18n/words';
 import { WALLET_NAMES } from '@/lib/order/wallet-names';
 import { AnnouncementBar } from './announcement-bar';
+import { type CategoryTile, CategoryStrip } from './category-strip';
 import { DesignIcon } from './design-icon';
 import { linkHref, offerPath } from '@/lib/design/links';
 import { firstLetter } from '@/lib/design/marks';
@@ -66,7 +67,12 @@ export function Announcement({
   return <AnnouncementBar pairs={announcementPairs(items)} pinned={pinned} />;
 }
 
-/** SB-9: every top-level category with its picture (or its first product's photo) and how many products it holds. */
+/**
+ * SB-9: every top-level category with its picture (or its first product's photo) and how many products it holds.
+ * SB-32 (the owner, 2026-11-26: "if a category has no image then skip it from this section and we have category chip
+ * after header already"): only the categories with a picture, so no tile is empty; with none, no section. The tiles
+ * move on by themselves when they overflow the strip (CategoryStrip).
+ */
 export function Categories({
   section,
   theme,
@@ -78,8 +84,24 @@ export function Categories({
   categories: readonly PublicCategory[];
   words: Words;
 }) {
-  if (categories.length === 0) return null;
   const style = section.style ?? theme.categories;
+  const tiles: CategoryTile[] = categories.flatMap((category) => {
+    const picture = category.cover ?? category.image;
+    if (!picture) return [];
+    return [
+      {
+        id: category.id,
+        href: `/c/${category.slug}`,
+        name: category.name,
+        picture: picture.urls.thumbnail,
+        count:
+          style === CategoryTileStyle.Circle
+            ? words.t('sb_n_products', { n: category.productCount })
+            : null,
+      },
+    ];
+  });
+  if (tiles.length === 0) return null;
   // The header's menu leads here (`/#categories`).
   return (
     <section className="sb-sec" id="categories">
@@ -90,22 +112,11 @@ export function Categories({
           all={null}
           words={words}
         />
-        <div className={`sb-cats sb-${style}`}>
-          {categories.map((category) => {
-            const picture = category.cover ?? category.image;
-            return (
-              <a key={category.id} className="sb-cat" href={`/c/${category.slug}`}>
-                <div className="sb-im">
-                  {picture ? <img src={picture.urls.thumbnail} alt="" loading="lazy" /> : null}
-                </div>
-                {style === CategoryTileStyle.Tall ? <span>{category.name} →</span> : category.name}
-                {style === CategoryTileStyle.Circle ? (
-                  <em>{words.t('sb_n_products', { n: category.productCount })}</em>
-                ) : null}
-              </a>
-            );
-          })}
-        </div>
+        <CategoryStrip
+          className={`sb-cats sb-${style}`}
+          tiles={tiles}
+          tall={style === CategoryTileStyle.Tall}
+        />
       </div>
     </section>
   );

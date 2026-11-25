@@ -6,6 +6,7 @@ import {
   StorefrontCardMode,
   ServerFieldProblemCode,
   STARTING_CATEGORY_ROWS,
+  STOREFRONT_GRID_FILL,
   startingDesign,
   startingTheme,
   storefrontDesignSchema,
@@ -33,8 +34,8 @@ import type {
   StorefrontCardsView,
   StorefrontDesignRecord,
   StorefrontEditorView,
+  StorefrontFigures,
   StorefrontPreviewLink,
-  StorefrontSale,
   StorefrontTarget,
   StorefrontTargetView,
 } from '../types/storefront-design';
@@ -292,9 +293,9 @@ export class StorefrontDesignService {
     };
   }
 
-  /** SB-9: what the shop has on sale now, for the announcement that writes itself. */
-  sale(tenantId: string): Promise<StorefrontSale> {
-    return this.store.run((tx) => this.store.sale(tx, tenantId));
+  /** SB-9: what the shop has on sale now, for the announcement that writes itself; SB-32: how many products it has. */
+  figures(tenantId: string): Promise<StorefrontFigures> {
+    return this.store.run((tx) => this.store.figures(tx, tenantId));
   }
 
   private async editorIn(tx: Transaction, tenantId: string): Promise<StorefrontEditorView> {
@@ -351,13 +352,19 @@ export class StorefrontDesignService {
     );
   }
 
-  /** SB-11, SB-30: the theme's starting page with a row for each of the shop's first categories holding a product. */
+  /** SB-11, SB-30: the theme's starting page with a row for each of the shop's first categories that can fill one. */
   private async startingOn(
     tx: Transaction,
     tenantId: string,
     theme: StorefrontThemeKey,
   ): Promise<StorefrontDesign> {
-    const categories = await this.store.firstFilledCategories(tx, tenantId, STARTING_CATEGORY_ROWS);
+    // SB-32: only categories that can fill their row.
+    const categories = await this.store.firstFilledCategories(
+      tx,
+      tenantId,
+      STARTING_CATEGORY_ROWS,
+      STOREFRONT_GRID_FILL,
+    );
     return startingDesign(theme, categories);
   }
 

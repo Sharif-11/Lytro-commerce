@@ -94,6 +94,21 @@ export enum AnnouncementItemKind {
   Own = 'own',
 }
 
+// SB-32 (the owner, 2026-11-26): an automatic row of products shows only when it can fill itself, after skipping what a
+// row above it showed -- a grid needs 4, a carousel 5 (what a computer shows at once), or its own count when that is
+// fewer. "সব প্রোডাক্ট" shows STOREFRONT_ALL_PRODUCTS_PAGE at a time.
+export const STOREFRONT_GRID_FILL = 4;
+export const STOREFRONT_CAROUSEL_FILL = 5;
+export const STOREFRONT_ALL_PRODUCTS_PAGE = 12;
+
+/** SB-32: how many cards an automatic row needs to show at all. */
+export function storefrontRowFill(row: { layout: ProductRowLayout; count: number }): number {
+  return Math.min(
+    row.count,
+    row.layout === ProductRowLayout.Grid ? STOREFRONT_GRID_FILL : STOREFRONT_CAROUSEL_FILL,
+  );
+}
+
 // SB-8's limits. Every text has a longest length (SEC-12).
 export const STOREFRONT_SECTIONS_MAX = 12;
 export const STOREFRONT_HERO_SLIDES_MAX = 3;

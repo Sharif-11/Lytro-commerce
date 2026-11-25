@@ -42,9 +42,16 @@ export async function loadHome(page: OpenShopPage): Promise<HomeReads> {
 /** D9-32: every product the home shows, so a change to any of them purges it from the edge. */
 export function homeProducts(home: HomeReads): Card[] {
   if (!home.designed) return home.newest?.products ?? [];
-  const { rows, heroes, collections } = home.designed;
-  // BL-12: a tile's or a banner's collection, all it read, since its photo may move to any of them.
-  return [...rows.values(), ...heroes.values(), ...collections.values()].flat();
+  const { rows, heroes, collections, all } = home.designed;
+  // BL-12: a tile's or a banner's collection, all it read, since its photo may move to any of them. SB-32: "সব
+  // প্রোডাক্ট"'s first page and what the page holds for its next.
+  return [
+    ...rows.values(),
+    ...heroes.values(),
+    ...collections.values(),
+    all.shown,
+    all.queued,
+  ].flat();
 }
 
 /** STOREFRONT-DESIGN §2, Slice 12b's read: the home from the shop's own data only -- the hero (Welcome, its name, its
