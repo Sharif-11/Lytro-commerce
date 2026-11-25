@@ -803,13 +803,17 @@ flow is product detail page for seller with button for editing, deleting etc, sh
 `Lytro screenshots/product-list-share/`; `before-products-list.png` is today's list on staging. One PR builds it after
 approval, with no separate sketch PR (the owner, 2026-11-25).
 
-**The list (`pl-share-row`, `pl-share-wide`).** Each row stays as built: the first photo, the name with its tags,
-"n variants · category", and the price over the stock chip. A share button sits at the right, in its own 52 px column
-with a 44 px tap target. Tapping the **row** opens the product page (`pd-detail`), not the editor. Tapping **share**
-opens the share sheet.
-- An **inactive** product's share button is shown greyed and does nothing, with the label "অ্যাক্টিভ করলে শেয়ার করা
-  যাবে" (shoppers can't see an inactive product yet).
-- **Archived** products have no share button. Their tab is for restoring or deleting, and their link shows nothing.
+**The list (`pl-share-row`, `pl-share-wide`).** Each row stays as built, with no new column, divider or cell: the
+first photo, the name with its tags, "n variants · category", and the price over the stock chip. A small share glyph
+(18 px, muted ink `--n700`, no box) sits inline after the stock chip. Its button keeps an invisible 44 px tap area
+through negative margins, so it reads as an icon, not a column. The owner, 2026-11-25, on the first drawing with a
+separate column: "share row is not good, instead use share icon with no separate column. now it looks like a table".
+- A tap on the glyph opens the share sheet. A tap anywhere else on the row opens the product page (`pd-detail`), not
+  the editor. Built as one row that navigates, with the glyph button inside it stopping the row's tap.
+- An **inactive** product's glyph is greyed and does nothing, with the hint "অ্যাক্টিভ করলে শেয়ার করা যাবে" (shoppers
+  can't see an inactive product yet).
+- **Archived** products have no glyph. Their tab is for restoring or deleting, and their link shows nothing.
+- On a computer the row is the same: the glyph follows the stock chip after the price.
 
 **The share sheet (`pl-share-sheet`, `-design`, `-copied`, `-paused`).** The body is the quick-add save sheet's
 (`pq-saved`, §7.4b), without "saved ✓" and without the add-another buttons; one component serves both.
