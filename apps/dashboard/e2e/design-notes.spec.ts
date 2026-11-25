@@ -7,7 +7,7 @@ import {
   type StorefrontSection,
 } from '@lytronix/validators';
 import { mockApi, SLUG, type ApiLog, type Language } from './support/mock-api';
-import { drawnDesign, type DesignFixture } from './support/storefront-design';
+import { DRAWN, drawnDesign, type DesignFixture } from './support/storefront-design';
 
 // STOREFRONT-BUILDER-PLAN SB-32 as amended (the owner, 2026-11-26: "yes to all", then "yes please" to the sketch's
 // `de-*`): the design editor says what the home does by itself -- "সব প্রোডাক্ট" locked in the section list after the
@@ -19,9 +19,7 @@ const PAGE = '/settings/storefront/design';
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 // The drawn design (`drawnDesign`): the hero (2), Just in in a carousel of 6 (4), three banners of the shop's own (5),
 // the four best sellers in a grid (6).
-const HERO = id(2);
-const BANNERS = id(5);
-const BEST = id(6);
+const { hero: HERO, banners: BANNERS, best: BEST } = DRAWN;
 const WIDE = id(30);
 
 function withWide(fixture: DesignFixture): DesignFixture {

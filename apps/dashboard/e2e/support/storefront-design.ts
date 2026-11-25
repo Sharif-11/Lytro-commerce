@@ -44,6 +44,9 @@ export interface DesignFixture {
 }
 
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+
+/** The drawn design's sections a test names by ID (`sketchedSections`). */
+export const DRAWN = { hero: id(2), newest: id(4), banners: id(5), best: id(6) } as const;
 const photo = (n: number) => ({ mediaId: id(500 + n), focusX: 50, focusY: 40 });
 
 /** Where the mock serves the sketch's own sample photos (docs/brand/sample-photos/builder). */
