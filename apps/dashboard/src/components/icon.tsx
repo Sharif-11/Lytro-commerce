@@ -267,6 +267,7 @@ const ICONS = {
       <circle cx="12" cy="10" r="3" />
     </>
   ),
+  play: <polygon points="6 3 20 12 6 21 6 3" />,
   plus: (
     <>
       <path d="M12 5v14" />
@@ -317,11 +318,14 @@ const ICONS = {
       <circle cx="12" cy="12" r="3" />
     </>
   ),
+  // The owner, 2026-11-25: the three connected dots, everywhere in the seller dashboard (TENANT-DASHBOARD-DESIGN §7.4c).
   share: (
     <>
-      <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-      <path d="m16 6-4-4-4 4" />
-      <path d="M12 2v13" />
+      <circle cx="18" cy="5" r="3" />
+      <circle cx="6" cy="12" r="3" />
+      <circle cx="18" cy="19" r="3" />
+      <path d="m8.59 13.51 6.83 3.98" />
+      <path d="m15.41 6.51-6.82 3.98" />
     </>
   ),
   shield: (

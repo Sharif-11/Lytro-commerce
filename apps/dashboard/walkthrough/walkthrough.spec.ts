@@ -169,8 +169,9 @@ async function makeProduct(page: Page, preset: Preset): Promise<void> {
   await expect(saved.getByText(new RegExp(`/l/`)).first()).toBeVisible();
   await expectPlainWords(page);
   await saved.getByRole('button', { name: 'প্রোডাক্টে যান' }).click();
+  // §7.4c (the owner, 2026-11-25): a product opens on its own page, not the edit form.
   await expect(page).toHaveURL(new RegExp(`/${preset.slug}/products/(?!new$)[^/]+$`));
-  await expect(main(page).getByLabel('নাম', { exact: true })).toHaveValue(preset.product);
+  await expect(main(page).getByRole('heading', { name: preset.product, level: 1 })).toBeVisible();
 }
 
 async function makeInQuickAdd(page: Page, preset: Preset): Promise<void> {

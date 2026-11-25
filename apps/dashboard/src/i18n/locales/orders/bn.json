@@ -404,6 +404,7 @@
   "askedNumber": "শুধু সংখ্যা লিখুন",
   "changeDetails": "তথ্য বদলান",
   "holdingChip": "{{name}} যেসব অর্ডারে রাখা",
+  "productChip": "{{name}}-এর অর্ডার",
   "holdingClear": "সব অর্ডার দেখুন",
   "saSplit": "ভাগ",
   "saFigures": "এই সময়ের হিসাব",

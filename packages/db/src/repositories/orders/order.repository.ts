@@ -76,6 +76,8 @@ export interface OrderListFilter {
   customerId: string | null;
   /** INV-15: the orders with an active hold on this variant's stock. */
   holdingVariantId: string | null;
+  /** §7.4c: only the orders with a line of this product. */
+  productId?: string | null;
   /** Slice 6.7: only the orders with a parcel a courier reported something on that staff haven't marked seen. */
   attention: boolean;
   /** PYG-22 (PF-25): only the pay-as-you-go orders still locked. */
@@ -411,6 +413,22 @@ export class OrderRepository {
     if (filter.source !== null) conditions.push(eq(orders.source, filter.source));
     if (filter.cancelReason !== null) conditions.push(eq(orders.cancelReason, filter.cancelReason));
     if (filter.customerId !== null) conditions.push(eq(orders.customerId, filter.customerId));
+    if (filter.productId) {
+      conditions.push(
+        exists(
+          tx
+            .select({ one: sql`1` })
+            .from(orderLines)
+            .where(
+              and(
+                eq(orderLines.tenantId, orders.tenantId),
+                eq(orderLines.orderId, orders.id),
+                eq(orderLines.productId, filter.productId),
+              ),
+            ),
+        ),
+      );
+    }
     if (filter.holdingVariantId !== null) {
       conditions.push(
         exists(

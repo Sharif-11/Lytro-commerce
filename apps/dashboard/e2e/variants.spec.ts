@@ -13,7 +13,8 @@ import { drawnLibrary, type MatrixFixture } from './support/variants';
 
 async function open(page: Page, path: string, state: ShopState = {}): Promise<ApiLog> {
   const log = await mockApi(page, { language: 'en', ...state });
-  await page.goto(`/${SLUG}/products/${path}`);
+  // §7.4c: a product opens its page; the editor is at .../edit.
+  await page.goto(`/${SLUG}/products/${path === 'new' ? path : `${path}/edit`}`);
   await expect(page.getByRole('main').getByRole('heading').first()).toBeAttached();
   return log;
 }
@@ -200,7 +201,12 @@ test('an option typed in joins the product; its variants start at 0, marked New,
   await expect.poll(() => sent(log, 'PUT', '/products/p-1/variants').length).toBe(1);
   const [body] = sent(log, 'PUT', '/products/p-1/variants');
   expect((body?.variants as unknown[]).length).toBe(12);
+  // §7.4c: Save returns to the product's page; Edit opens the editor again.
+  await expect(page).toHaveURL(`/${SLUG}/products/p-1`);
+  await main(page).getByRole('link', { name: 'Edit' }).click();
   // Saved, its variants are the product's own; nothing is New any more.
+  await table.getByRole('button', { name: /^Show all/ }).click();
+  await expect(fresh).toBeVisible();
   await expect(fresh).not.toContainText('New');
 });
 

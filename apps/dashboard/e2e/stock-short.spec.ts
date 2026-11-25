@@ -166,7 +166,7 @@ test('stock history names a sale’s order, the combo it went in, and a return�
       movement(1, '1', 'return_received', { id: 'o-30', number: '261029-0030', combo: null }),
     ],
   };
-  await open(page, '/products/p-1', { products });
+  await open(page, '/products/p-1/edit', { products });
   await main(page).getByRole('button', { name: 'Stock history' }).click();
   const sheet = page.getByRole('dialog', { name: 'Stock history' });
   await pickVariant(page, 'M · Black');

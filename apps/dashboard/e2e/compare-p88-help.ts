@@ -117,15 +117,15 @@ export function p88HelpPairs(): P88HelpPair[] {
         await page.getByRole('button', { name: 'WhatsApp-এ পাঠান' }).click();
       },
     }),
-    one('p88-err-save', '/products/p-1', {
+    one('p88-err-save', '/products/p-1/edit', {
       state: faulty('bn', serverFault('PATCH', PRODUCT_SAVE, 'bn')),
       then: saveProduct,
     }),
-    one('p88-err-busy', '/products/p-1', {
+    one('p88-err-busy', '/products/p-1/edit', {
       state: faulty('bn', serverFault('PATCH', PRODUCT_SAVE, 'bn', 503)),
       then: saveProduct,
     }),
-    one('p88-err-refused', '/products/p-1', {
+    one('p88-err-refused', '/products/p-1/edit', {
       state: faulty('bn', {
         method: 'PATCH',
         path: PRODUCT_SAVE,

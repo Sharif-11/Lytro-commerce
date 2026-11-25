@@ -53,7 +53,7 @@ async function expectAccessible(page: Page): Promise<void> {
 test('the photos sheet names each photo’s design; a photo becomes its own design, a name changes, and Save sends the photos before the variants (PD-2, PD-14, PD-16)', async ({
   page,
 }) => {
-  const log = await open(page, '/products/p-burka', { products: withBurka() });
+  const log = await open(page, '/products/p-burka/edit', { products: withBurka() });
   await expect(main(page).getByText('Photos · Video · 2 designs')).toBeVisible();
   await main(page).getByRole('button', { name: 'Photo 1' }).click();
   const photos = sheet(page);
@@ -111,6 +111,9 @@ test('the photos sheet names each photo’s design; a photo becomes its own desi
   );
   expect(designSplit?.optionIds).toEqual(['d-1', 'd-2', expect.stringMatching(/^d-new-/)]);
   expect(JSON.stringify(variants)).not.toContain(key);
+  // §7.4c: Save returns to the product's page; Edit opens the editor again.
+  await expect(page).toHaveURL(`/${SLUG}/products/p-burka`);
+  await main(page).getByRole('link', { name: 'Edit' }).click();
   // Saved: nothing is left to save.
   await expect(save(page)).toHaveText('Save');
   await save(page).click();
@@ -120,7 +123,7 @@ test('the photos sheet names each photo’s design; a photo becomes its own desi
 test('a new photo is a design of its own, its variants starting at 0; made plain, they go (PD-3)', async ({
   page,
 }) => {
-  await open(page, '/products/p-burka', { products: withBurka() });
+  await open(page, '/products/p-burka/edit', { products: withBurka() });
   await main(page)
     .locator('input[type=file][accept^="image"]')
     .first()
@@ -148,7 +151,7 @@ test('a product with orders and no designs keeps new photos plain, its photos un
   const products = drawnProducts();
   const [shirt] = products.products;
   if (shirt) shirt.hasOrders = true;
-  await open(page, '/products/p-1', { products });
+  await open(page, '/products/p-1/edit', { products });
   await main(page)
     .locator('input[type=file][accept^="image"]')
     .first()
@@ -174,7 +177,7 @@ test('a product with orders and no designs keeps new photos plain, its photos un
 test('removing a design’s last photo asks first while its variants hold stock; Keep keeps it (PD-16)', async ({
   page,
 }) => {
-  const log = await open(page, '/products/p-burka', { products: withBurka() });
+  const log = await open(page, '/products/p-burka/edit', { products: withBurka() });
   await main(page).getByRole('button', { name: 'Photo 1' }).click();
   await sheet(page).getByRole('button', { name: 'Remove photo 1', exact: true }).click();
   const asking = page.getByRole('dialog', { name: "Remove Design 1's last photo?" });
@@ -210,7 +213,7 @@ test('a product with orders keeps its last design (ATR-15)', async ({ page }) =>
       rows: [{ id: 'v-1', optionIds: ['d-1'], price: null, sku: 'IB-D1', onHand: 0 }],
     },
   });
-  await open(page, '/products/p-burka', { products: withBurka(one) });
+  await open(page, '/products/p-burka/edit', { products: withBurka(one) });
   await main(page).getByRole('button', { name: 'Photo 1' }).click();
   await sheet(page).getByRole('button', { name: 'Remove photo 1', exact: true }).click();
   const refused = page.getByRole('dialog', { name: 'The last design stays' });
@@ -225,7 +228,7 @@ test('a product with orders keeps its last design (ATR-15)', async ({ page }) =>
 test('the variants card splits by design with its photos, Change in photos in place of Add option; a design’s SKU fills (PD-1, PD-10)', async ({
   page,
 }) => {
-  await open(page, '/products/p-burka', { products: withBurka() });
+  await open(page, '/products/p-burka/edit', { products: withBurka() });
   const card = main(page).getByRole('region', { name: 'Options and variants' });
   await expect(card.getByRole('heading', { name: /^Design/ })).toBeVisible();
   await expect(card).toContainText('Designs come from the photos.');
