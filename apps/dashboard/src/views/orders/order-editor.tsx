@@ -239,7 +239,7 @@ function OrderEditor({ order }: { order: Order | null }): React.JSX.Element {
   const fillFrom = (read: AddressRead) => {
     const found = read.draft;
     const patch: Partial<OrderDraft> = { type: FulfilmentType.Delivery };
-    if (found.phone) patch.phone = bangladeshiPhone.localPart(found.phone);
+    if (found.phone) patch.phone = bangladeshiPhone.forField(found.phone);
     if (found.customerName) patch.name = found.customerName;
     if (found.locationId !== null) patch.locationId = found.locationId;
     if (found.deliveryAddress) patch.address = found.deliveryAddress;
@@ -369,8 +369,8 @@ function OrderEditor({ order }: { order: Order | null }): React.JSX.Element {
                   <ReadMark state={marks.phone} />
                 </>
               }
-              prefix="+880"
               inputMode="tel"
+              placeholder="01XXXXXXXXX"
               autoComplete="off"
               value={draft.phone}
               error={problems.phone}
@@ -895,8 +895,8 @@ function PaidFields({
       {cash || bank ? null : (
         <Field
           label={t('paySender')}
-          prefix="+880"
           inputMode="tel"
+          placeholder="01XXXXXXXXX"
           value={draft.sender}
           error={problems['payment.senderNumber']}
           onChange={(event) => {

@@ -295,6 +295,12 @@ confirm-order tick draws once (400 ms). `prefers-reduced-motion` turns every tra
 
 ## 6. Onboarding and sign-in
 
+**Amended 2026-11-25, every phone field** (the owner: "in mobile number input box the +88 is fixed since customer
+intrinsically start with 0"). The box takes the number as people write it, from 0: no fixed `+880` before it, the
+placeholder `01XXXXXXXXX`, a saved number shown as `01712345678`. One reader (`apps/dashboard/src/lib/phone.ts`, on
+the server's own `bdMobileNumber`) takes 01…, 1…, 880… and +880… with spaces or dashes, and the server still gets
+`+8801XXXXXXXXX`. The sketches still draw the prefix; this note stands for every one of them.
+
 The flow, routing and refusals are `ONBOARDING-FLOW-DESIGN.md` §2 (AUTH-28 to AUTH-31, TEN-31). This section
 draws the screens in the dashboard's language: one 480 px column, the Lytro wordmark (no shop exists yet),
 the language toggle, a four-segment progress bar on the owner's steps, one white card, and "Powered by
@@ -1921,7 +1927,9 @@ one sketch PR now and one build PR after 7.4). Drawn from what the server on mai
   (`p37-bounced-bell`); the Account page's email marked not arriving, with how it starts again and Change email
   (`p37-bounced-account`, `p37-bounced-fixed`).
 - **A new version** (NTF-07, D7-44): "A new version of Lytro is ready" with Update, kept until tapped, above the tab bar
-  or bottom right (`p37-update`).
+  or bottom right (`p37-update`). *Amended 2026-11-25 (the owner: "can't we do it automatically", "Next page change"):
+  no prompt; the new version takes over by itself just after the next in-app page change, or at once on a fresh start.
+  `p37-update` is no longer built.*
 - **Notices** (`/notices`, `p37-notices`, GET `/notices`): the unread count, the lead, search, category chips (All, Rate
   change, Maintenance, New feature, Policy, Security, General), pinned first then newest; each row with its severity
   edge (urgent red, important marigold), Pinned, its category, Urgent or Important, "Updated <date>", "Press 'I
@@ -2325,6 +2333,35 @@ cycle's requests used up (`dev-used-up`: a red banner, "the order routes still w
 next cycle", Buy a request pack; the bar full and red); read-only shop (no New key or Buy, the docs still readable);
 copied (the button turns to Copied with a check for 1.6 s and the toast says so, `dev-copied`). There is no plan
 without API access: every plan has a `requests_monthly` (migration 0064), so no such state is drawn.
+
+**Amended 2026-11-25 (pay-as-you-go fair use; the owner: "ok start developers api building with a fix in sketch under
+single pr").** The sketch came before PAYG-FAIR-USE-PLAN. With the operator's `payg_fair_use` switch on, a pay-as-you-go
+shop's own website pays for its API instead of meeting a request limit (PF-14, PF-36, PF-37, PFQ-10, PFQ-11), so:
+
+- **Limits, the plans table:** the Pay-as-you-go row reads "{free} free, then ৳{rate} / 1,000" (the
+  `payg_api_free_requests` setting and the `payg_api_per_thousand` rate, read live) for every shop while fair use is
+  on; with it off, the plan's requests as before.
+- **Limits, a pay-as-you-go shop with fair use on** (`dev-limits-payg`): its card is this month's API charge against its
+  own limit (৳0 to ৳5,000, ৳200 to begin with), a bar, the requests and the free part, and **API charge and limit**,
+  which opens Settings → API কী (where the limit is set), in place of the request bar, See usage and Buy a request pack.
+  The list under the table: only 2xx and 304 count; the limit and the 80% warning (app, push, email); at the limit or
+  with an empty balance every route but the three an order needs answers 429 `ApiCapReached`; no request packs.
+- **Used up** (`dev-used-up-payg`): the month's limit reached, or the balance empty: a red banner, "the order routes
+  still work; the rest answer 429 until you raise the limit or the month turns", and **Raise the limit**.
+- **Errors:** every route may also answer 403 `StorefrontPaused` (a pay-as-you-go shop before its activation top-up,
+  PF-13) and 429 `ApiCapReached`; `tenant_offline` and `quota_exceeded` say so.
+
+**Built 2026-11-25.** What the build settled of the list below:
+
+- The one definition is `@lytronix/validators/developer-api` (`packages/validators/src/developer-api`), not a new
+  package: both apps already read validators, and its words, samples and the curl and fetch writers are plain data.
+- Messages stay typed in the definition, in both languages; `apps/server/test/developer-api-samples.spec.ts` holds every
+  success message and error to `translate(key, lang)`, every error's status to `HTTP_STATUS`, the minute limits to
+  their server constants, the feed's first line to its columns, every body and query to the route's own schema, every
+  `data` to its response DTO with nothing invented (read back, it must equal the sample), and the documented routes to
+  the public controllers' (reflected), so none of it can drift.
+- The plans table reads the live plans: Trial from `LIMIT_WHEN_UNSET`, Pay-as-you-go from its plan, the rest from the
+  catalogue.
 
 **One definition, never drifting.** The sketch already draws both pages from one object (`DEVAPI`). The build keeps
 that rule:

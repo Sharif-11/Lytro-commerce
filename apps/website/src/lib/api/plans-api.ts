@@ -43,6 +43,13 @@ export interface PlatformRate {
   value: string;
 }
 
+/** GET /plans/pay-as-you-go/api-charge: perThousand is null with fair use off. */
+export interface PaygApiCharge {
+  on: boolean;
+  freeRequests: number;
+  perThousand: string | null;
+}
+
 export class PlansApi {
   constructor(private readonly api: ServerApi) {}
 
@@ -74,5 +81,10 @@ export class PlansApi {
   /** PYG-01: pay-as-you-go's own limits, for its card, or null when the backend cannot be reached. */
   payAsYouGo(): Promise<Plan | null> {
     return this.api.get<Plan>('/plans/pay-as-you-go');
+  }
+
+  /** PF-14: pay-as-you-go's API charge while fair use is on (free requests, the rate per 1,000), for the developer docs. */
+  paygApiCharge(): Promise<PaygApiCharge | null> {
+    return this.api.get<PaygApiCharge>('/plans/pay-as-you-go/api-charge');
   }
 }

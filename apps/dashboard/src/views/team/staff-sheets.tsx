@@ -117,8 +117,8 @@ export function AddStaffSheet({
   }, [open]);
 
   function add(): void {
-    const phone = bangladeshiPhone.fromLocalPart(localPhone);
-    if (!bangladeshiPhone.isValid(phone)) {
+    const phone = bangladeshiPhone.read(localPhone);
+    if (phone === null) {
       setPhoneError(t('phoneInvalid'));
       return;
     }
@@ -199,12 +199,11 @@ export function AddStaffSheet({
         type="tel"
         inputMode="numeric"
         autoComplete="off"
-        prefix="+880"
-        placeholder="1XXXXXXXXX"
+        placeholder="01XXXXXXXXX"
         value={localPhone}
         error={phoneError}
         onChange={(event) => {
-          setLocalPhone(event.target.value.replace(/[^\d\s-]/g, ''));
+          setLocalPhone(event.target.value.replace(/[^\d\s+-]/g, ''));
         }}
       />
       <Field

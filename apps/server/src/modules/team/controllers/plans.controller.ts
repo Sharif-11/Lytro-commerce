@@ -1,5 +1,6 @@
 import { Controller, Get, Inject, Param } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { RateKey } from '@lytronix/validators';
 import { ZodResponse } from 'nestjs-zod';
 import { ApiError } from '../../../common/api-error';
 import { SkipTenant } from '../../../common/decorators/skip-tenant';
@@ -7,12 +8,14 @@ import { ResponseMessage } from '../../../common/decorators/response-message';
 import { PlansService } from '../../billing/services/plans.service';
 import { BillingTermsService } from '../../billing/services/billing-terms.service';
 import { RateService } from '../../balance/services/rate.service';
+import { FairUseSwitch } from '../../fair-use/services/fair-use-switch';
 import type { RateValue } from '../../balance/types/rate';
 import type { PlanRecord } from '../../billing/types/plan';
 import type { BillingTermRecord } from '../../billing/types/billing-term';
 import type { PlanPriceRecord } from '../../billing/types/billing-term';
 import {
   BillingTermListDto,
+  PaygApiChargeDto,
   PlanDto,
   PlanListDto,
   PlanPriceListDto,
@@ -29,6 +32,7 @@ export class PlansController {
     @Inject(PlansService) private readonly plans: PlansService,
     @Inject(BillingTermsService) private readonly terms: BillingTermsService,
     @Inject(RateService) private readonly rates: RateService,
+    @Inject(FairUseSwitch) private readonly fairUse: FairUseSwitch,
   ) {}
 
   @Get('plans')
@@ -47,6 +51,26 @@ export class PlansController {
   @ZodResponse({ type: PlanDto })
   payAsYouGo(): Promise<PlanRecord> {
     return this.plans.findPayAsYouGo();
+  }
+
+  // PF-14 (the developer docs, 2026-11-25): what a pay-as-you-go shop's own website pays for API requests while fair use
+  // is on -- the free successful requests a cycle, then the rate per 1,000 -- for lytro.app/developers' limits. Published
+  // prices, so public like the plans and rates. Before the plans/:id/prices route only in reading order; the paths differ.
+  @Get('plans/pay-as-you-go/api-charge')
+  @ResponseMessage('PaygApiChargeRetrieved')
+  @ApiOperation({ summary: 'Get the pay-as-you-go API charge, while fair use is on' })
+  @ZodResponse({ type: PaygApiChargeDto })
+  async paygApiCharge(): Promise<{
+    on: boolean;
+    freeRequests: number;
+    perThousand: string | null;
+  }> {
+    const [on, freeRequests, rate] = await Promise.all([
+      this.fairUse.isOn(),
+      this.fairUse.freeRequests(),
+      this.rates.current(RateKey.PaygApiPerThousand),
+    ]);
+    return { on, freeRequests, perThousand: on ? (rate?.value ?? null) : null };
   }
 
   @Get('billing-terms')

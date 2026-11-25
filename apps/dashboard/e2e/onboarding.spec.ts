@@ -186,6 +186,24 @@ test('the longest shop link stays inside its chip on a narrow phone', async ({ p
   expect(inside).toBe(true);
 });
 
+// The owner, 2026-11-25: "the +88 is fixed since customer intrinsically start with 0" -- the box takes the number as
+// people write it, and the server still gets +880….
+test('signs in with the number typed from 0, with no fixed +880 before the box', async ({
+  page,
+}) => {
+  const log = await mockOnboarding(page);
+  await page.goto('/sign-in');
+  const field = page.getByLabel('ফোন নম্বর');
+  await expect(field).toHaveAttribute('placeholder', '01XXXXXXXXX');
+  await expect(page.getByText('+880', { exact: true })).toHaveCount(0);
+  await field.fill('01711234567');
+  await page.getByRole('button', { name: 'এগিয়ে যান' }).click();
+  await expect(
+    page.getByText('+880 1711 234 567 নম্বরে 6 সংখ্যার একটি কোড পাঠানো হয়েছে'),
+  ).toBeVisible();
+  expect(log.sent('POST', '/auth/phone/code')).toMatchObject({ phone: PHONE });
+});
+
 test('walks a new owner from the website to Home: code, shop, checkout, password, set-up', async ({
   page,
 }) => {
@@ -341,7 +359,7 @@ test('turns the boxes red on a wrong code, and a password is one tap away with t
   await expect(page.getByText('5 বার ভুল হয়েছে। 15 মিনিট পর আবার ট্রাই করুন।')).toBeVisible();
   await page.getByRole('link', { name: 'পাসওয়ার্ড দিয়ে লগইন করুন' }).click();
   await expect(page.getByLabel('পাসওয়ার্ড')).toBeVisible();
-  await expect(page.getByLabel('ফোন নম্বর')).toHaveValue('1711234567');
+  await expect(page.getByLabel('ফোন নম্বর')).toHaveValue('01711234567');
 });
 
 test('checks the three password rules as they are typed, and holds Save until all pass', async ({
