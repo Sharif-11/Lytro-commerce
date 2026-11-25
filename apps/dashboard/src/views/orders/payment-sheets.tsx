@@ -45,12 +45,6 @@ const WALLETS: readonly PaymentMethod[] = [
   PaymentMethod.Upay,
 ];
 
-/** A Bangladeshi mobile typed after +880 ("1819 876 543"), as the server takes it; null until it is ten digits. */
-function mobileOf(typed: string): string | null {
-  const digits = typed.replace(/\D/g, '').replace(/^0/, '');
-  return /^1[3-9]\d{8}$/.test(digits) ? `+880${digits}` : null;
-}
-
 /**
  * Record a payment (Part 29's `o29-pay`, ORD-15, ORD-22): how it came, the amount -- no more than is due -- and for a
  * wallet the number it was sent from and its TrxID, for a bank its reference. Verified at once (D4-6).
@@ -77,7 +71,7 @@ export function RecordPaymentSheet({
     method !== null &&
     value > 0 &&
     value <= due &&
-    (!wallet || (mobileOf(sender) !== null && reference.trim() !== '')) &&
+    (!wallet || (bangladeshiPhone.read(sender) !== null && reference.trim() !== '')) &&
     (method !== PaymentMethod.Bank || reference.trim() !== '');
   return (
     <Sheet
@@ -91,7 +85,7 @@ export function RecordPaymentSheet({
           disabled={!ready}
           onClick={() => {
             if (method === null) return;
-            const number = wallet ? mobileOf(sender) : null;
+            const number = wallet ? bangladeshiPhone.read(sender) : null;
             record.mutate(
               {
                 method,
@@ -146,8 +140,8 @@ export function RecordPaymentSheet({
         <>
           <Field
             label={t('paySender')}
-            prefix="+880"
             inputMode="tel"
+            placeholder="01XXXXXXXXX"
             value={sender}
             onChange={(event) => {
               setSender(event.target.value);

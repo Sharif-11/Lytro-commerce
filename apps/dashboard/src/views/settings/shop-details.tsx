@@ -70,11 +70,11 @@ export function ShopDetailsView(): React.JSX.Element {
     if (!settings.data) return;
     setShopName(settings.data.shopName);
     setPhone(
-      settings.data.contactPhone ? bangladeshiPhone.localPart(settings.data.contactPhone) : '',
+      settings.data.contactPhone ? bangladeshiPhone.forField(settings.data.contactPhone) : '',
     );
     setEmail(settings.data.contactEmail ?? '');
     setAddress(settings.data.businessAddress ?? '');
-    setWhatsapp(settings.data.whatsapp ? bangladeshiPhone.localPart(settings.data.whatsapp) : '');
+    setWhatsapp(settings.data.whatsapp ? bangladeshiPhone.forField(settings.data.whatsapp) : '');
     setMessenger(settings.data.messenger ?? '');
     setFacebookPage(settings.data.facebookPage ? shortPageLink(settings.data.facebookPage) : '');
   }, [settings.data]);
@@ -84,10 +84,10 @@ export function ShopDetailsView(): React.JSX.Element {
   }, [businessType.data]);
 
   async function save(): Promise<void> {
-    const contactPhone = phone.trim() === '' ? null : bangladeshiPhone.fromLocalPart(phone);
-    const whatsappNumber = whatsapp.trim() === '' ? null : bangladeshiPhone.fromLocalPart(whatsapp);
+    const contactPhone = phone.trim() === '' ? null : bangladeshiPhone.read(phone);
+    const whatsappNumber = whatsapp.trim() === '' ? null : bangladeshiPhone.read(whatsapp);
     const wrong: ContactErrors = {};
-    if (whatsappNumber !== null && !bangladeshiPhone.isValid(whatsappNumber)) {
+    if (whatsapp.trim() !== '' && whatsappNumber === null) {
       wrong.whatsapp = t('ux2.waE');
     }
     if (messenger.trim() !== '' && messengerUsernameOf(messenger) === null) {
@@ -96,7 +96,7 @@ export function ShopDetailsView(): React.JSX.Element {
     if (facebookPage.trim() !== '' && facebookPageUrlOf(facebookPage) === null) {
       wrong.facebookPage = t('ux2.fbE');
     }
-    const badPhone = contactPhone !== null && !bangladeshiPhone.isValid(contactPhone);
+    const badPhone = phone.trim() !== '' && contactPhone === null;
     setPhoneError(badPhone ? t('phoneInvalid') : null);
     setContactErrors(wrong);
     if (badPhone || Object.keys(wrong).length > 0) return;
@@ -216,12 +216,11 @@ export function ShopDetailsView(): React.JSX.Element {
               type="tel"
               inputMode="numeric"
               autoComplete="off"
-              prefix="+880"
-              placeholder="1XXXXXXXXX"
+              placeholder="01XXXXXXXXX"
               value={phone}
               error={phoneError ?? problems['contactPhone']}
               onChange={(event) => {
-                setPhone(event.target.value.replace(/[^\d\s-]/g, ''));
+                setPhone(event.target.value.replace(/[^\d\s+-]/g, ''));
               }}
             />
             <Field
@@ -230,13 +229,12 @@ export function ShopDetailsView(): React.JSX.Element {
               type="tel"
               inputMode="numeric"
               autoComplete="off"
-              prefix="+880"
-              placeholder="1XXXXXXXXX"
+              placeholder="01XXXXXXXXX"
               help={t('ux2.waH')}
               value={whatsapp}
               error={contactErrors.whatsapp ?? problems['whatsapp']}
               onChange={(event) => {
-                setWhatsapp(event.target.value.replace(/[^\d\s-]/g, ''));
+                setWhatsapp(event.target.value.replace(/[^\d\s+-]/g, ''));
               }}
             />
             <Field

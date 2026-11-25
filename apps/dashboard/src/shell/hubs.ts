@@ -37,6 +37,8 @@ export type ShopPath =
   | '/$shop/settings/storefront'
   | '/$shop/settings/storefront/design'
   | '/$shop/settings/couriers'
+  // §7.48: Developer API returns to API keys.
+  | '/$shop/settings/api-keys'
   // Phase 7 (Part 37): the bell's own page, and the board a notice returns to.
   | '/$shop/notifications';
 

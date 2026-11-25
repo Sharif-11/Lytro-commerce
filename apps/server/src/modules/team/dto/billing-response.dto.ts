@@ -54,6 +54,16 @@ export const planSchema = z.object({
   createdAt: dateField(),
 });
 export class PlanDto extends createZodDto(planSchema) {}
+
+// PF-14 (the developer docs, 2026-11-25): what a pay-as-you-go shop's own website pays for API requests while fair use is
+// on: the free successful requests each cycle, then the rate per 1,000 (null with fair use off, when the plan's own
+// request limit applies instead).
+export const paygApiChargeSchema = z.object({
+  on: z.boolean(),
+  freeRequests: z.number().int(),
+  perThousand: z.string().nullable(),
+});
+export class PaygApiChargeDto extends createZodDto(paygApiChargeSchema) {}
 export class PlanListDto extends createZodDto(planSchema.array()) {}
 
 // PLN-02, PLN-08: the operator's list says how many shops sit on each version, and whether a plan can still go.

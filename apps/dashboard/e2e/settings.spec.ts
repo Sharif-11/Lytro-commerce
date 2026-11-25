@@ -71,7 +71,7 @@ test('Shop details shows what is saved and saves the name, contact and shop type
 }) => {
   const log = await open(page, '/settings/shop');
   await expect(main(page).getByLabel('Shop name')).toHaveValue('Megh Fashion');
-  await expect(main(page).getByLabel('Support phone')).toHaveValue('1711 234 567');
+  await expect(main(page).getByLabel('Support phone')).toHaveValue('01711234567');
   await expect(main(page).getByLabel('What you mainly sell')).toHaveValue('clothing');
   await expect(main(page).getByLabel('Shop address')).toHaveValue('24/B, Mirpur 10, Dhaka 1216');
   // The shop's link, with the note that renaming never changes it.

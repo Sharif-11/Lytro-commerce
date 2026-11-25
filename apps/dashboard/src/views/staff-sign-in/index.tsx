@@ -22,8 +22,8 @@ export function StaffSignIn(): React.JSX.Element {
 
   function handleSubmit(event: SyntheticEvent<HTMLFormElement>): void {
     event.preventDefault();
-    const phone = bangladeshiPhone.fromLocalPart(localPhone);
-    if (!bangladeshiPhone.isValid(phone)) {
+    const phone = bangladeshiPhone.read(localPhone);
+    if (phone === null) {
       setPhoneError(t('invalidPhone'));
       return;
     }
@@ -40,12 +40,11 @@ export function StaffSignIn(): React.JSX.Element {
           type="tel"
           inputMode="numeric"
           autoComplete="tel-national"
-          prefix="+880"
-          placeholder="1XXXXXXXXX"
+          placeholder="01XXXXXXXXX"
           value={localPhone}
           error={phoneError}
           onChange={(event) => {
-            setLocalPhone(event.target.value.replace(/[^\d\s-]/g, ''));
+            setLocalPhone(event.target.value.replace(/[^\d\s+-]/g, ''));
           }}
         />
         <Field

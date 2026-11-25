@@ -3,26 +3,53 @@ import { BangladeshiPhone } from '../src/lib/phone';
 
 const phone = new BangladeshiPhone();
 
+// The owner, 2026-11-25: the box takes the number as typed, from 0 -- no fixed +880 before it.
 describe('BangladeshiPhone', () => {
-  it('joins the fixed +880 prefix with whatever the person typed', () => {
-    expect(phone.fromLocalPart('1712-345678')).toBe('+8801712345678');
-    expect(phone.fromLocalPart('01712345678')).toBe('+8801712345678');
-    expect(phone.fromLocalPart('8801712345678')).toBe('+8801712345678');
+  it('reads a mobile number however it is written, for the server as +880…', () => {
+    for (const typed of [
+      '01712345678',
+      '1712345678',
+      '8801712345678',
+      '+8801712345678',
+      '01712-345678',
+      '017 1234 5678',
+      ' +880 1712-345 678 ',
+      '+88 01712345678',
+    ]) {
+      expect(phone.read(typed), typed).toBe('+8801712345678');
+      expect(phone.localOf(typed), typed).toBe('01712345678');
+    }
   });
 
-  it('accepts only Bangladeshi mobile numbers', () => {
-    expect(phone.isValid('+8801712345678')).toBe(true);
-    expect(phone.isValid('+8801212345678')).toBe(false);
-    expect(phone.isValid('+88017123')).toBe(false);
+  it('reads nothing that is not a Bangladeshi mobile number', () => {
+    for (const typed of [
+      '',
+      '0171234567',
+      '017123456789',
+      '01212345678',
+      '1212345678',
+      '+8801212345678',
+      '+88017123',
+      '02712345678',
+      '017l2345678',
+      '+1 415 555 0100',
+    ]) {
+      expect(phone.read(typed), typed).toBeNull();
+      expect(phone.localOf(typed), typed).toBeNull();
+    }
   });
 
-  it('shows the local form with a hyphen', () => {
+  it('shows a saved number in a field as people write it', () => {
+    expect(phone.forField('+8801712345678')).toBe('01712345678');
+    expect(phone.forField('01712345678')).toBe('01712345678');
+    expect(phone.forField('+88017')).toBe('+88017');
+  });
+
+  it('shows the local form with a hyphen, in groups, for WhatsApp and with +880', () => {
     expect(phone.display('+8801712345678')).toBe('01712-345678');
-  });
-
-  it('writes the part after a fixed +880 prefix in groups, and the whole number with it', () => {
-    expect(phone.localPart('+8801711234567')).toBe('1711 234 567');
+    expect(phone.grouped('+8801712345678')).toBe('01712 345 678');
+    expect(phone.forWhatsapp('01712345678')).toBe('8801712345678');
     expect(phone.international('+8801711234567')).toBe('+880 1711 234 567');
-    expect(phone.localPart('+88017')).toBe('+88017');
+    expect(phone.international('+88017')).toBe('+88017');
   });
 });

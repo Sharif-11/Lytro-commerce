@@ -51,8 +51,8 @@ export function PhoneSheet({ onClose }: { onClose: () => void }): React.JSX.Elem
   };
 
   const submitPhone = (): void => {
-    const phone = bangladeshiPhone.fromLocalPart(localPhone);
-    if (!bangladeshiPhone.isValid(phone)) {
+    const phone = bangladeshiPhone.read(localPhone);
+    if (phone === null) {
       setPhoneError(words('invalidPhone'));
       return;
     }
@@ -83,8 +83,7 @@ export function PhoneSheet({ onClose }: { onClose: () => void }): React.JSX.Elem
       >
         <Field
           label={words('phoneLabel')}
-          prefix="+880"
-          value={sent ? bangladeshiPhone.localPart(sent.phone) : localPhone}
+          value={sent ? bangladeshiPhone.forField(sent.phone) : localPhone}
           readOnly
           error={words('obPhoneTaken')}
         />
@@ -174,12 +173,11 @@ export function PhoneSheet({ onClose }: { onClose: () => void }): React.JSX.Elem
         type="tel"
         inputMode="numeric"
         autoComplete="tel-national"
-        prefix="+880"
-        placeholder="1XXXXXXXXX"
+        placeholder="01XXXXXXXXX"
         value={localPhone}
         error={phoneError}
         onChange={(event) => {
-          setLocalPhone(event.target.value.replace(/[^\d\s-]/g, ''));
+          setLocalPhone(event.target.value.replace(/[^\d\s+-]/g, ''));
         }}
       />
       {request.isError ? <ErrorBanner error={request.error} /> : null}
