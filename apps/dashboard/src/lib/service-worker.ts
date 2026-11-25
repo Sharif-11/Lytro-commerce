@@ -1,7 +1,9 @@
-// The dashboard's service worker (vite-plugin-pwa's, in prompt mode): it keeps the app's files for offline starts, shows
-// pushes (public/push-sw.js), and, when a new version is deployed, waits for the person to choose Update (NTF-07,
-// D7-44), so a half-filled form is never lost. Registered from main.tsx in a built app only; vite-plugin-pwa makes no
-// worker in development.
+// The dashboard's service worker (vite-plugin-pwa's, in prompt mode): it keeps the app's files for offline starts and
+// shows pushes (public/push-sw.js). A new version installs and waits, then takes over by itself at a moment that can't
+// lose typing (NTF-07 as amended 2026-11-25, the owner: "can't we do it automatically", at the "Next page change"): on
+// the next in-app page change, just after it, so the reload only repeats a page that has only just opened; or at once on
+// a fresh start, before anything is typed. No prompt. Registered from main.tsx in a built app only; vite-plugin-pwa makes
+// no worker in development.
 
 type Listener = () => void;
 
@@ -24,9 +26,10 @@ export function watchForUpdates(
   });
 }
 
-/** Whether a new version has installed and waits for Update; and the push registration, once there is one. */
-class ServiceWorkerState {
-  private waiting: ServiceWorker | null = null;
+/** Whether a new version has installed and waits to take over; and the push registration, once there is one. */
+export class ServiceWorkerState {
+  private waiting: Pick<ServiceWorker, 'postMessage'> | null = null;
+  private applying = false;
   private registration: ServiceWorkerRegistration | null = null;
   private readonly listeners = new Set<Listener>();
 
@@ -54,13 +57,11 @@ class ServiceWorkerState {
         .then((registration) => {
           this.registration = registration;
           watchForUpdates(registration, document);
-          if (registration.waiting && navigator.serviceWorker.controller) {
-            this.setWaiting(registration.waiting);
-          }
+          this.started(registration, navigator.serviceWorker.controller !== null);
           registration.addEventListener('updatefound', () => {
             const installing = registration.installing;
             installing?.addEventListener('statechange', () => {
-              // A first install has no version to replace; only a later one waits for Update.
+              // A first install has no version to replace; only a later one waits for the next page change.
               if (installing.state === 'installed' && navigator.serviceWorker.controller) {
                 this.setWaiting(installing);
               }
@@ -68,7 +69,7 @@ class ServiceWorkerState {
           });
         })
         .catch(() => {
-          // Without a worker the app still works; it just has no offline start, pushes or update prompt.
+          // Without a worker the app still works; it just has no offline start, pushes or updates by itself.
         });
     });
     let reloading = false;
@@ -79,12 +80,26 @@ class ServiceWorkerState {
     });
   }
 
-  /** Update: the waiting version takes over, and the page reloads into it. */
-  update(): void {
-    this.waiting?.postMessage({ type: 'SKIP_WAITING' });
+  /** A fresh start that finds a new version already waiting takes it at once: nothing is typed yet. */
+  started(registration: Pick<ServiceWorkerRegistration, 'waiting'>, controlled: boolean): void {
+    if (!registration.waiting || !controlled) return;
+    this.setWaiting(registration.waiting);
+    this.update();
   }
 
-  private setWaiting(worker: ServiceWorker): void {
+  /** After an in-app page change has resolved: a waiting version takes over, and the page reloads into it. */
+  pageChanged(): void {
+    if (this.updateReady()) this.update();
+  }
+
+  /** The waiting version takes over (once), and controllerchange reloads the page into it. */
+  update(): void {
+    if (!this.waiting || this.applying) return;
+    this.applying = true;
+    this.waiting.postMessage({ type: 'SKIP_WAITING' });
+  }
+
+  private setWaiting(worker: Pick<ServiceWorker, 'postMessage'>): void {
     this.waiting = worker;
     for (const listener of this.listeners) listener();
   }
