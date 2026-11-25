@@ -83,6 +83,10 @@ const BODIES: Readonly<Record<string, Body | ((by: Caller) => Body)>> = {
   'POST /products/:id/stock-additions': (by) => ({
     additions: [{ variantId: by.variantId, quantity: 1 }],
   }),
+  // §7.4b: a shared stock split into each variant's own; the caller's own variant, as above.
+  'POST /products/:id/stock-split': (by) => ({
+    counts: [{ variantId: by.variantId, quantity: 1 }],
+  }),
   'POST /purchase-orders/:id/close': { reason: 'The supplier ran out' },
   'POST /purchase-orders/:id/receipts': { items: [{ itemId: randomUUID(), accepted: 1 }] },
   'POST /staff/:id/password': { newPassword: 'staff-pass-2468' },

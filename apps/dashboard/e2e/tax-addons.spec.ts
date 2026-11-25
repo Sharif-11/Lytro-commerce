@@ -131,6 +131,7 @@ test('a new product starts with the default, sent only if changed; an edit sends
   const log = await open(page, '/products/new');
   await main(page).getByLabel('Name', { exact: true }).fill('Linen shirt');
   await main(page).getByLabel('Price', { exact: true }).fill('900');
+  await main(page).getByLabel('Stock', { exact: true }).fill('4');
   await openMore(page);
   const field = main(page).getByLabel('Tax class');
   await expect(field).toHaveValue('tx-5');

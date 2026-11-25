@@ -1116,6 +1116,22 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: (p) => `There is not enough "${String(p.product)}" in stock for this order.`,
     bn: (p) => `এই অর্ডারের জন্য স্টকে যথেষ্ট "${String(p.product)}" নেই।`,
   },
+  StockNotShared: {
+    en: "This product's stock isn't shared, so there is nothing to split.",
+    bn: 'এই প্রোডাক্টের স্টক শেয়ার করা নয়, তাই আলাদা করার কিছু নেই।',
+  },
+  SplitNeedsEveryVariant: {
+    en: 'Give a count for every design and size, 0 where there are none.',
+    bn: 'প্রতিটি ডিজাইন ও সাইজের সংখ্যা দিন, না থাকলে ০।',
+  },
+  SplitBatchedStock: {
+    en: 'Stock kept in batches cannot be split this way. Change each batch from the Stock card.',
+    bn: 'ব্যাচে রাখা স্টক এভাবে আলাদা করা যায় না। স্টক কার্ড থেকে প্রতিটি ব্যাচ বদলান।',
+  },
+  SplitVariantNotFound: {
+    en: "That design or size isn't one of this product's.",
+    bn: 'এই ডিজাইন বা সাইজটি এই প্রোডাক্টের নয়।',
+  },
   UnitsHeldForOrders: {
     en: 'Some units of this product are held for orders. Ship or cancel those orders first.',
     bn: 'এই প্রোডাক্টের কিছু ইউনিট অর্ডারের জন্য হোল্ড করা আছে। আগে সেই অর্ডারগুলো শিপ বা ক্যানসেল করুন।',
@@ -1510,6 +1526,10 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
   StockAdded: {
     en: 'Stock added.',
     bn: 'স্টক যোগ হয়েছে।',
+  },
+  StockSplit: {
+    en: 'The stock is now kept for each design and size.',
+    bn: 'স্টক এখন প্রতিটি ডিজাইন ও সাইজে আলাদা রাখা হচ্ছে।',
   },
   StocksAdded: {
     en: "Stock added to the product's variants.",

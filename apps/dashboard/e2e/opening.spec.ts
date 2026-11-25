@@ -2,6 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { mockApi, SLUG, type ApiLog, type ShopState } from './support/mock-api';
 import { drawnProducts, type ProductsFixture } from './support/products';
+import { closeSaved, toFullForm } from './support/quick-add';
 
 // TENANT-DASHBOARD-DESIGN §7.4, Slice 11.7c step 2 (Part 15's `pf-sh-batch`, `pf-sh-serials`; Part 16): a new product's
 // stock on the shelf as an opening batch with its unit cost, and its units' serials by Scan, Paste a list or Type --
@@ -154,6 +155,7 @@ test('a medicine with no options: its opening stock is a batch with its expiry a
   await batch.getByRole('button', { name: 'Done' }).click();
   await expect(field).toContainText('40 · exp 2028-02');
   await save(page).click();
+  await closeSaved(page);
   await expect(page).toHaveURL(`/${SLUG}/products`);
   expect(sent(log, 'POST', '/products')[0]?.variants).toEqual([
     {
@@ -189,6 +191,7 @@ test('a lipstick by size: each size its own opening batch, from its cell', async
   await batch.getByRole('button', { name: 'Done' }).click();
   await expect(cell).toHaveText('24 · exp 2027-08');
   await save(page).click();
+  await closeSaved(page);
   await expect(page).toHaveURL(`/${SLUG}/products`);
   const [body] = sent(log, 'POST', '/products');
   expect(body?.variants).toMatchObject([
@@ -251,6 +254,7 @@ test('a phone by size: serials typed one by one, each checked, the flagged ones 
   await serials.getByRole('button', { name: 'Done' }).click();
   await expect(cell).toHaveText('2 / 2');
   await save(page).click();
+  await closeSaved(page);
   await expect(page).toHaveURL(`/${SLUG}/products`);
   expect(sent(log, 'POST', '/serials/check').map((body) => body.serials)).toEqual([
     [IMEI_A],
@@ -289,6 +293,7 @@ test('a table fan: serials pasted as a list, what does not fit left in the box',
   await serials.getByRole('button', { name: 'Done' }).click();
   await expect(stock(page).getByRole('button', { name: 'Opening serials' })).toHaveText('2 / 2');
   await save(page).click();
+  await closeSaved(page);
   await expect(page).toHaveURL(`/${SLUG}/products`);
   expect(sent(log, 'POST', '/products')[0]?.variants).toEqual([
     {
@@ -362,6 +367,8 @@ test('a new product by size: each size its price, its stock in pcs and its SKU, 
     typed({ presetKey: 'fashion', stockUnit: 'piece', suggestedAttributeIds: [] }),
   );
   await named(page, 'Cotton polo', '650');
+  // Quick add (§7.4b): the variant table is the full form's, from আরও সেটিংস.
+  await toFullForm(page);
   await sizes(page, ['S', 'M']);
   const table = main(page).getByRole('region', { name: 'Options and variants' }).getByRole('table');
   // The fixes PR (2026-11-14): stock with its unit and the SKU per variant; Fill all stays on Price and Stock.
@@ -386,6 +393,7 @@ test('a new product by size: each size its price, its stock in pcs and its SKU, 
   await table.getByLabel('SKU of M').fill('POLO-M');
   await expectAccessible(page);
   await save(page).click();
+  await closeSaved(page);
   await expect(page).toHaveURL(`/${SLUG}/products`);
   expect(sent(log, 'POST', '/products')[0]?.variants).toMatchObject([
     { sku: null, openingStock: 12 },

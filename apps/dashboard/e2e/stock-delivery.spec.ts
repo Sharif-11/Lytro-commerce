@@ -3,6 +3,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { drawnDelivery } from './support/delivery';
 import { mockApi, SLUG, type ApiLog, type ShopState } from './support/mock-api';
 import { drawnProducts, type ProductsFixture } from './support/products';
+import { closeSaved, toFullForm } from './support/quick-add';
 
 // TENANT-DASHBOARD-DESIGN §7.4 and §7.4a, Slice 11.7c (Part 15): the form by shop type -- the defaults line, the type's
 // up-front card and what it sets -- Stock and delivery with Adjust by weight, Delivers to and the payment policy, made to
@@ -185,7 +186,7 @@ test('made to order: a product holding stock asks first; Keep counting keeps it,
     .toEqual([{ stockTracking: 'not_tracked' }]);
 });
 
-test("the size chart: the category's, then a table of its own saved by its own request, then the category's again", async ({
+test("the size chart: the category's, then a picture of its own saved by its own request, then the category's again", async ({
   page,
 }) => {
   const products: ProductsFixture = {
@@ -206,29 +207,22 @@ test("the size chart: the category's, then a table of its own saved by its own r
     chart.getByRole('radio', { name: "Use the category's chart · T-shirts" }),
   ).toHaveAttribute('aria-checked', 'true');
   await chart.getByRole('radio', { name: "This product's own chart" }).click();
-  await expect(chart.getByRole('radio', { name: 'Table' })).toHaveAttribute('aria-checked', 'true');
-  // The corner stays empty; the first row names the measures, the first column the sizes.
-  await expect(chart.getByLabel('Row 1, column 1')).toHaveCount(0);
-  await chart.getByLabel('Row 1, column 2').fill('Chest ');
-  await chart.getByLabel('Row 2, column 1').fill('M');
-  await chart.getByLabel('Row 2, column 2').fill('40');
-  // A row left empty is dropped.
-  await chart.getByRole('button', { name: 'Add row' }).click();
-  await expect(chart.getByLabel('Row 3, column 1')).toBeVisible();
+  // A picture is the only form now (§7.4b): no table to fill in, the server keeping the table form.
+  await expect(chart.getByRole('radio', { name: 'Table' })).toHaveCount(0);
+  await expect(chart.getByLabel(/^Row \d+, column \d+$/)).toHaveCount(0);
+  await chart
+    .locator('input[type=file]')
+    .first()
+    .setInputFiles({ name: 'chart.png', mimeType: 'image/png', buffer: Buffer.alloc(2048, 1) });
+  await expect(chart.getByRole('img', { name: 'Size chart' })).toBeVisible();
   await expectAccessible(page);
   await chart.getByRole('button', { name: 'Done' }).click();
   await expect(upFront.getByRole('button', { name: /^Own chart/ })).toBeVisible();
   await save(page).click();
-  await expect
-    .poll(() => sent(log, 'PUT', '/products/p-1/size-chart'))
-    .toEqual([
-      {
-        rows: [
-          ['', 'Chest'],
-          ['M', '40'],
-        ],
-      },
-    ]);
+  await expect.poll(() => sent(log, 'PUT', '/products/p-1/size-chart').length).toBe(1);
+  expect(sent(log, 'PUT', '/products/p-1/size-chart')[0]).toEqual({
+    imageId: expect.stringMatching(/^m-up-/),
+  });
 
   await upFront.getByRole('button', { name: /^Own chart/ }).click();
   await chart.getByRole('radio', { name: "Use the category's chart · T-shirts" }).click();
@@ -268,6 +262,8 @@ test('a new phone: serials (IMEI) and condition up front, what the type sets, se
   page,
 }) => {
   const log = await open(page, 'new', { products: typed(PHONES) });
+  // Serials on by the type's defaults: quick add opens today's full form (§7.4b), as built.
+  await expect(main(page).getByRole('button', { name: 'Making a combo pack?' })).toHaveCount(0);
   await expect(main(page).getByText('Defaults: Mobiles and gadgets')).toBeVisible();
   await expect(main(page).getByRole('button', { name: 'change' })).toBeVisible();
   const upFront = main(page).getByRole('region', { name: 'Mobiles and gadgets' });
@@ -294,6 +290,7 @@ test('a new phone: serials (IMEI) and condition up front, what the type sets, se
   expect(sent(log, 'POST', '/products')).toEqual([]);
   await stock(page).getByLabel('Unit').selectOption('piece');
   await save(page).click();
+  await closeSaved(page);
   await expect(page).toHaveURL(`/${SLUG}/products`);
   expect(sent(log, 'POST', '/products')[0]).toMatchObject({
     name: 'Galaxy A16',
@@ -315,13 +312,17 @@ test('a book with no options: its SKU and barcode under More settings, sent with
       upFrontFields: [],
     }),
   });
-  await expect(main(page).getByText('This type shows nothing extra up front')).toBeVisible();
   await named(page, 'Pather Panchali', '320');
+  // Quick add (§7.4b) has no SKU or barcode: "A different price or SKU" opens today's full form, the name kept.
+  await toFullForm(page);
+  await expect(main(page).getByText('This type shows nothing extra up front')).toBeVisible();
+  await expect(main(page).getByLabel('Name', { exact: true })).toHaveValue('Pather Panchali');
   await stock(page).getByLabel('Opening stock').fill('12');
   await main(page).getByText('More settings', { exact: true }).click();
   await main(page).getByLabel('SKU').fill('PP-0320');
   await main(page).getByLabel('Barcode').fill('9789845020181');
   await save(page).click();
+  await closeSaved(page);
   await expect(page).toHaveURL(`/${SLUG}/products`);
   expect(sent(log, 'POST', '/products')[0]?.variants).toEqual([
     { optionIds: [], sku: 'PP-0320', barcode: '9789845020181', openingStock: 12 },
@@ -336,6 +337,8 @@ test('a category of another type brings its defaults, except what was typed, sai
     categoryDefaults: { 'c-accessories': PHONES },
   };
   await open(page, 'new', { products });
+  // The defaults line, its "change" and the note with Undo are the full form's (§7.4b), reached from More settings.
+  await toFullForm(page);
   await expect(main(page).getByText('Defaults: Clothing')).toBeVisible();
   await stock(page).getByLabel('Low-stock alert at').fill('9');
   // "change" opens the category picker (PST-06).

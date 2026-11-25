@@ -197,6 +197,8 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   // Fixes 2026-11-14 (the quick stock boxes), checked in test/stock-additions.e2e.spec.ts.
   'POST /products/:id/stock-additions':
     "another shop's product, or a variant of it, answers 404 and adds nothing",
+  // Quick add (TENANT-DASHBOARD-DESIGN 7.4b), checked in test/stock-split.e2e.spec.ts.
+  'POST /products/:id/stock-split': "another shop's product answers 404 and keeps its shared stock",
   'GET /products/:id/variants/:variantId/stock-history':
     "another shop's product or variant answers 404",
   // Phase 3 Slice 2b, checked in test/inventory.e2e.spec.ts.

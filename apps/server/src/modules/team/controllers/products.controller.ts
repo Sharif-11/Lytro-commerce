@@ -52,6 +52,7 @@ import {
   ProductPageDto,
   SizeChartRowsDto,
 } from '../dto/catalogue-response.dto';
+import { SplitSharedStockDto } from '../dto/inventory.dto';
 import { PermissionGuard } from '../guards/permission.guard';
 import { CatalogueRequest } from '../services/catalogue-request';
 
@@ -329,6 +330,30 @@ export class ProductsController {
     @Req() request: DashboardRequest,
   ): Promise<ProductDetail> {
     return this.products.saveVariants(
+      await this.catalogue.shopOf(request),
+      this.catalogue.idOf(id, 'ProductNotFound'),
+      body,
+      this.catalogue.actorOf(request),
+      this.stock,
+    );
+  }
+
+  @Post(':id/stock-split')
+  @HttpCode(200)
+  @RequirePermission(Permission.InventoryManage)
+  @ResponseMessage('StockSplit')
+  @ApiOperation({
+    summary:
+      "Split a product sharing one stock into each variant's own, by the counts given, then stop sharing (TENANT-DASHBOARD-DESIGN 7.4b)",
+  })
+  @ApiBody({ type: SplitSharedStockDto })
+  @ZodResponse({ type: ProductDetailDto })
+  async splitSharedStock(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(SplitSharedStockDto.schema)) body: SplitSharedStockDto,
+    @Req() request: DashboardRequest,
+  ): Promise<ProductDetail> {
+    return this.products.splitSharedStock(
       await this.catalogue.shopOf(request),
       this.catalogue.idOf(id, 'ProductNotFound'),
       body,

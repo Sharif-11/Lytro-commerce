@@ -40,6 +40,7 @@ import {
   type ProductVideoInput,
   type SaveProductAttributesInput,
   type SaveVariantsInput,
+  type SplitSharedStockInput,
   type UpdateProductInput,
   limitOf,
   OfferState,
@@ -1356,6 +1357,86 @@ export class ProductService {
   }
 
   /** CMB-01: a combo has its one variant; the choices are its parts'. */
+  /**
+   * Quick add (TENANT-DASHBOARD-DESIGN §7.4b, the owner 2026-11-25): a product sharing one stock (INV-24) split into each
+   * variant's own, by the seller's counts -- every live variant once, whole units where the unit is counted in pieces.
+   * In one transaction: the holder's stock is written off (refused while units are held for orders), sharing turns off
+   * with the product empty, then each count arrives on its variant; a total that differs is recorded as it is.
+   */
+  async splitSharedStock(
+    shop: CatalogueShop,
+    productId: string,
+    input: SplitSharedStockInput,
+    actor: CatalogueActor,
+    stock: ProductStockHooks,
+  ): Promise<ProductDetail> {
+    const who = await this.activity.resolve(shop.id, actor);
+    return this.writes.run(shop.id, async (tx) => {
+      const product = await this.findLive(tx, shop.id, productId);
+      this.refuseComboVariants(product);
+      if (!product.sharedStock) throw new ApiError('conflict', 'StockNotShared', {});
+      if (product.stockTracking !== StockTracking.Tracked) {
+        throw new ApiError('conflict', 'MadeToOrderHasNoStock', {});
+      }
+      if (product.batchTracked) throw new ApiError('conflict', 'SplitBatchedStock', {});
+      const variants = (await this.products.listVariants(tx, shop.id, productId, false)).filter(
+        (variant) => !variant.isStockHolder,
+      );
+      const live = new Set(variants.map((variant) => variant.id));
+      const given = new Set(input.counts.map((row) => row.variantId));
+      const problems: InvalidField[] = [];
+      input.counts.forEach((row, index) => {
+        if (!live.has(row.variantId)) {
+          problems.push({
+            field: `counts.${String(index)}.variantId`,
+            problem: ServerFieldProblemCode.NotFound,
+            messageKey: 'SplitVariantNotFound',
+          });
+        } else if (
+          !MEASURED_STOCK_UNITS.includes(product.stockUnit) &&
+          !Number.isInteger(row.quantity)
+        ) {
+          problems.push({
+            field: `counts.${String(index)}.quantity`,
+            problem: FieldProblemCode.NotAllowed,
+            messageKey: 'WholeUnitsOnly',
+          });
+        }
+      });
+      if (problems.length > 0) throw new FieldsError(problems);
+      if (variants.some((variant) => !given.has(variant.id))) {
+        throw new FieldsError([
+          {
+            field: 'counts',
+            problem: FieldProblemCode.Required,
+            messageKey: 'SplitNeedsEveryVariant',
+          },
+        ]);
+      }
+      const shared = await stock.emptySharedStock(tx, shop.id, productId, who);
+      await this.retireStockHolder(tx, shop.id, productId);
+      await this.switchSharing(tx, shop.id, productId, false);
+      await stock.recordSplitStock(
+        tx,
+        shop.id,
+        productId,
+        input.counts.map((row) => ({
+          variantId: row.variantId,
+          quantity: row.quantity.toFixed(3),
+        })),
+        shared,
+        who,
+      );
+      await stock.refreshStockState(tx, shop.id, productId);
+      await this.record(tx, shop.id, who, AuditAction.ProductVariantsSaved, productId, {
+        variants: variants.length,
+        sharedStock: false,
+        split: true,
+      });
+      return this.detail(tx, shop.id, productId);
+    });
+  }
+
   private refuseComboVariants(product: ProductRecord): void {
     if (product.kind === ProductKind.Combo) {
       throw new ApiError('validation_error', 'ComboHasOneVariant', {});

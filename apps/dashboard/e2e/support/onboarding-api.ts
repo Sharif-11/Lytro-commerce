@@ -1,6 +1,15 @@
 import type { Page, Route } from '@playwright/test';
 import { plans, prices, priceOf, STARTER, terms, TWELVE_MONTHS } from './catalogue';
-import { envelope, refusal, shopAnswer, shopState, SLUG, startIn, type Language } from './mock-api';
+import {
+  DAY_ONE,
+  envelope,
+  refusal,
+  shopAnswer,
+  shopState,
+  SLUG,
+  startIn,
+  type Language,
+} from './mock-api';
 import { PRESETS } from './presets';
 
 // The sign-in and sign-up steps against a mocked API (TENANT-DASHBOARD-DESIGN §6): a journey that starts signed out
@@ -117,6 +126,9 @@ function meWithoutShop(journey: Journey, needsPhone = false): unknown {
 export async function mockOnboarding(page: Page, journey: Journey = {}): Promise<JourneyLog> {
   const language = journey.language ?? 'bn';
   const shop = shopState({ language, state: 'trial', periodEndDays: 30 });
+  // A shop made on this journey has nothing in it yet (§7.4b `pq-first`: set-up then lands on quick add).
+  const fresh = shopState({ language, state: 'trial', periodEndDays: 30, home: DAY_ONE.home });
+  let created = false;
   let signedIn = journey.signedIn ?? false;
   let hasPhone = !journey.noPhone;
   let hasShop = journey.hasShop ?? false;
@@ -235,6 +247,7 @@ export async function mockOnboarding(page: Page, journey: Journey = {}): Promise
         return no(429, 'rate_limited', 'A shop was already opened from here recently.');
       }
       hasShop = true;
+      created = true;
       return ok(
         {
           tenantId: 'tenant-1',
@@ -275,7 +288,7 @@ export async function mockOnboarding(page: Page, journey: Journey = {}): Promise
       );
     if (path === '/locations') return ok(locations());
     if (path === '/business-type' || path === '/delivery-zones/home-area') return ok({});
-    return ok(shopAnswer(path, url, shop));
+    return ok(shopAnswer(path, url, created ? fresh : shop));
   });
   return log;
 }
