@@ -15,6 +15,7 @@ import {
 import { drawnActivity } from './support/activity';
 import { BILLING_STAFF, offerInstall, onAnIphone } from './support/menu';
 import { drawnIdentities } from './support/account';
+import { startComboKind, toFullFormIn } from './support/quick-add';
 import { drawnShopPayments, type ShopPaymentsFixture } from './support/shop-payments';
 import { emptyMeta } from './support/meta';
 import { drawnExports, drawnSettings } from './support/settings';
@@ -1458,7 +1459,8 @@ function comboOffSale(): ProductsFixture {
 /** A new combo, named and priced as Part 31 draws it. */
 const startCombo = async (page: Page, kind: string, name: string, price: string): Promise<void> => {
   const main = page.getByRole('main');
-  await main.getByRole('radio', { name: kind }).click();
+  // Quick add (§7.4b): the combo is its "কম্বো প্যাক বানাতে চান?" link away.
+  await startComboKind(page, 'কম্বো প্যাক বানাতে চান?', kind);
   await main.getByLabel(name, { exact: true }).first().fill('ঈদ কম্বো');
   await main.getByLabel(price, { exact: true }).first().fill('2450');
 };
@@ -1512,7 +1514,7 @@ const COMBO_EDITOR: Pair[] = [
     path: '/products/new',
     state: { products: comboShop() },
     then: async (page) => {
-      await page.getByRole('main').getByRole('radio', { name: 'Combo pack' }).click();
+      await startComboKind(page, 'Making a combo pack?', 'Combo pack');
       await page.getByRole('main').getByLabel('Name', { exact: true }).fill('Eid combo');
       await page.getByRole('main').getByLabel('Price', { exact: true }).fill('2450');
     },
@@ -4249,6 +4251,8 @@ function stockPairs(): Pair[] {
     (language: Language) =>
     async (page: Page): Promise<void> => {
       const bn = language === 'bn';
+      // Quick add (§7.4b) opens first; the prototype's pf-* is today's full form, from More settings.
+      await toFullFormIn(page, language);
       await main(page)
         .getByLabel(bn ? 'নাম' : 'Name', { exact: true })
         .fill(bn ? 'পথের পাঁচালী' : 'Pather Panchali');
@@ -4521,6 +4525,8 @@ function variantPairs(): Pair[] {
         scroll: card,
         state: { products: bakery },
         then: async (page) => {
+          // Quick add (§7.4b) opens first; the attribute card is the full form's, from More settings.
+          await toFullFormIn(page, 'en');
           for (const [name, values] of [
             ['Size', ['1 lb', '2 lb', '3 lb']],
             ['Flavour', ['Chocolate', 'Vanilla', 'Red velvet']],
