@@ -89,7 +89,7 @@ test.describe('the designed home (SB-8 to SB-10)', () => {
 
   // The owner, 2026-11-25: "here the storefront must be populated even if there is no stock. And just re order the
   // stock out products at last".
-  test('fills the home from sold-out products when nothing is in stock, each marked sold out', async ({
+  test('fills the home from sold-out products when nothing is in stock', async ({
     page,
     browser,
   }) => {
@@ -109,9 +109,8 @@ test.describe('the designed home (SB-8 to SB-10)', () => {
     const cards = home.locator('.sb-sec .sb-card');
     await expect(cards.first()).toBeVisible();
     expect(await cards.count()).toBeGreaterThan(2);
-    await expect(cards.first().locator('.sb-tag.sb-out')).toHaveText(/শেষ|Sold out/);
-    // A sold-out card says only that, not its saving or "New".
-    await expect(cards.first().locator('.sb-tag')).toHaveCount(1);
+    // No stock wording for shoppers here: the coming "orders beyond stock" change decides it with ordering (2026-11-25).
+    await expect(home.locator('.sb-card .sb-out')).toHaveCount(0);
   });
 
   test('lists what is in stock first, the sold-out cards after', async ({ page, browser }) => {
@@ -131,7 +130,33 @@ test.describe('the designed home (SB-8 to SB-10)', () => {
     await page.goto(shop.url('/'));
     const rows = page.locator('.sfb[data-theme="royal"] .sb-sec:has(.sb-card)');
     await expect(rows.nth(0).locator('.sb-nm').first()).not.toHaveText('Oud Royale, 100 ml');
-    await expect(rows.nth(0).locator('.sb-card').first().locator('.sb-out')).toHaveCount(0);
+  });
+
+  // The owner, 2026-11-25: a small play mark on a card whose product has a video; the video loads only on its page.
+  test('marks a card whose product has a video, and no other', async ({ page, browser }) => {
+    const shops = await sketchShops(browser);
+    const shop = await openShop(page, (language) => {
+      const fixture = builderShop(StorefrontThemeKey.Royal, shops.royal, language);
+      return {
+        ...fixture,
+        products: (fixture.products ?? []).map((row) =>
+          row.card.name === 'Oud Royale, 100 ml'
+            ? { ...row, card: { ...row.card, hasVideo: true } }
+            : row,
+        ),
+      };
+    });
+    await page.goto(shop.url('/'));
+    const home = page.locator('.sfb[data-theme="royal"]');
+    const filmed = home.locator('.sb-card', { hasText: 'Oud Royale, 100 ml' }).first();
+    await expect(filmed.locator('.sb-vid')).toHaveCount(1);
+    await expect(filmed.locator('.sb-vid')).toHaveAttribute('aria-label', /ভিডিও আছে|Has video/);
+    await expect(home.locator('.sb-card:not(:has-text("Oud Royale, 100 ml")) .sb-vid')).toHaveCount(
+      0,
+    );
+    // No video loads on a card: it stays a link to the product page.
+    await expect(home.locator('.sb-card video')).toHaveCount(0);
+    expect(await filmed.getAttribute('href')).toMatch(/^\/p\//);
   });
 
   test('gives each card its saving, its badges and what is left (SB-10, SB-21)', async ({

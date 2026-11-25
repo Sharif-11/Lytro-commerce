@@ -385,6 +385,7 @@ export class PublicCatalogue {
           ordered: facts.get(row.id)?.ordered ?? 0,
           bestSeller: facts.get(row.id)?.bestSeller ?? false,
           designId: row.designId,
+          hasVideo: row.hasVideo,
         })),
         nextCursor:
           picked === null && rows.length > request.limit && last

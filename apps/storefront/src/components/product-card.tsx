@@ -23,6 +23,12 @@ export function ProductCard({ product, words, now }: { product: Card; words: Wor
         ) : (
           <span className="ph">{Array.from(product.name.trim())[0]}</span>
         )}
+        {/* The owner, 2026-11-25: a play mark when the product has a video; the video itself loads on its page. */}
+        {product.hasVideo === true ? (
+          <span className="vmark" role="img" aria-label={words.t('has_video')}>
+            <Icon name="play" />
+          </span>
+        ) : null}
         {out ? (
           <span className="tag out">{words.t('out')}</span>
         ) : product.stockState === StockState.Low ? (

@@ -240,6 +240,8 @@ describeIfDatabase('the public product list (PRD-09, CCH-11, CCH-12)', () => {
         'bestSeller',
         // STOREFRONT-BUILDER-PLAN DC-1: the design a card shows; null for a product's own card.
         'designId',
+        // The owner, 2026-11-25: whether the product has a video (a play mark on its card).
+        'hasVideo',
       ].sort(),
     );
     expect(products[0]).toMatchObject({

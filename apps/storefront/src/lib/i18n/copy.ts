@@ -24,6 +24,7 @@ export const COPY = {
   in_stock: ["স্টকে আছে", "In stock"],
   low: ["অল্প আছে", "Few left"],
   out: ["শেষ", "Sold out"],
+  has_video: ["ভিডিও আছে", "Has video"],
   new_: ["নতুন", "New"],
   save: ["৳{n} সাশ্রয়", "Save ৳{n}"],
   from: ["{p} থেকে", "from {p}"],
