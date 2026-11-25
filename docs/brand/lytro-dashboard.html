@@ -10870,6 +10870,7 @@ function obsOrder(short) {
   let h = c36Confirmed();
   h = obsSwap(h, o29Items({}), obsItems(short), 'the items card');
   h = obsSwap(h, o29Pricing({ counter: undefined, paid: undefined }), fxPricing(OBS_SUB), 'the pricing card');
+  h = obsSwap(h, '01711 234 567', '01711234567', 'the customer phone');
   if (!short) return h;
   h = obsSwap(h, `<div class="card"><div class="sechead"><h2>${t('customer')}</h2>`, `${obsBanner()}<div class="card"><div class="sechead"><h2>${t('customer')}</h2>`, 'the customer card');
   h = obsSwap(h, c36NotBooked(), obsShipCard(), 'the shipping card');
@@ -10903,15 +10904,15 @@ const obsThumbs = (no) => {
    shows it) and no item count. The address is the delivery line, thana and district, cut to fit. A locked pay-as-you-go
    order shows what the list masks today (PF-7, PF-21): the name's first letter, the phone's ends, the district only. */
 const OBS_CUST = {
-  '261031-0047': ['01711 234 567', ['বাসা 5, রোড 10, মিরপুর 11 · মিরপুর, ঢাকা', 'House 5, Road 10, Mirpur 11 · Mirpur, Dhaka']],
-  '261031-0046': ['01819 456 210', ['সেক্টর 7, রোড 3, বাসা 14 · উত্তরা, ঢাকা', 'Sector 7, Road 3, House 14 · Uttara, Dhaka']],
-  '261031-0045': ['01922 778 104', null],
-  '261031-0044': ['01556 902 331', ['মেহেদীবাগ, বাসা 12 · পাঁচলাইশ, চট্টগ্রাম', 'Mehedibag, House 12 · Panchlaish, Chattogram']],
-  '261031-0043': ['01671 330 905', ['রোড 27, বাসা 9/বি · ধানমন্ডি, ঢাকা', 'Road 27, House 9/B · Dhanmondi, Dhaka']],
-  '261030-0039': ['01733 118 642', ['ব্যাংক টাউন, রোড 4 · সাভার, ঢাকা', 'Bank Town, Road 4 · Savar, Dhaka']],
-  '261030-0038': ['01911 250 377', ['শিববাড়ি মোড় · সোনাডাঙ্গা, খুলনা', 'Shibbari Mor · Sonadanga, Khulna']],
-  '261029-0031': ['01811 112 222', ['শেওড়াপাড়া · মিরপুর, ঢাকা', 'Shewrapara · Mirpur, Dhaka']],
-  '261029-0030': ['01722 640 118', ['মধ্য বাড্ডা · বাড্ডা, ঢাকা', 'Middle Badda · Badda, Dhaka']],
+  '261031-0047': ['01711234567', ['বাসা 5, রোড 10, মিরপুর 11 · মিরপুর, ঢাকা', 'House 5, Road 10, Mirpur 11 · Mirpur, Dhaka']],
+  '261031-0046': ['01819456210', ['সেক্টর 7, রোড 3, বাসা 14 · উত্তরা, ঢাকা', 'Sector 7, Road 3, House 14 · Uttara, Dhaka']],
+  '261031-0045': ['01922778104', null],
+  '261031-0044': ['01556902331', ['মেহেদীবাগ, বাসা 12 · পাঁচলাইশ, চট্টগ্রাম', 'Mehedibag, House 12 · Panchlaish, Chattogram']],
+  '261031-0043': ['01671330905', ['রোড 27, বাসা 9/বি · ধানমন্ডি, ঢাকা', 'Road 27, House 9/B · Dhanmondi, Dhaka']],
+  '261030-0039': ['01733118642', ['ব্যাংক টাউন, রোড 4 · সাভার, ঢাকা', 'Bank Town, Road 4 · Savar, Dhaka']],
+  '261030-0038': ['01911250377', ['শিববাড়ি মোড় · সোনাডাঙ্গা, খুলনা', 'Shibbari Mor · Sonadanga, Khulna']],
+  '261029-0031': ['01811112222', ['শেওড়াপাড়া · মিরপুর, ঢাকা', 'Shewrapara · Mirpur, Dhaka']],
+  '261029-0030': ['01722640118', ['মধ্য বাড্ডা · বাড্ডা, ঢাকা', 'Middle Badda · Badda, Dhaka']],
 };
 const OBS_LOCKED = () => ({ no: '261031-0048', name: ['স•••', 'S•••'], area: ['ঢাকা', 'Dhaka'], items: 1, total: 1650, status: 'pending', time: ['দুপুর 12:20', '12:20 pm'], day: 'today', locked: true });
 OBS_ROW_PICS['261031-0048'] = [['fashion-6', 0]];
@@ -10921,7 +10922,7 @@ function obsRow(r, o) {
   const [phone, addr] = OBS_CUST[r.no] || [];
   const where = r.locked ? L(...r.area) : addr ? L(...addr) : `<span class="st neu">${t('o29Takeaway')}</span>`;
   const short = n ? `<span class="obs-l3"><span class="obs-tag">${ic('alert', 12)}${obsShortWords(n)}</span>${o.select ? `<span class="obs-why2">${L('স্টক না এলে লেবেল প্রিন্ট হবে না', 'No label until the stock is in')}</span>` : ''}</span>` : '';
-  const body = `<span class="body"><span class="l1 obs-name">${r.locked ? `${ic('lock', 14)} ` : ''}${L(...r.name)}</span><span class="l2 num">${r.locked ? '017•• ••• 842' : phone}</span><span class="l2 obs-addr">${where}</span>${short}</span>`;
+  const body = `<span class="body"><span class="l1 obs-name">${r.locked ? `${ic('lock', 14)} ` : ''}${L(...r.name)}</span><span class="l2 num">${r.locked ? '017•••••842' : phone}</span><span class="l2 obs-addr">${where}</span>${short}</span>`;
   const from = h.indexOf('<span class="body">');
   const to = h.indexOf('</span></span><span class="trail">', from);
   if (from < 0 || to < 0) throw new Error('Orders beyond stock: the row body not found');
