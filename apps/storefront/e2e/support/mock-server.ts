@@ -687,8 +687,11 @@ function listPage(fixture: ShopFixture, params: URLSearchParams) {
   const offerName = params.get('offer');
   const offer =
     offerName === null ? null : (fixture.offers ?? []).find((each) => each.slug === offerName);
+  // CCH-12: a search matches a product by its name, as the server's does at its simplest.
+  const search = params.get('search')?.toLowerCase() ?? null;
   let rows = fixture.products.filter(
     (row) =>
+      (search === null || row.card.name.toLowerCase().includes(search)) &&
       (offerName === null || (offer?.productIds.includes(row.card.id) ?? false)) &&
       (category === null || row.product.categoryIds.includes(category)) &&
       (params.get('inStock') !== 'true' || row.card.stockState !== StockState.Out) &&

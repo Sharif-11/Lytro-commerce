@@ -24,10 +24,8 @@ export function SideColumn(): React.JSX.Element | null {
   const sections = [...lead, ...visibleSections(hub, viewer)];
   if (sections.length === 0) return null;
   return (
-    <nav
-      aria-label={t('sectionNav')}
-      className="hidden w-56 flex-none flex-col border-r border-line bg-surface px-3 py-4 xl:flex"
-    >
+    <div className="hidden w-56 flex-none flex-col border-r border-line bg-surface px-3 py-4 xl:flex">
+      {/* The shop opens its storefront (the owner, 2026-11-26); the section links are the navigation's own. */}
       <ShopSiteLink className="mb-3 flex items-center gap-2.5 border-b border-line px-2 pt-1 pb-4">
         <ShopMark shopName={tenant.shopName} slug={slug} logo={tenant.logo} size={40} />
         <div className="min-w-0">
@@ -44,43 +42,45 @@ export function SideColumn(): React.JSX.Element | null {
           </div>
         </div>
       </ShopSiteLink>
-      <div className="px-2 pt-2 pb-1 text-[12px] font-semibold tracking-[0.06em] text-fg-subtle uppercase [html[lang=bn]_&]:text-[13px] [html[lang=bn]_&]:tracking-normal [html[lang=bn]_&]:normal-case">
-        {t(hub.label)}
-      </div>
-      {sections.map((section) => {
-        const on = screen.section === section.id;
-        const count =
-          section.id === 'stock'
-            ? counts.stock
-            : section.id === 'billing'
-              ? counts.billing
-              : section.id === 'orders'
-                ? counts.orders
-                : section.id === 'notices'
-                  ? counts.notices
-                  : null;
-        return (
-          <Link
-            key={section.id}
-            to={section.path}
-            params={{ shop: slug }}
-            aria-current={on ? 'page' : undefined}
-            className={[
-              'relative flex h-10 items-center justify-between rounded-[8px] px-2.5 text-[14px]',
-              on
-                ? 'bg-primary-soft font-semibold text-primary before:absolute before:top-2 before:bottom-2 before:-left-3 before:w-[3px] before:rounded-r-[3px] before:bg-primary'
-                : 'font-medium text-fg-muted',
-            ].join(' ')}
-          >
-            <span>{t(section.label)}</span>
-            {count ? (
-              <span className="num inline-flex h-[18px] items-center rounded-full bg-neutral-100 px-1.5 text-[12px] font-semibold text-fg-muted">
-                {count}
-              </span>
-            ) : null}
-          </Link>
-        );
-      })}
-    </nav>
+      <nav aria-label={t('sectionNav')} className="flex flex-col">
+        <div className="px-2 pt-2 pb-1 text-[12px] font-semibold tracking-[0.06em] text-fg-subtle uppercase [html[lang=bn]_&]:text-[13px] [html[lang=bn]_&]:tracking-normal [html[lang=bn]_&]:normal-case">
+          {t(hub.label)}
+        </div>
+        {sections.map((section) => {
+          const on = screen.section === section.id;
+          const count =
+            section.id === 'stock'
+              ? counts.stock
+              : section.id === 'billing'
+                ? counts.billing
+                : section.id === 'orders'
+                  ? counts.orders
+                  : section.id === 'notices'
+                    ? counts.notices
+                    : null;
+          return (
+            <Link
+              key={section.id}
+              to={section.path}
+              params={{ shop: slug }}
+              aria-current={on ? 'page' : undefined}
+              className={[
+                'relative flex h-10 items-center justify-between rounded-[8px] px-2.5 text-[14px]',
+                on
+                  ? 'bg-primary-soft font-semibold text-primary before:absolute before:top-2 before:bottom-2 before:-left-3 before:w-[3px] before:rounded-r-[3px] before:bg-primary'
+                  : 'font-medium text-fg-muted',
+              ].join(' ')}
+            >
+              <span>{t(section.label)}</span>
+              {count ? (
+                <span className="num inline-flex h-[18px] items-center rounded-full bg-neutral-100 px-1.5 text-[12px] font-semibold text-fg-muted">
+                  {count}
+                </span>
+              ) : null}
+            </Link>
+          );
+        })}
+      </nav>
+    </div>
   );
 }
