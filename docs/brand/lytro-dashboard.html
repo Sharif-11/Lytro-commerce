@@ -10906,7 +10906,7 @@ const obsThumbs = (no) => {
    order shows what the list masks today (PF-7, PF-21): the name's first letter, the phone's ends, the district only. */
 const OBS_CUST = {
   '261031-0047': ['01711234567', ['বাসা 5, রোড 10, মিরপুর 11 · মিরপুর, ঢাকা', 'House 5, Road 10, Mirpur 11 · Mirpur, Dhaka']],
-  '261031-0046': ['01819456210', ['সেক্টর 7, রোড 3, বাসা 14 · উত্তরা, ঢাকা', 'Sector 7, Road 3, House 14 · Uttara, Dhaka']],
+  '261031-0046': ['01819456210', ['সেক্টর 7, রোড 3, বাসা 14, শাহজালাল এভিনিউয়ের পাশে, জামে মসজিদের পেছনের গলি · উত্তরা পূর্ব থানা (সেক্টর 1 থেকে 14), ঢাকা মহানগর', 'Sector 7, Road 3, House 14, beside Shahjalal Avenue, the lane behind the mosque · Uttara East (Sectors 1 to 14), Dhaka Metropolitan']],
   '261031-0045': ['01922778104', null],
   '261031-0044': ['01556902331', ['মেহেদীবাগ, বাসা 12 · পাঁচলাইশ, চট্টগ্রাম', 'Mehedibag, House 12 · Panchlaish, Chattogram']],
   '261031-0043': ['01671330905', ['রোড 27, বাসা 9/বি · ধানমন্ডি, ঢাকা', 'Road 27, House 9/B · Dhanmondi, Dhaka']],
@@ -10921,9 +10921,15 @@ function obsRow(r, o) {
   const n = (o.covered || []).includes(r.no) ? 0 : OBS_SHORT[r.no];
   const h = o29Row(r, { sel: o.sel === r.no, select: o.select, on: (o.picked || []).includes(r.no) });
   const [phone, addr] = OBS_CUST[r.no] || [];
-  const where = r.locked ? L(...r.area) : addr ? L(...addr) : `<span class="st neu">${t('o29Takeaway')}</span>`;
+  // The owner, 2026-11-25: the delivery address on one line, thana and zilla on the last, each cut with an ellipsis.
+  const parts = addr ? L(...addr).split(' · ') : null;
+  const where = r.locked
+    ? `<span class="l2 obs-addr">${L(...r.area)}</span>`
+    : parts
+      ? `<span class="l2 obs-addr">${parts[0]}</span><span class="l2 obs-addr">${parts[1] || ''}</span>`
+      : `<span class="l2 obs-addr"><span class="st neu">${t('o29Takeaway')}</span></span>`;
   const short = n ? `<span class="obs-l3"><span class="obs-tag">${ic('alert', 12)}${obsShortWords(n)}</span>${o.select ? `<span class="obs-why2">${L('স্টক না এলে লেবেল প্রিন্ট হবে না', 'No label until the stock is in')}</span>` : ''}</span>` : '';
-  const body = `<span class="body"><span class="l1 obs-name">${r.locked ? `${ic('lock', 14)} ` : ''}${L(...r.name)}</span><span class="l2 num">${r.locked ? '017•••••842' : phone}</span><span class="l2 obs-addr">${where}</span>${short}</span>`;
+  const body = `<span class="body"><span class="l1 obs-name">${r.locked ? `${ic('lock', 14)} ` : ''}${L(...r.name)}</span><span class="l2 num">${r.locked ? '017•••••842' : phone}</span>${where}${short}</span>`;
   const from = h.indexOf('<span class="body">');
   const to = h.indexOf('</span></span><span class="trail">', from);
   if (from < 0 || to < 0) throw new Error('Orders beyond stock: the row body not found');
