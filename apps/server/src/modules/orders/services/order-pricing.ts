@@ -393,9 +393,6 @@ export class OrderPricing {
             choicesFit: true,
           };
         }
-        // INV-25 (ORDERS-BEYOND-STOCK OB-1, OB-17): every active variant can be ordered; a line beyond the free stock
-        // waits for it (OB-7), so stock never makes a line unavailable.
-        const available = true;
         const problems: InvalidField[] = [];
         const modifiers = chooseModifiers(
           variant.modifierGroups,
@@ -405,26 +402,26 @@ export class OrderPricing {
         );
         const worked = priceWithModifiers(variant.price, modifiers);
         const belowZero = toPaisa(worked) < 0n;
-        if (available) {
-          products.push(variant);
-          lines.push({
-            taxRate: variant.taxClass?.rate ?? null,
-            unitPrice: belowZero ? variant.price : worked,
-            quantity: item.quantity.toFixed(3),
-            itemDiscount: '0.00',
-            weightKg: variant.weightKg,
-            ownDeliveryCharge: variant.deliveryCharge,
-            deliveryMode: variant.deliveryMode,
-            paymentPolicy: variant.paymentPolicy,
-            policyAdvance: variant.advanceAmount,
-          });
-        }
+        products.push(variant);
+        lines.push({
+          taxRate: variant.taxClass?.rate ?? null,
+          unitPrice: belowZero ? variant.price : worked,
+          quantity: item.quantity.toFixed(3),
+          itemDiscount: '0.00',
+          weightKg: variant.weightKg,
+          ownDeliveryCharge: variant.deliveryCharge,
+          deliveryMode: variant.deliveryMode,
+          paymentPolicy: variant.paymentPolicy,
+          policyAdvance: variant.advanceAmount,
+        });
         return {
           variantId: item.variantId,
           onSale: true,
           price: variant.price,
           stockState: variant.stockState,
-          available,
+          // INV-25 (ORDERS-BEYOND-STOCK OB-1, OB-17): every active variant can be ordered; a line beyond the free stock
+          // waits for it (OB-7), so stock never makes a line unavailable.
+          available: true,
           itemTotal: null,
           advance: null,
           paymentPolicy: variant.paymentPolicy,

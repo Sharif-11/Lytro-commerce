@@ -42,7 +42,7 @@ import { CatalogueCache } from './catalogue-cache';
 import { listRequestOf, cursorOf, positionOf, type ListRequest } from './catalogue-query';
 import { CatalogueVersionReader } from './catalogue-version-reader';
 import { DomainService } from '../../domains/services/domain.service';
-import { comboFigures, comboSaving, unitsOf } from '../../inventory/services/combo-figures';
+import { comboFigures, comboSaving } from '../../inventory/services/combo-figures';
 
 // Bumped whenever an answer's shape changes, so no shopper's browser keeps an old one under an unchanged tag. 2: a list
 // row's swatches and creation time, a category's product count (Slice 12b). 3: what a product asks (Slice 4.8e). 5: a
@@ -192,7 +192,6 @@ export class PublicCatalogue {
         const offered = part.variants.flatMap((variant) => {
           const row = stock.get(`${String(part.position)} ${variant.variantId}`);
           if (!row || !row.productActive || !row.variantActive || !variant.available) return [];
-          const units = unitsOf(row);
           return [
             {
               variantId: variant.variantId,

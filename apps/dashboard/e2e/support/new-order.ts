@@ -491,6 +491,7 @@ export function madeOrder(
       },
     };
   }
+  const items = (body.items ?? []) as SentItem[];
   const next =
     48 + orders.filter((each) => each.source === 'dashboard' && each.id.startsWith('o-new')).length;
   const quote = quoteOf(body);
