@@ -269,9 +269,7 @@ export class ReservationService {
       if (before.length === 0) continue;
       const stock = before.reduce((sum, row) => sum + inStock(row), 0);
       const units =
-        line.packAmount === null
-          ? stock
-          : Math.ceil(stock / milli(line.packAmount)) * 1000;
+        line.packAmount === null ? stock : Math.ceil(stock / milli(line.packAmount)) * 1000;
       const orders = new Set(before.map((row) => row.orderId)).size;
       const had = ahead.get(line.orderLineId);
       ahead.set(line.orderLineId, {

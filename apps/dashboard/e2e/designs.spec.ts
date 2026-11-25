@@ -257,10 +257,11 @@ test('New order offers a design product’s variants under each design’s photo
   const stripe54 = pick.getByRole('button', { name: /^54/ }).nth(1);
   await stripe54.click();
   await expect(main(page)).toContainText('Stripe · 54');
+  // The order's own items card (the list beside it, hidden on a phone, shows the same photo first: OB-20).
   await expect(
     main(page)
       .locator(`img[src="${shot('m-2')}"]`)
-      .first(),
+      .last(),
   ).toBeVisible();
 });
 
