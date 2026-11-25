@@ -4353,7 +4353,10 @@ function stockPairs(): Pair[] {
     one('pf-defaults-changed', '/products/new', {
       state: phones,
       then: async (page) => {
-        await tap('বদলান')(page);
+        // A clothing shop's new product opens on quick add (§7.4b), whose category sits under আরও সেটিংস; a category
+        // that counts by serial then opens today's full form with its note, as the prototype draws.
+        await tap(/^আরও সেটিংস/)(page);
+        await tap(/^ক্যাটাগরি/)(page);
         await sheet(page).getByRole('checkbox', { name: 'ফোন' }).check();
         await sheet(page).getByRole('button', { name: 'ঠিক আছে' }).click();
         await main(page)
