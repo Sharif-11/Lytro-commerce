@@ -506,6 +506,21 @@ button.vb.pic img {
 .pp .thumbs i.on {
   border-color: var(--text);
 }
+/* The owner, 2026-11-25 (beside Bonik at 320 x 616): on a phone the photo, its thumbnails and the product's name all
+   show at once, and the whole picture. The frame keeps the photo's shape but is never taller than square, nor than the
+   screen less the header (145px), the thumbnail row (68px), the gap to the name and two lines of it (100px) and the order
+   bar (68px); a photo the
+   cap shortens shows whole, on the gallery's soft background. The computer's grid below is as it was. */
+@container (max-width: 1023.98px) {
+  .pp .gal .gallery .main {
+    width: 100%;
+    max-height: min(100cqw, calc(var(--vh, 100svh) - 381px));
+  }
+  .pp .gal .gallery .main img,
+  .pp .gal .gallery .main video {
+    object-fit: contain;
+  }
+}
 .pp-cat {
   align-self: flex-start;
   padding: 3px 11px;

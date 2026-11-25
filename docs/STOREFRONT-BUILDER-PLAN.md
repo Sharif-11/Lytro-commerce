@@ -124,6 +124,12 @@ seller touching anything,** because every section fills itself from the shop's o
 |---|---|---|
 | SB-31 | **One product page.** | /p/ and /l/ open one page in the shop's own frame: the product with the landing page's order form under the choices, and Add to cart beside the order button. It also has another size or design in the same order, the saving on the photo and in taka, payment and delivery chips, a trust strip, the description cut short, the photos again, how ordering works, questions from the shop's settings, the product's facts, more from the shop and a pinned price-and-Order bar. Drawn as the builder sketch's `pp-*` screens. Design cards stay unnamed (PD-6); there is no product code (the storefront has none). /l/ orders stay the landing link's; with the storefront off, /l/ shows the product alone. The storefront shows no technical notes. |
 
+**Amended 2026-11-25 (`pp-page`, on a phone; the owner beside Bonik at 320 x 616: "the picture itself occupy full
+screen"):** on a phone the photo is capped so the thumbnails and name show at once, whole picture. The frame keeps the
+photo's shape but is never taller than square, nor than the screen less the header, the thumbnail row, two lines of the
+name and the order bar; a photo the cap shortens shows whole (`object-fit: contain`) on the gallery's soft background.
+The computer's grid is unchanged.
+
 ---
 
 ## 3. Requirement changes (`SRS-detailed.md`)
