@@ -199,7 +199,8 @@ export class PublicCatalogue {
               productName: variant.productName,
               label: labels.get(variant.variantId) ?? '',
               image: photos.get(row.designCoverMediaId ?? '') ?? null,
-              available: units === null || units > 0,
+              // INV-25 (OB-14, OB-17): a part beyond its free stock still orders; the combo line waits for it.
+              available: true,
             },
           ];
         });
@@ -510,7 +511,8 @@ function publicDetail(detail: ProductDetail): Omit<PublicProductDetail, 'combo'>
           ? variant.effectiveRegularPrice
           : null,
       stockState: variant.stockState,
-      available: variant.stockState !== StockState.Out,
+      // INV-25 (OB-17, ATR-07 as amended): every active variant can be ordered; stockState still says what is in stock.
+      available: true,
     })),
     sizeChart: detail.sizeChart
       ? { rows: detail.sizeChart.rows, image: detail.sizeChart.image }

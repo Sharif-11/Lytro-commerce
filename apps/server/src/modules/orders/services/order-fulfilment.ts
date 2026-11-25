@@ -886,6 +886,10 @@ export class OrderFulfilment {
     serials: Departure['serials'],
     who: ResolvedActor,
   ): Promise<void> {
+    // INV-25 (ORDERS-BEYOND-STOCK OB-9): an order still waiting for stock can't leave -- not booked, handed over or
+    // shipped -- even when the lines it does hold could; the courier is never called for it (CRR's stock trial runs
+    // this before the call).
+    await this.reservations.assertNotWaiting(tx, tenantId, [order.id]);
     const lines = new Map(
       (await this.store.listLines(tx, tenantId, [order.id])).map((line) => [line.id, line]),
     );

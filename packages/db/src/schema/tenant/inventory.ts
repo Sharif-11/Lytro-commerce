@@ -329,9 +329,53 @@ export const stockReservations = tenant.table(
   ],
 );
 
+// INV-25 (ORDERS-BEYOND-STOCK-PLAN OB-6): what an order line still waits for, when the order asked for more of a
+// tracked product than was free (OB-7: the line holds what was free and waits for the rest). It is not stock and not
+// reserved, so INV-05's sums stay exact. `variant_id` is where the stock will come from (the variant, or its product's
+// shared stock), `sold_variant_id` the variant ordered, `quantity` how many of it the line waits for, and
+// `pack_amount` what one of them uses of a shared stock. The oldest is filled first when stock frees (OB-8); a row goes
+// once filled, or with its order or line.
+export const stockShortfalls = tenant.table(
+  'stock_shortfalls',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    tenantId: uuid('tenant_id').notNull(),
+    orderId: uuid('order_id').notNull(),
+    orderLineId: uuid('order_line_id').notNull(),
+    productId: uuid('product_id').notNull(),
+    variantId: uuid('variant_id').notNull(),
+    soldVariantId: uuid('sold_variant_id').notNull(),
+    packAmount: numeric('pack_amount', { precision: 14, scale: 3 }),
+    quantity: numeric('quantity', { precision: 14, scale: 3 }).notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    unique('stock_shortfalls_tenant_id_key').on(t.tenantId, t.id),
+    // A line waits for each variant once.
+    uniqueIndex('stock_shortfalls_line_idx').on(t.tenantId, t.orderLineId, t.soldVariantId),
+    // OB-8: the fill takes a stock's waiting lines oldest first.
+    index('stock_shortfalls_fill_idx').on(t.tenantId, t.variantId, t.createdAt, t.id),
+    index('stock_shortfalls_order_idx').on(t.tenantId, t.orderId),
+    foreignKey({
+      name: 'stock_shortfalls_order_fk',
+      columns: [t.tenantId, t.orderId],
+      foreignColumns: [orders.tenantId, orders.id],
+    }).onDelete('cascade'),
+    foreignKey({
+      name: 'stock_shortfalls_line_fk',
+      columns: [t.tenantId, t.orderLineId],
+      foreignColumns: [orderLines.tenantId, orderLines.id],
+    }).onDelete('cascade'),
+    check('stock_shortfalls_quantity_check', sql`${t.quantity} > 0`),
+    check('stock_shortfalls_pack_check', sql`${t.packAmount} > 0`),
+  ],
+);
+
 export type SelectStockLevel = typeof stockLevels.$inferSelect;
 export type SelectStockReservation = typeof stockReservations.$inferSelect;
 export type InsertStockReservation = typeof stockReservations.$inferInsert;
+export type SelectStockShortfall = typeof stockShortfalls.$inferSelect;
+export type InsertStockShortfall = typeof stockShortfalls.$inferInsert;
 export type SelectStockMovement = typeof stockMovements.$inferSelect;
 export type InsertStockMovement = typeof stockMovements.$inferInsert;
 export type SelectSerialNumber = typeof serialNumbers.$inferSelect;

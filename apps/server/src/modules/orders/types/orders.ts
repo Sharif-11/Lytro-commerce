@@ -119,6 +119,8 @@ export interface OrderWarning {
 /** ORD-46: one item as the order shows it, from its own snapshot. */
 export interface OrderItemView {
   id: string;
+  /** INV-25 (ORDERS-BEYOND-STOCK OB-11): how many of it the line still waits for; "0.000" when none. */
+  short: string;
   productId: string | null;
   variantId: string | null;
   productName: string;
@@ -323,6 +325,8 @@ export interface OrderView {
   createdAt: Date;
   updatedAt: Date;
   items: OrderItemView[];
+  /** INV-25 (OB-11): how many units its lines still wait for; while above zero it can't leave (OB-9). */
+  short: string;
   calls: OrderCallView[];
   /** ORD-51: how many calls went unanswered. */
   unansweredCalls: number;
@@ -409,6 +413,12 @@ export interface OrderListItem {
   parcel: { courierKey: CourierKey; state: ParcelState; reading: ParcelReading | null } | null;
   /** Slice 6.7: what a courier reported on one of its parcels that staff haven't marked seen. */
   attention: ParcelAttention | null;
+  /** OB-20: the delivery address line (house, road, area); null at the counter, and on a locked order (PF-21). */
+  deliveryAddress: string | null;
+  /** INV-25 (OB-11): how many units its lines still wait for; "0.000" when none. */
+  short: string;
+  /** OB-20: the photos its first three lines were ordered with, in line order. */
+  thumbs: string[];
 }
 
 /** A thana and the zilla it is in, both named in each language. */
@@ -434,6 +444,8 @@ export interface OrderPage {
   orders: OrderListItem[];
   /** PYG-22 (PF-25): how many of the shop's orders are still locked, whatever the filter. */
   locked: number;
+  /** INV-25 (OB-11): how many of the shop's orders still wait for stock, whatever the filter. */
+  short: number;
   page: number;
   limit: number;
   total: number;

@@ -23,6 +23,7 @@ import type {
   StockVariantRow,
 } from '../types/inventory';
 import { InventoryLedger } from './inventory-ledger';
+import { ShortfallFiller } from './shortfall-filler';
 import { milli, packsToStock, quantityOf } from './stock-state';
 
 /** INV-16, D3-6: how long an order awaiting online payment holds its stock while no operator has set it. */
@@ -52,6 +53,7 @@ export class ReservationService {
     @Inject(STOCK_STORE) private readonly store: StockStore,
     @Inject(InventoryLedger) private readonly ledger: InventoryLedger,
     @Inject(PlatformSettingsService) private readonly settings: PlatformSettingsService,
+    @Inject(ShortfallFiller) private readonly filler: ShortfallFiller,
   ) {}
 
   /** Holds stock for an order's lines, all or none: the reservations made, made-to-order lines left out. */
@@ -128,7 +130,36 @@ export class ReservationService {
     ]);
     planned.sort((a, b) => byId(a.row.variantId, b.row.variantId));
     const made: ReservationRecord[] = [];
-    for (const { row, productName } of planned) {
+    for (const { row: asked, productName } of planned) {
+      // INV-25 (ORDERS-BEYOND-STOCK OB-7): the line holds what is free and waits for the rest; the order is never
+      // refused for stock. A size drawing on a shared stock holds whole packs (INV-24).
+      const free = Math.max(
+        0,
+        milli((await this.store.lockLevelFigures(tx, tenantId, asked.variantId)).available),
+      );
+      const pack = asked.packAmount ?? null;
+      const wanted = milli(asked.ordered);
+      const holds =
+        pack === null
+          ? Math.min(wanted, free)
+          : Math.min(wanted, Math.floor(free / milli(pack)) * 1000);
+      if (holds < wanted) {
+        await this.reservations.insertShortfall(tx, tenantId, {
+          orderId: asked.orderId,
+          orderLineId: asked.orderLineId,
+          productId: asked.productId,
+          variantId: asked.variantId,
+          soldVariantId: asked.soldVariantId,
+          packAmount: pack,
+          quantity: quantityOf(wanted - holds),
+        });
+      }
+      if (holds <= 0) continue;
+      const row: NewReservation = {
+        ...asked,
+        ordered: quantityOf(holds),
+        quantity: pack === null ? quantityOf(holds) : packsToStock(quantityOf(holds), pack),
+      };
       try {
         made.push(await this.reservations.insert(tx, tenantId, row));
       } catch (error) {
@@ -175,8 +206,36 @@ export class ReservationService {
       ...new Set([...active.map((row) => row.productId), ...ordered.map((row) => row.productId)]),
     ]);
     await this.lockLevels(tx, tenantId, active);
-    await this.letGo(tx, tenantId, active);
-    return this.reserve(tx, tenantId, request, now);
+    // OB-13: what the order held stays its own to hold again, so nothing is given to other waiting lines in between;
+    // what it waits for is worked out afresh with its new lines.
+    await this.letGo(tx, tenantId, active, false);
+    await this.reservations.deleteShortfallsForOrder(tx, tenantId, request.orderId);
+    const made = await this.reserve(tx, tenantId, request, now);
+    // OB-8: what the edit no longer holds goes to the oldest lines waiting for it.
+    await this.fillAndRefresh(tx, tenantId, active);
+    return made;
+  }
+
+  /**
+   * INV-25 (OB-9): refuses, naming the product, while any line of these orders still waits for stock: an order that is
+   * short can't be booked with a courier, handed over or shipped.
+   */
+  async assertNotWaiting(tx: Transaction, tenantId: string, orderIds: string[]): Promise<void> {
+    const waiting = await this.filler.firstWaiting(tx, tenantId, orderIds);
+    if (!waiting) return;
+    const [product] = await this.store.findVariants(tx, tenantId, [waiting.soldVariantId]);
+    throw new ApiError(
+      'conflict',
+      'OrderShortOfStock',
+      { productId: waiting.productId, variantId: waiting.soldVariantId },
+      undefined,
+      { product: product?.product.name ?? '' },
+    );
+  }
+
+  /** INV-25: what these orders' lines wait for, oldest first. */
+  listShortfalls(tx: Transaction, tenantId: string, orderIds: string[]) {
+    return this.reservations.listShortfallsForOrders(tx, tenantId, orderIds);
   }
 
   /**
@@ -197,6 +256,8 @@ export class ReservationService {
     );
     if (serials.size !== shipments.length) throw new Error('a reservation ships once');
     const held = await this.lockActive(tx, tenantId, [...serials.keys()]);
+    // INV-25 (OB-9): the backstop -- an order that still waits for stock never leaves.
+    await this.assertNotWaiting(tx, tenantId, [...new Set(held.map((row) => row.orderId))]);
     const variants = new Map(
       (
         await this.store.findVariants(
@@ -250,6 +311,8 @@ export class ReservationService {
       (row) => row.status === ReservationStatus.Active,
     );
     await this.lockLevels(tx, tenantId, active);
+    // INV-25 (OB-13): a cancelled order waits for nothing.
+    await this.reservations.deleteShortfallsForOrder(tx, tenantId, orderId);
     return this.letGo(tx, tenantId, active);
   }
 
@@ -305,10 +368,15 @@ export class ReservationService {
     }
   }
 
+  /**
+   * Lets these reservations go. With `fill` (every path but an edit holding its own again), what they held goes to the
+   * oldest lines waiting for that stock (OB-8) before the products' stock state is worked out again.
+   */
   private async letGo(
     tx: Transaction,
     tenantId: string,
     rows: ReservationRecord[],
+    fill = true,
   ): Promise<number> {
     const released = new Set(
       await this.reservations.resolve(
@@ -318,8 +386,22 @@ export class ReservationService {
         ReservationStatus.Released,
       ),
     );
-    const products = rows.filter((row) => released.has(row.id)).map((row) => row.productId);
-    await this.ledger.refresh(tx, tenantId, [...new Set(products)], true);
+    const freed = rows.filter((row) => released.has(row.id));
+    if (fill) await this.fillAndRefresh(tx, tenantId, freed);
+    else {
+      await this.ledger.refresh(tx, tenantId, [...new Set(freed.map((row) => row.productId))], true);
+    }
     return released.size;
+  }
+
+  /** OB-8: gives the stock these rows stood on to its oldest waiting lines, then works out the products' state again. */
+  private async fillAndRefresh(
+    tx: Transaction,
+    tenantId: string,
+    rows: Pick<ReservationRecord, 'productId' | 'variantId'>[],
+  ): Promise<void> {
+    if (rows.length === 0) return;
+    await this.filler.fill(tx, tenantId, rows.map((row) => row.variantId));
+    await this.ledger.refresh(tx, tenantId, [...new Set(rows.map((row) => row.productId))], true);
   }
 }

@@ -2,11 +2,13 @@ import type { ImageView } from '../../../common/media-links';
 import type { ComboIssue } from '../services/combo-figures';
 import type {
   NewReservation,
+  NewShortfall,
   NewSerial,
   NewStockBatch,
   NewStockMovement,
   SelectSerialNumber,
   SelectStockReservation,
+  SelectStockShortfall,
   ReferencedMovementRow,
   ReturnedRow,
   ShortfallRow,
@@ -38,8 +40,11 @@ export type MovementRecord = SelectStockMovement;
 export type StockBatchRecord = SelectStockBatch;
 export type SerialRecord = SelectSerialNumber;
 export type ReservationRecord = SelectStockReservation;
+/** INV-25: what an order line waits for (OB-6). */
+export type OrderShortfallRecord = SelectStockShortfall;
 export type {
   NewReservation,
+  NewShortfall,
   NewSerial,
   NewStockBatch,
   NewStockMovement,

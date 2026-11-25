@@ -393,7 +393,9 @@ export class OrderPricing {
             choicesFit: true,
           };
         }
-        const available = variant.stockState !== StockState.Out;
+        // INV-25 (ORDERS-BEYOND-STOCK OB-1, OB-17): every active variant can be ordered; a line beyond the free stock
+        // waits for it (OB-7), so stock never makes a line unavailable.
+        const available = true;
         const problems: InvalidField[] = [];
         const modifiers = chooseModifiers(
           variant.modifierGroups,

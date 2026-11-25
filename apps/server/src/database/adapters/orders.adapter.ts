@@ -342,6 +342,10 @@ export class DrizzleOrderStore implements OrderStore {
     return this.orders.recentCouriers(tx, tenantId, limit);
   }
 
+  countShort(tx: Transaction, tenantId: string): Promise<number> {
+    return this.orders.countShort(tx, tenantId);
+  }
+
   countLocked(tx: Transaction, tenantId: string): Promise<number> {
     return this.orders.countLocked(tx, tenantId);
   }

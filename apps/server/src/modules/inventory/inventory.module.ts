@@ -15,6 +15,7 @@ import { InventoryFiguresService } from './services/inventory-figures.service';
 import { InventoryLedger } from './services/inventory-ledger';
 import { ReservationExpiryService } from './services/reservation-expiry.service';
 import { ReservationService } from './services/reservation.service';
+import { ShortfallFiller } from './services/shortfall-filler';
 import { StockReturnService } from './services/stock-return.service';
 import { SerialEntryService } from './services/serial-entry.service';
 import { SerialService } from './services/serial.service';
@@ -57,6 +58,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     SerialEntryService,
     SerialService,
     ReservationService,
+    ShortfallFiller,
     ReservationExpiryService,
     StockReturnService,
     InventoryEraser,

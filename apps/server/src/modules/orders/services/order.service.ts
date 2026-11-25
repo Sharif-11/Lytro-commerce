@@ -253,7 +253,7 @@ function itemView(
   line: OrderLineRecord,
   components: SelectOrderLineComponent[],
   current: ReadonlyMap<string, OrderableVariant>,
-): OrderItemView {
+): Omit<OrderItemView, 'short'> {
   return {
     components: components
       .filter((component) => component.orderLineId === line.id)
@@ -686,10 +686,13 @@ export class OrderService {
           holdingVariantId: query.variantId ?? null,
           attention: query.attention === 'any',
           lockedOnly: query.access === 'locked',
+          shortOnly: query.short === 'yes',
         },
         { offset: (query.page - 1) * query.limit, limit: query.limit },
       );
       const locked = await this.store.countLocked(tx, tenantId);
+      // INV-25 (OB-11): the "স্টক কম" chip's count.
+      const short = await this.store.countShort(tx, tenantId);
       const areas = new Map(
         await Promise.all(
           [
@@ -722,9 +725,13 @@ export class OrderService {
             unansweredCalls: row.unansweredCalls,
             parcel: row.parcel,
             attention: row.attention,
+            deliveryAddress: row.deliveryAddress,
+            short: row.short,
+            thumbs: row.thumbs,
           }),
         ),
         locked,
+        short,
         page: query.page,
         limit: query.limit,
         total,
@@ -1820,6 +1827,12 @@ export class OrderService {
       parcel !== null
         ? await this.store.listParcelEvents(tx, tenantId, parcel.id, PARCEL_NEWS_SHOWN)
         : [];
+    // INV-25 (ORDERS-BEYOND-STOCK OB-11): what each line still waits for.
+    const waiting = new Map<string, number>();
+    for (const row of await this.reservations.listShortfalls(tx, tenantId, [order.id])) {
+      waiting.set(row.orderLineId, (waiting.get(row.orderLineId) ?? 0) + Number(row.quantity));
+    }
+    const shortOf = (lineId: string): string => (waiting.get(lineId) ?? 0).toFixed(3);
     // PYG-22, PYG-23: a pay-as-you-go order from Lytro shows only what the shop has opened of it.
     return new OrderMask(order.access).view({
       id: order.id,
@@ -1877,7 +1890,8 @@ export class OrderService {
       createdBy: person(order.createdBy),
       createdAt: order.createdAt,
       updatedAt: order.updatedAt,
-      items: lines.map((line) => itemView(line, components, current)),
+      items: lines.map((line) => ({ ...itemView(line, components, current), short: shortOf(line.id) })),
+      short: [...waiting.values()].reduce((sum, value) => sum + value, 0).toFixed(3),
       calls: calls.map((call) => ({
         id: call.id,
         outcome: call.outcome,

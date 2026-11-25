@@ -540,6 +540,8 @@ export const orderListQuerySchema = z.object({
   attention: z.literal('any').optional(),
   // PYG-22 (PF-25): only the pay-as-you-go orders still locked, the list's লক করা chip.
   access: z.literal('locked').optional(),
+  // INV-25 (ORDERS-BEYOND-STOCK OB-11): only the orders still waiting for stock, the list's স্টক কম chip.
+  short: z.literal('yes').optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(LIST_PAGE_SIZE_MAX).default(ORDER_PAGE_SIZE),
 });

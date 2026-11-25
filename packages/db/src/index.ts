@@ -353,6 +353,7 @@ export {
 export {
   ReservationRepository,
   type NewReservation,
+  type NewShortfall,
 } from './repositories/inventory/reservation.repository';
 export {
   StockBatchRepository,

@@ -336,6 +336,15 @@ export class StockRepository {
    * locked first, as every stock writer locks; a writer touching several products locks them all first.
    */
   async lockLevel(tx: Transaction, tenantId: string, variantId: string): Promise<string> {
+    return (await this.lockLevelFigures(tx, tenantId, variantId)).onHand;
+  }
+
+  /** INV-25 (OB-7, OB-8): a variant's level, locked as lockLevel locks it: what is on hand and what is free to hold. */
+  async lockLevelFigures(
+    tx: Transaction,
+    tenantId: string,
+    variantId: string,
+  ): Promise<{ onHand: string; available: string }> {
     await this.transactions.setTenantContext(tx, tenantId);
     await tx.execute(sql`
       SELECT p.id FROM ${products} p
@@ -347,11 +356,11 @@ export class StockRepository {
       .values({ tenantId, variantId })
       .onConflictDoNothing({ target: [stockLevels.tenantId, stockLevels.variantId] });
     const rows = await tx
-      .select({ onHand: stockLevels.onHand })
+      .select({ onHand: stockLevels.onHand, available: stockLevels.available })
       .from(stockLevels)
       .where(and(eq(stockLevels.tenantId, tenantId), eq(stockLevels.variantId, variantId)))
       .for('update');
-    return rows[0]?.onHand ?? '0.000';
+    return { onHand: rows[0]?.onHand ?? '0.000', available: rows[0]?.available ?? '0.000' };
   }
 
   /** INV-08: marks these variants' levels as notified (or not) for the current crossing. */

@@ -91,7 +91,9 @@ export function PriceRow({
 }
 
 export function StockChip({ state, words }: { state: StockState; words: Words }) {
-  if (state === StockState.Out) return <span className="st out">{words.t('out')}</span>;
+  // ORDERS-BEYOND-STOCK OB-2, OB-18: a shopper sees no stock wording on what is out -- it orders like anything else, and
+  // the seller adds stock or says no. "In stock" stays where it is true (question 5).
+  if (state === StockState.Out) return null;
   if (state === StockState.Low) return <span className="st low">{words.t('low')}</span>;
   return <span className="st ok">{words.t('in_stock')}</span>;
 }

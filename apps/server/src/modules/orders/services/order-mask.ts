@@ -42,6 +42,7 @@ export class OrderMask {
       customerName: maskedName(row.customerName),
       customerPhone: this.phone(row.customerPhone),
       area: row.area === null ? null : this.zillaOnly(row.area),
+      deliveryAddress: null,
     };
   }
 

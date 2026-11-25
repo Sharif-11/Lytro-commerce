@@ -2,8 +2,11 @@ import { and, asc, eq, inArray, isNotNull, lte, sql } from 'drizzle-orm';
 import { ReservationStatus } from '@lytronix/validators';
 import {
   stockReservations,
+  stockShortfalls,
   type InsertStockReservation,
+  type InsertStockShortfall,
   type SelectStockReservation,
+  type SelectStockShortfall,
 } from '../../schema';
 import type { Transaction, TransactionRunner } from '../../transactions';
 
@@ -12,6 +15,9 @@ export type NewReservation = Omit<
   InsertStockReservation,
   'id' | 'tenantId' | 'status' | 'createdAt' | 'resolvedAt'
 >;
+
+/** INV-25: what an order line waits for. */
+export type NewShortfall = Omit<InsertStockShortfall, 'id' | 'tenantId' | 'createdAt'>;
 
 // INV-15, INV-16: stock held for order lines. Every method sets the shop's tenant context. The database keeps each
 // level's reserved stock equal to its active reservations, refuses one larger than what is free, and lets a
@@ -126,6 +132,81 @@ export class ReservationRepository {
   async deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void> {
     await this.transactions.setTenantContext(tx, tenantId);
     await tx.execute(sql`SELECT set_config('app.erasing_tenant', ${tenantId}, true)`);
+    await tx.delete(stockShortfalls).where(eq(stockShortfalls.tenantId, tenantId));
     await tx.delete(stockReservations).where(eq(stockReservations.tenantId, tenantId));
+  }
+
+  /** INV-25 (OB-7): records what an order line waits for. */
+  async insertShortfall(
+    tx: Transaction,
+    tenantId: string,
+    row: NewShortfall,
+  ): Promise<SelectStockShortfall> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const [made] = await tx
+      .insert(stockShortfalls)
+      .values({ tenantId, ...row })
+      .returning();
+    if (!made) throw new Error('a shortfall insert returns its row');
+    return made;
+  }
+
+  /** INV-25: what these orders' lines wait for, oldest first. */
+  async listShortfallsForOrders(
+    tx: Transaction,
+    tenantId: string,
+    orderIds: string[],
+  ): Promise<SelectStockShortfall[]> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    if (orderIds.length === 0) return [];
+    return tx
+      .select()
+      .from(stockShortfalls)
+      .where(
+        and(eq(stockShortfalls.tenantId, tenantId), inArray(stockShortfalls.orderId, orderIds)),
+      )
+      .orderBy(asc(stockShortfalls.createdAt), asc(stockShortfalls.id));
+  }
+
+  /** OB-8: the lines waiting for one stock, oldest first, locked; lock its level first, as every writer does. */
+  async lockWaiting(
+    tx: Transaction,
+    tenantId: string,
+    variantId: string,
+  ): Promise<SelectStockShortfall[]> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    return tx
+      .select()
+      .from(stockShortfalls)
+      .where(and(eq(stockShortfalls.tenantId, tenantId), eq(stockShortfalls.variantId, variantId)))
+      .orderBy(asc(stockShortfalls.createdAt), asc(stockShortfalls.id))
+      .for('update');
+  }
+
+  /** OB-8: what a line still waits for after a fill; nothing left takes the row away. */
+  async setShortfall(
+    tx: Transaction,
+    tenantId: string,
+    id: string,
+    quantity: string,
+  ): Promise<void> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const where = and(eq(stockShortfalls.tenantId, tenantId), eq(stockShortfalls.id, id));
+    if (Number(quantity) <= 0) await tx.delete(stockShortfalls).where(where);
+    else await tx.update(stockShortfalls).set({ quantity }).where(where);
+  }
+
+  /** OB-13: an edited or cancelled order waits for nothing it asked for before; how many rows went. */
+  async deleteShortfallsForOrder(
+    tx: Transaction,
+    tenantId: string,
+    orderId: string,
+  ): Promise<number> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    const rows = await tx
+      .delete(stockShortfalls)
+      .where(and(eq(stockShortfalls.tenantId, tenantId), eq(stockShortfalls.orderId, orderId)))
+      .returning({ id: stockShortfalls.id });
+    return rows.length;
   }
 }

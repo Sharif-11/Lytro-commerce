@@ -96,6 +96,8 @@ const warningSchema = z.object({
 
 const orderItemSchema = z.object({
   id: z.string(),
+  // INV-25 (ORDERS-BEYOND-STOCK OB-11): how many of it the line still waits for.
+  short: z.string(),
   productId: z.string().nullable(),
   variantId: z.string().nullable(),
   productName: z.string(),
@@ -217,6 +219,8 @@ const orderViewSchema = z.object({
   createdAt: coercedDateField(),
   updatedAt: coercedDateField(),
   items: z.array(orderItemSchema),
+  // INV-25 (OB-11): how many units its lines still wait for; above zero, it can't leave (OB-9).
+  short: z.string(),
   calls: z.array(
     z.object({
       id: z.string(),
@@ -443,9 +447,16 @@ const orderPageSchema = z.object({
         })
         .nullable(),
       attention: z.enum(ParcelAttention).nullable(),
+      // OB-20 (ORDERS-BEYOND-STOCK): the address line, null on a locked order (PF-21); INV-25: what it still waits for;
+      // the photos its first three lines were ordered with.
+      deliveryAddress: z.string().nullable(),
+      short: z.string(),
+      thumbs: z.array(z.string()),
     }),
   ),
   locked: z.number(),
+  // INV-25 (OB-11): how many of the shop's orders still wait for stock.
+  short: z.number(),
   page: z.number(),
   limit: z.number(),
   total: z.number(),
