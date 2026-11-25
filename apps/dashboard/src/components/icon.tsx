@@ -58,6 +58,13 @@ const ICONS = {
       <path d="M12 6v6l4 2" />
     </>
   ),
+  // Developers (§7.48): the code mark on API keys' Developer docs card.
+  code: (
+    <>
+      <path d="m16 18 6-6-6-6" />
+      <path d="m8 6-6 6 6 6" />
+    </>
+  ),
   copy: (
     <>
       <rect width="14" height="14" x="8" y="8" rx="2" />
