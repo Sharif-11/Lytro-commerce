@@ -34,6 +34,7 @@ oldest first. While a line is short, the order can't leave the shop.
 | OB-3 | **Restock fills short orders oldest first, automatically.** Stock left over after the waiting orders is free stock. |
 | OB-4 | **While any line of an order is short, the order can't leave the shop:** booking a courier, handing over, printing its label and marking it shipped are refused, each with the reason and an inline **"স্টক যোগ করুন"**. Confirming, the call, editing and cancelling still work. |
 | OB-5 | **An advance payment works as usual.** If the seller rejects the order, the existing refund flow (PAY refunds) handles it. |
+| OB-20 | **Every order row in the dashboard's order list shows the photos its lines were ordered with** (the owner on #443, 2026-11-25: "order listing should show the selected design"). The row leads with the first line's photo: a design's cover (the one pinned on the order line, ATR-20), else the product's first photo. With several lines, up to 3 small thumbnails stacked, then "+N" for the rest. Every row, not only short ones. A short order's "2টা কম" sits on a small line of its own under the row's text, so it is never cut off. The photos are 44 px, rounded like the other thumbnails, each next one 14 px further right so its design shows as a strip. **What it costs:** an ordinary row keeps its height; a short row grows about 20 px; the stack takes 44 to 72 px of width, so long names end a little sooner. |
 
 ## 2. My calls (for approval)
 
@@ -56,7 +57,9 @@ oldest first. While a line is short, the order can't leave the shop.
 
 ## 3. Screens
 
-**Dashboard (`docs/brand/lytro-dashboard.html`, `obs-*`), drawn from the built orders screens (`o29-*`):**
+**Dashboard (`docs/brand/lytro-dashboard.html`, `obs-*`), drawn from the built orders screens (`o29-*`). Every list row
+leads with its lines' design photos (OB-20): several designs of one kurti, so the rows differ by design, and one
+order of 5 lines showing 3 and "+2":**
 - `obs-list`: the orders list with the "স্টক কম" chip first in the row (with its count), and short rows marked "2টা কম".
 - `obs-list-short`: that chip on, only short orders listed.
 - `obs-order`: a short order with the banner "২টা পণ্যের স্টক নেই · কুরিয়ার বুক বা শিপ করার আগে স্টক যোগ করুন", the
@@ -95,6 +98,9 @@ product: the same page as an in-stock one, with no stock wording and the order f
   "The picker offers every active variant; stock is not shown to the shopper (OB-2), except 'in stock' where it is
   (question 5)."
 - **INV-06 / INV-07:** what happens when a count falls below what is held (question 3).
+- **ORD-13 (the order list), amended (OB-20):** "…paginate at [20] per page, and sort newest first. Each row shall show
+  the photos its first [3] lines were ordered with (the line's pinned photo, ATR-20), and how many more lines there are."
+  Acceptance: "An order of 5 lines of three designs lists with those designs' 3 photos and +2."
 - **ORD (new, the order list):** "Orders with a shortfall shall be findable by a 'short' filter with its count, and an
   order shall show each short line and why its next step waits."
 - **NTF:** the new-order alert carries the shortfall, and a fill notice names the orders it completed.
@@ -113,6 +119,9 @@ product: the same page as an in-stock one, with no stock wording and the order f
     `InventoryLedger.apply` for every positive change and from `letGo` (the release path);
   - `consume` gets its guard; order edits follow OB-13; combos follow OB-14;
   - order views carry `short` per line and `shortTotal`, plus a `short=true` list filter and a count;
+  - the order list read gains `thumbs: string[]` (up to 3, the first lines' `order_lines.thumbnail_url` in line order, the
+    product's first photo where a line has none) and `lineCount: number`, read with one `LEFT JOIN LATERAL` per page
+    (no N+1; served from `order_lines` by its order index);
   - notifications for OB-10; the developer-api content and samples test for OB-17; the isolation registry for any new
     route (none planned: the add-stock sheet uses the existing stock routes).
 - **Dashboard:** the `obs-*` screens; the add-stock sheet from the order; the print picker rule.
@@ -121,7 +130,7 @@ product: the same page as an in-stock one, with no stock wording and the order f
 - **Tests:**
   - server e2e: two simultaneous orders over 1 unit; restock oldest first; release refills; the guard on ship, hand-over
     and booking; edits; a combo; shared stock; the public `/v1/orders`;
-  - dashboard e2e for every `obs-*` state; storefront e2e ordering a sold-out size;
+  - dashboard e2e for every `obs-*` state, and an order row showing its design photos and "+N"; storefront e2e ordering a sold-out size;
   - break checks; the previous-release job.
 
 ## 6. What it depends on

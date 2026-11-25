@@ -10667,13 +10667,13 @@ function obsList(o) {
   o = o || {};
   const rows = O29.filter((r) => (o.only ? OBS_SHORT[r.no] : o.select ? true : r.status === 'pending' || OBS_SHORT[r.no]));
   const row = (r) => {
-    const n = OBS_SHORT[r.no];
+    const n = (o.covered || []).includes(r.no) ? 0 : OBS_SHORT[r.no];
     let h = o29Row(r, { sel: o.sel === r.no, select: o.select, on: (o.picked || []).includes(r.no) });
     h = h.replace('<span class="body">', obsThumbs(r.no) + '<span class="body">');
     if (r.no === '261031-0044') h = h.replace(t('items', { n: 3 }), t('items', { n: 5 }));
     if (!n) return h;
-    const why = o.select ? `<span class="obs-warn obs-why2">${L('স্টক না এলে লেবেল প্রিন্ট হবে না', 'No label until the stock is in')}</span>` : '';
-    h = h.replace('</span></span><span class="trail">', ` · <span class="obs-warn">${obsShortWords(n)}</span>${why}</span></span><span class="trail">`);
+    const why = o.select ? `<span class="obs-why2">${L('স্টক না এলে লেবেল প্রিন্ট হবে না', 'No label until the stock is in')}</span>` : '';
+    h = h.replace('</span></span><span class="trail">', `</span><span class="obs-l3"><span class="obs-tag">${ic('alert', 12)}${obsShortWords(n)}</span>${why}</span></span><span class="trail">`);
     return o.select ? h.replace('<span class="checkbox ', '<span class="checkbox obs-nopick ') : h;
   };
 
@@ -10707,7 +10707,7 @@ SCREENS['obs-add-stock'] = { ...SCREENS['obs-order'], base: 'obs-order', sheet: 
     <p class="hint">${L('এই ভ্যারিয়েন্টে 2টা অর্ডার অপেক্ষায় ছিল, মোট 3টা কম। 3টা যোগ করলে দুটোই শিপ করা যাবে; বেশি দিলে বাকিটা খালি স্টক।', 'Two orders waited for this variant, 3 short in all. Adding 3 lets both ship; anything more is free stock.')}</p></div>`,
   btn('p', L('3টা যোগ করুন', 'Add 3'), "onclick=\"go('obs-filled')\"")) };
 /* Saved: the line is covered, Book courier is live again, and the toast names how many orders it completed. */
-SCREENS['obs-filled'] = { ...O29_ORDER, render: () => `<div class="split detail-only"><div class="list-col">${title('hubOrders')}${secChips('orders', 'orders')}${obsList({ sel: '261031-0047' }).replace(` · <span class="obs-warn">${obsShortWords(2)}</span>`, '')}</div><div class="detail">${obsOrder(false)}</div></div>`,
+SCREENS['obs-filled'] = { ...O29_ORDER, render: () => `<div class="split detail-only"><div class="list-col">${title('hubOrders')}${secChips('orders', 'orders')}${obsList({ sel: '261031-0047', covered: ['261031-0047'] })}</div><div class="detail">${obsOrder(false)}</div></div>`,
   toast: () => `${ic('check')} ${L('স্টক দেওয়া হলো: 2টা অর্ডারে', 'Stock given to 2 orders')}` };
 /* The bell: the new order arrived short (no customer name before step 1 on PAYG; this shop pays a plan). */
 SCREENS['obs-alert'] = { ...SCREENS['p37-bell'], sheet: () => {
@@ -10740,14 +10740,17 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 .obs-goes{display:flex;flex-direction:column;gap:2px;margin-top:6px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
 .obs-goes .kv{padding:6px 0}
 .checkbox.obs-nopick{opacity:.35}
-.obs-ths{position:relative;flex:none;width:46px;height:46px;margin-right:2px}
-.obs-ths.n2{width:54px}
-.obs-ths.n3{width:62px}
-.obs-ths img{position:absolute;top:0;width:46px;height:46px;border-radius:8px;object-fit:cover;border:2px solid var(--surface);box-sizing:border-box;background:var(--n100)}
-.obs-ths img:nth-child(2){left:8px}
-.obs-ths img:nth-child(3){left:16px}
+.obs-ths{position:relative;flex:none;width:44px;height:44px;margin-right:2px;align-self:flex-start;margin-top:2px}
+.obs-ths.n2{width:58px}
+.obs-ths.n3{width:72px}
+.obs-ths img{position:absolute;top:0;width:44px;height:44px;border-radius:8px;object-fit:cover;border:2px solid var(--surface);box-sizing:border-box;background:var(--n100)}
+.obs-ths img:nth-child(2){left:14px}
+.obs-ths img:nth-child(3){left:28px}
 .obs-more{position:absolute;right:-4px;bottom:-4px;z-index:5;background:var(--ink);color:#fff;font-size:11px;font-weight:700;border-radius:99px;padding:1px 6px;border:2px solid var(--surface)}
-.obs-why2{display:block;font-weight:500;margin-top:2px}
+.obs-why2{font-size:12.5px;color:var(--warning);font-weight:500}
+.obs-l3{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin-top:4px}
+.obs-tag{display:inline-flex;align-items:center;gap:4px;background:var(--warning-soft);color:var(--warning);font-size:12.5px;font-weight:700;border-radius:99px;padding:2px 8px}
+.obs-tag svg.i{width:12px;height:12px}
 </style>`);
 /* ---------- end of orders beyond stock (proposal) ---------- */
 </script>
