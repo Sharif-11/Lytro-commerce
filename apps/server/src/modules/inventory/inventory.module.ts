@@ -15,6 +15,7 @@ import { InventoryFiguresService } from './services/inventory-figures.service';
 import { InventoryLedger } from './services/inventory-ledger';
 import { ReservationExpiryService } from './services/reservation-expiry.service';
 import { ReservationService } from './services/reservation.service';
+import { ShortfallFiller } from './services/shortfall-filler';
 import { StockReturnService } from './services/stock-return.service';
 import { SerialEntryService } from './services/serial-entry.service';
 import { SerialService } from './services/serial.service';
@@ -23,6 +24,7 @@ import { StockService } from './services/stock.service';
 import {
   BATCH_EXPIRY_NOTIFIER,
   LOW_STOCK_NOTIFIER,
+  FILL_NOTIFIER,
   RESERVATION_STORE,
   SERIAL_STORE,
   STOCK_BATCH_STORE,
@@ -31,6 +33,7 @@ import {
 } from './tokens';
 import {
   BellBatchExpiryNotifier,
+  BellFillNotifier,
   BellLowStockNotifier,
 } from '../notifications/notifiers/bell-notifiers';
 import { NotificationsModule } from '../notifications/notifications.module';
@@ -48,6 +51,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     { provide: RESERVATION_STORE, useClass: DrizzleReservationStore },
     { provide: BATCH_EXPIRY_NOTIFIER, useExisting: BellBatchExpiryNotifier },
     { provide: LOW_STOCK_NOTIFIER, useExisting: BellLowStockNotifier },
+    { provide: FILL_NOTIFIER, useExisting: BellFillNotifier },
     InventoryLedger,
     StockService,
     StockCheckService,
@@ -57,6 +61,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     SerialEntryService,
     SerialService,
     ReservationService,
+    ShortfallFiller,
     ReservationExpiryService,
     StockReturnService,
     InventoryEraser,

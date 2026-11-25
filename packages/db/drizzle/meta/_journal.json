@@ -1072,6 +1072,13 @@
       "when": 1795509234781,
       "tag": "0153_order_access_index",
       "breakpoints": true
+    },
+    {
+      "idx": 154,
+      "version": "7",
+      "when": 1795611015974,
+      "tag": "0154_stock_shortfalls",
+      "breakpoints": true
     }
   ]
 }

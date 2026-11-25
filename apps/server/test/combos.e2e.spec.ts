@@ -93,7 +93,15 @@ interface Order {
   trackingId: string;
   status: string;
   fulfillmentStatus: string;
-  items: { id: string; productName: string; unitPrice: string; components: Component[] }[];
+  /** INV-25: what the order still waits for. */
+  short: string;
+  items: {
+    id: string;
+    productName: string;
+    unitPrice: string;
+    components: Component[];
+    short: string;
+  }[];
   history: { field: string; note: string | null }[];
 }
 
@@ -653,18 +661,17 @@ describeIfDatabase('a combo on an order (CMB-03, CMB-04)', () => {
     ]);
     expect(fieldsOf(plain)).toEqual({ 'items.0.choices': 'not_allowed' });
 
-    // Two Ms a combo, one on the shelf.
-    const none = await order(shop, [
+    // Two Ms a combo, one on the shelf: INV-25 (ORDERS-BEYOND-STOCK OB-14) -- the order is taken, holds the one M and
+    // the toner, and waits for the other M.
+    const waits = await order(shop, [
       item({ choices: [{ part: 2, variantIds: [shirt.m, shirt.m] }] }),
     ]);
-    expect(none.status).toBe(409);
-    expect(errorOf(none).details).toMatchObject({
-      productId: pack.id,
-      variantId: pack.variantId,
-      component: { variantId: shirt.m },
-    });
-    expect(errorOf(none).message).toContain('Gift combo');
-    expect((await level(toner.variantId)).reserved).toBe('0.000');
+    expect(waits.status, JSON.stringify(waits.body)).toBe(201);
+    expect((await level(toner.variantId)).reserved).toBe('1.000');
+    expect((await level(shirt.m)).reserved).toBe('1.000');
+    const read = (await shop.get(`/orders/${(waits.body as Order).id}`)).body as Order;
+    expect(read.short).toBe('1.000');
+    expect(read.items[0]?.short).toBe('1.000');
   });
 
   it('shows a past order as it was after a part is renamed and repriced and it and the combo are deleted for good', async () => {
@@ -1099,7 +1106,7 @@ describeIfDatabase('a combo on the storefront (CMB-06, CMB-09)', () => {
     ]);
   });
 
-  it('refuses a shopper choosing a sold-out variant, naming the combo and holding nothing (CMB-03)', async () => {
+  it('takes a shopper choosing a sold-out variant, the combo waiting for it (CMB-03, INV-25)', async () => {
     const shop = await openShop(port, texts, 'cmb');
     const key = await websiteKey(shop);
     const toner = await product(shop, 'Toner', 400, 4);
@@ -1114,16 +1121,15 @@ describeIfDatabase('a combo on the storefront (CMB-06, CMB-09)', () => {
       { variantId: pack.variantId, quantity: 1, choices: [{ part: 2, variantIds: [variantId] }] },
     ];
 
-    const refused = await publicOrder(shop, key, choosing(polo.l));
-    expect(refused.status, JSON.stringify(refused.body)).toBe(409);
-    expect(errorOf(refused).code).toBe('conflict');
-    expect(errorOf(refused).message).toContain('Polo combo');
-    expect((await level(toner.variantId)).reserved).toBe('0.000');
+    // ORDERS-BEYOND-STOCK OB-7, OB-14: the sold-out L is ordered all the same; the toner is held and the L waits.
+    const waiting = await publicOrder(shop, key, choosing(polo.l));
+    expect(waiting.status, JSON.stringify(waiting.body)).toBe(201);
+    expect((await level(toner.variantId)).reserved).toBe('1.000');
     expect((await level(polo.l)).reserved).toBe('1.000');
 
     const taken = await publicOrder(shop, key, choosing(polo.m));
     expect(taken.status, JSON.stringify(taken.body)).toBe(201);
-    expect((await level(toner.variantId)).reserved).toBe('1.000');
+    expect((await level(toner.variantId)).reserved).toBe('2.000');
     expect((await level(polo.m)).reserved).toBe('1.000');
   });
 

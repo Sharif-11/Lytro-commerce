@@ -114,6 +114,8 @@ export interface ComboStock {
 }
 
 export interface ProductStock {
+  /** INV-25 (ORDERS-BEYOND-STOCK OB-10): after stock was added, how many waiting orders it went to. */
+  filledOrders?: number;
   /** Its parts' figures, for a combo; null otherwise. */
   combo?: ComboStock | null;
   productId: string;

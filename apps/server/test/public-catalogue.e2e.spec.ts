@@ -510,10 +510,12 @@ describeIfDatabase('a product page (PRD-09, ATR-07, LND-04)', () => {
       detail.variants.find((variant) => variant.optionIds[0] === option);
     expect(detail.variants).toHaveLength(2);
     expect(variantOf(small)).toMatchObject({ price: '450.00', stockState: 'in', available: true });
+    // ORDERS-BEYOND-STOCK OB-17: a sold-out variant can still be ordered (the order waits for it); its stock state
+    // stays, for the feeds (Q4) and the in-stock-first order.
     expect(variantOf(medium)).toMatchObject({
       price: '500.00',
       stockState: 'out',
-      available: false,
+      available: true,
     });
     expect(detail.options[0]?.values.map((value) => value.value)).toEqual(['S', 'M']);
     expect(detail.attributes).toEqual([
@@ -713,7 +715,8 @@ describeIfDatabase('freshness and caching (CCH-02 to CCH-06, CCH-08, RTE-04)', (
     const detail = (await callApi(`/v1/catalogue/products/${shirt.slug}`, key)).body as Detail;
     expect(detail.variants.find((variant) => variant.id === mediumId)).toMatchObject({
       stockState: 'out',
-      available: false,
+      // OB-17: still orderable; the order waits for it.
+      available: true,
     });
   });
 

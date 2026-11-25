@@ -67,6 +67,12 @@ export interface StockStore {
   lockProducts(tx: Transaction, tenantId: string, productIds: string[]): Promise<void>;
   /** A variant's on-hand stock, locked after its product. */
   lockLevel(tx: Transaction, tenantId: string, variantId: string): Promise<string>;
+  /** INV-25 (OB-7, OB-8): a variant's level, locked as lockLevel locks it, with what is free to hold. */
+  lockLevelFigures(
+    tx: Transaction,
+    tenantId: string,
+    variantId: string,
+  ): Promise<{ onHand: string; available: string }>;
   setLowNotified(
     tx: Transaction,
     tenantId: string,

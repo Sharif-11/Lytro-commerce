@@ -9,7 +9,9 @@ import type {
   ParcelMovedNotice,
 } from '../../couriers/ports/courier-notifier';
 import type { BatchExpiryNotifier } from '../../inventory/ports/stock-batch-store';
+import type { FillNotifier, OrdersFilledNotice } from '../../inventory/ports/fill-notifier';
 import type { LowStockNotifier } from '../../inventory/ports/stock-store';
+import type { Transaction } from '@lytronix/db';
 import type {
   BatchExpiryNotice,
   HeldStockExpiredNotice,
@@ -40,6 +42,7 @@ import {
   moneyForClosedOrderText,
   NOTIFICATION_LINKS,
   orderPlacedText,
+  ordersFilledText,
   parcelAttentionText,
   parcelMovedText,
   paymentMethodBackText,
@@ -53,6 +56,33 @@ import { Notifications } from '../services/notifications';
 // the people its kind reaches. What decides when each is told -- once per crossing, once per batch, a shopper's order
 // and never a staff one -- stays where it was, in its own module, and nothing that calls it changes. Each is written in
 // its own transaction, after its change committed, and a failure is logged, never thrown into the caller.
+
+/**
+ * INV-25 (ORDERS-BEYOND-STOCK OB-10, the owner on #448): stock given to waiting orders, one notice per stock change, in
+ * the fill's own transaction; pushed like an order's notice (the order kind, so a release before this one reads it as
+ * one it knows), never by SMS. It leads to the order when it is one, else to the list of those orders.
+ */
+@Injectable()
+export class BellFillNotifier implements FillNotifier {
+  constructor(@Inject(Notifications) private readonly notifications: Notifications) {}
+
+  async ordersFilled(tx: Transaction, notice: OrdersFilledNotice): Promise<void> {
+    if (notice.orderIds.length === 0) return;
+    const leads = notice.coveredIds.length > 0 ? notice.coveredIds : notice.orderIds;
+    await this.notifications.notifyWithin(tx, {
+      tenantId: notice.tenantId,
+      kind: NotificationKind.OrderPlaced,
+      text: ordersFilledText({ given: notice.orderIds.length, covered: notice.coveredIds.length }),
+      link:
+        leads.length === 1
+          ? NOTIFICATION_LINKS.order(leads[0] ?? '')
+          : NOTIFICATION_LINKS.orders(leads.slice(0, ORDERS_LINK_MOST)),
+    });
+  }
+}
+
+/** How many orders a notice's list link names at most; the rest are a scroll away in the list. */
+const ORDERS_LINK_MOST = 50;
 
 /** ORD-20: a shopper's order. */
 @Injectable()

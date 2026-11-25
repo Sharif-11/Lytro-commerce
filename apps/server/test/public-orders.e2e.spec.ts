@@ -347,13 +347,13 @@ describeIfDatabase('a shopper places an order (ORD-02, ORD-07, CCH-07, PRD-07)',
       notes: string | null;
     }>('SELECT shopper_note, created_by, notes FROM tenant.orders WHERE id = $1', [id]);
     expect(rows[0]).toEqual({ shopper_note: 'Call before coming', created_by: null, notes: null });
-    // PRD-07: two of three are held, so a second shopper cannot have two more.
+    // PRD-07, INV-25 (ORDERS-BEYOND-STOCK OB-7): two of three are held, so a second shopper's two hold the last one
+    // and wait for the other.
     const short = await order(sf, {
       ...(await shopper(shop)),
       items: [{ variantId: shirt.variantId, quantity: 2 }],
     });
-    expect(short.status).toBe(409);
-    expect(errorOf(short).code).toBe('conflict');
+    expect(short.status, JSON.stringify(short.body)).toBe(201);
     const customers = await admin.query<{ name: string }>(
       'SELECT name FROM tenant.customers WHERE tenant_id = $1 AND phone = $2',
       [shop.tenantId, who.phone],
@@ -414,7 +414,7 @@ describeIfDatabase('a shopper places an order (ORD-02, ORD-07, CCH-07, PRD-07)',
 describeIfDatabase(
   'what a shopper may not order is refused, naming it (PRD-06, ATR-07, D4-2, DLV-06, DLV-07)',
   () => {
-    it("refuses a product not on sale, one needing an advance the shop can't take, a bare product id and one sold out; nothing is made", async () => {
+    it("refuses a product not on sale, one needing an advance the shop can't take and a bare product id, nothing made; takes one sold out (INV-25)", async () => {
       const shop = await openShop(port, texts, 'po');
       const own = await ownKey(shop);
       const who = await shopper(shop);
@@ -458,9 +458,9 @@ describeIfDatabase(
         ...who,
         items: [{ variantId: lamp.variantId, quantity: 2 }],
       });
-      expect(soldOut.status).toBe(409);
-      expect(errorOf(soldOut).message).toContain('Lamp');
-      expect(await ordersOf(shop)).toBe(0);
+      // ORDERS-BEYOND-STOCK OB-7, OB-17: past the stock it is taken all the same, and waits for it.
+      expect(soldOut.status, JSON.stringify(soldOut.body)).toBe(201);
+      expect(await ordersOf(shop)).toBe(1);
     });
 
     it('refuses an address the shop does not deliver to, and a product limited to other zones', async () => {

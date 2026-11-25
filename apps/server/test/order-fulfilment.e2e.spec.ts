@@ -939,3 +939,98 @@ describeIfDatabase('what the screens read (Slice 4.8): areas, calls, couriers, H
     expect(home.stock.short).toBe(0);
   });
 });
+
+describeIfDatabase(
+  'orders beyond stock through the routes (INV-25, OB-7, OB-9, OB-11, OB-20)',
+  () => {
+    it('takes an order beyond stock, lists it short, and ships it only once stock covers it', async () => {
+      const shop = await openShop(port, texts, 'beyond-routes');
+      const kurti = await product(shop, 'Chikon kurti', 900, 1);
+      const order = await place(shop, kurti.variantId, 3);
+      type Detail = { short: string; items: { short: string }[] };
+      const detail = (await shop.get(`/orders/${order.id}`)).body as Detail;
+      expect(detail.short).toBe('2.000');
+      expect(detail.items[0]?.short).toBe('2.000');
+      // OB-11, OB-20: the list's short chip and its row.
+      type Page = {
+        short: number;
+        orders: { id: string; short: string; thumbs: string[]; deliveryAddress: string | null }[];
+      };
+      const page = (await shop.get('/orders?short=yes')).body as Page;
+      expect(page.short).toBe(1);
+      expect(page.orders.map((row) => row.id)).toEqual([order.id]);
+      expect(page.orders[0]).toMatchObject({ short: '2.000', deliveryAddress: 'House 12, Road 3' });
+      // OB-9: it can't leave while short.
+      const refused = await ship(shop, order);
+      expect(refused.status).toBe(409);
+      expect(errorOf(refused).message).toContain('Chikon kurti');
+      // OB-8: stock that arrives fills it, and then it ships.
+      const added = await shop.put(`/products/${kurti.id}/variants/${kurti.variantId}/stock`, {
+        onHand: 3,
+      });
+      expect(added.status, JSON.stringify(added.body)).toBe(200);
+      expect(((await shop.get(`/orders/${order.id}`)).body as Detail).short).toBe('0.000');
+      expect(((await shop.get('/orders?short=yes')).body as Page).short).toBe(0);
+      await shipped(shop, order);
+    });
+
+    it('tells the bell once per stock change which waiting orders can ship, leading to them (OB-10)', async () => {
+      const shop = await openShop(port, texts, 'beyond-notice');
+      const kurti = await product(shop, 'Notice kurti', 900, 0);
+      const older = await place(shop, kurti.variantId, 1);
+      const newer = await place(shop, kurti.variantId, 2);
+      type Bell = { items: { title: string; body: string; link: string | null }[] };
+      const bell = async () => ((await shop.get('/notifications')).body as Bell).items;
+      const filled = (items: Bell['items']) =>
+        items.filter((each) => each.title.startsWith('স্টক এসেছে'));
+      expect(filled(await bell())).toEqual([]);
+      // OB-12: the newer order's sheet covers the older one first.
+      type Detail = {
+        items: { short: string; ahead: { orders: number; quantity: string } | null }[];
+      };
+      const before = (await shop.get(`/orders/${newer.id}`)).body as Detail;
+      expect(before.items[0]).toMatchObject({
+        short: '2.000',
+        ahead: { orders: 1, quantity: '1.000' },
+      });
+      expect(((await shop.get(`/orders/${older.id}`)).body as Detail).items[0]?.ahead).toBeNull();
+
+      // One unit: the older order is covered, one notice leading to it.
+      const one = await shop.post(
+        `/products/${kurti.id}/variants/${kurti.variantId}/stock-additions`,
+        {
+          quantity: 1,
+        },
+      );
+      expect(one.status, JSON.stringify(one.body)).toBe(200);
+      expect((one.body as { filledOrders?: number }).filledOrders).toBe(1);
+      const first = filled(await bell());
+      expect(first).toHaveLength(1);
+      expect(first[0]).toMatchObject({
+        title: 'স্টক এসেছে: 1টা অর্ডার এখন শিপ করা যাবে',
+        link: `/orders/${older.id}`,
+      });
+
+      // Another order waits; three units cover both, one notice for the one stock change, leading to the two.
+      const third = await place(shop, kurti.variantId, 1);
+      const three = await shop.post(
+        `/products/${kurti.id}/variants/${kurti.variantId}/stock-additions`,
+        {
+          quantity: 3,
+        },
+      );
+      expect(three.status, JSON.stringify(three.body)).toBe(200);
+      const second = filled(await bell());
+      expect(second).toHaveLength(2);
+      expect(second[0]?.title).toBe('স্টক এসেছে: 2টা অর্ডার এখন শিপ করা যাবে');
+      const link = second[0]?.link ?? '';
+      expect(link.startsWith('/orders?ids=')).toBe(true);
+      expect(link.slice('/orders?ids='.length).split(',').sort()).toEqual(
+        [newer.id, third.id].sort(),
+      );
+      // The link's list shows just those orders.
+      const listed = (await shop.get(link)).body as { orders: { id: string }[] };
+      expect(listed.orders.map((row) => row.id).sort()).toEqual([newer.id, third.id].sort());
+    });
+  },
+);

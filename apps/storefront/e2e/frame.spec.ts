@@ -91,14 +91,15 @@ test.describe('one app, each shop its own (SFT-01, SFT-02, SFT-13)', () => {
 });
 
 test.describe('cards (SFT-03)', () => {
-  test('tags a new product, a sold-out one, and shows a product page its stock', async ({
+  test('tags a new product, never a sold-out one, and shows a product page its stock only when in stock', async ({
     page,
   }) => {
     const shop = await openShop(page);
     await page.goto(shop.url('/new'));
     const card = (name: string) => page.locator('.card', { hasText: name });
     await expect(card('Linen Shirt').locator('.tag')).toHaveText('New');
-    await expect(card('Kids Frock').locator('.tag')).toHaveText('Sold out');
+    // ORDERS-BEYOND-STOCK OB-2, OB-18: no stock wording for a sold-out product.
+    await expect(card('Kids Frock').locator('.tag')).toHaveCount(0);
     await expect(card('Chiffon Hijab').locator('.tag')).toHaveCount(0);
 
     await page.goto(shop.url('/p/chiffon-hijab'));
@@ -115,7 +116,8 @@ test.describe('cards (SFT-03)', () => {
       'https://m.me/meghfashion',
     );
     await page.goto(shop.url('/p/kids-frock'));
-    await expect(page.locator('.pricerow .st.out')).toHaveText('Sold out');
+    await expect(page.locator('#order-name')).toBeVisible();
+    await expect(page.locator('.pricerow .st')).toHaveCount(0);
   });
 });
 

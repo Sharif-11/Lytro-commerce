@@ -46,6 +46,8 @@ const movedBatchSchema = z.object({
 
 export const productStockViewSchema = z.object({
   productId: z.string(),
+  // INV-25 (ORDERS-BEYOND-STOCK OB-10): after stock was added or counted up, how many waiting orders it went to.
+  filledOrders: z.number().optional(),
   stockTracking: z.enum(StockTracking),
   stockUnit: z.enum(StockUnit),
   lowStockThreshold: z.string(),

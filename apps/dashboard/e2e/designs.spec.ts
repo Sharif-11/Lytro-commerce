@@ -290,6 +290,8 @@ test('the order page names a design line’s SKU, and the 3 × 3 label its desig
   await expect(
     main(page)
       .locator(`img[src="${shot('m-2')}"]`)
+      // OB-20: the list beside the order (hidden on a phone) shows the same photo too.
+      .filter({ visible: true })
       .first(),
   ).toBeVisible();
   await main(page)

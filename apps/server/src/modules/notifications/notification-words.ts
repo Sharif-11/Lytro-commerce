@@ -30,6 +30,8 @@ export function fromMailWords(words: MailWords): NotificationText {
  */
 export const NOTIFICATION_LINKS = {
   order: (orderId: string): string => `/orders/${orderId}`,
+  // OB-10: the orders list showing just these orders.
+  orders: (orderIds: string[]): string => `/orders?ids=${orderIds.join(',')}`,
   product: (productId: string): string => `/products/${productId}`,
   payments: '/payments',
   paymentMethods: '/settings/payment-methods',
@@ -56,6 +58,42 @@ const SOURCES: Readonly<Record<OrderSource, Bilingual<string>>> = {
   [OrderSource.Dashboard]: { bn: 'ড্যাশবোর্ড', en: 'dashboard' },
 };
 
+/**
+ * INV-25 (ORDERS-BEYOND-STOCK OB-10, the owner on #448: "স্টক এসেছে: ৩টা অর্ডার এখন শিপ করা যাবে"): stock given to
+ * waiting orders -- how many can now ship, and how many got some and still wait.
+ */
+export function ordersFilledText(input: { given: number; covered: number }): NotificationText {
+  const still = input.given - input.covered;
+  if (input.covered === 0) {
+    return {
+      bn: {
+        title: `স্টক এসেছে: ${String(input.given)}টা অর্ডারে দেওয়া হলো`,
+        body: 'এগুলোর এখনো কিছু স্টক কম।',
+      },
+      en: {
+        title: `Stock in: given to ${String(input.given)} ${input.given === 1 ? 'order' : 'orders'}`,
+        body: `${input.given === 1 ? 'It still waits' : 'They still wait'} for some.`,
+      },
+    };
+  }
+  return {
+    bn: {
+      title: `স্টক এসেছে: ${String(input.covered)}টা অর্ডার এখন শিপ করা যাবে`,
+      body:
+        still > 0
+          ? `কুরিয়ার বুক বা শিপ করুন। আরও ${String(still)}টা অর্ডার কিছু পেয়েছে, এখনো কম।`
+          : 'কুরিয়ার বুক বা শিপ করুন।',
+    },
+    en: {
+      title: `Stock in: ${String(input.covered)} ${input.covered === 1 ? 'order can' : 'orders can'} ship now`,
+      body:
+        still > 0
+          ? `Book a courier or ship. ${String(still)} more got some and still wait.`
+          : 'Book a courier or ship.',
+    },
+  };
+}
+
 /** ORD-20: an order from outside the shop. */
 export function orderPlacedText(input: {
   orderNumber: string;
@@ -63,8 +101,11 @@ export function orderPlacedText(input: {
   grandTotal: string;
   source: OrderSource;
   locked?: { district: { bn: string; en: string } | null; fee: string } | null;
+  /** INV-25 (ORDERS-BEYOND-STOCK OB-10): it arrived short of stock. */
+  short?: boolean;
 }): NotificationText {
   const source = SOURCES[input.source];
+  const short = input.short === true;
   // PF-28: a locked order -- its amount, district and source, and what opening it costs; no name.
   if (input.locked) {
     const fee = Number(input.locked.fee).toLocaleString('en-US', { maximumFractionDigits: 2 });
@@ -72,13 +113,25 @@ export function orderPlacedText(input: {
     return {
       bn: {
         title: `নতুন অর্ডার ${input.orderNumber}`,
-        body: [`৳${input.grandTotal}`, where?.bn, source.bn, `খুলতে ৳${fee}`]
+        body: [
+          `৳${input.grandTotal}`,
+          where?.bn,
+          source.bn,
+          `খুলতে ৳${fee}`,
+          short ? 'স্টক কম' : null,
+        ]
           .filter(Boolean)
           .join(' · '),
       },
       en: {
         title: `New order ${input.orderNumber}`,
-        body: [`${input.grandTotal} TK`, where?.en, source.en, `${fee} TK to open`]
+        body: [
+          `${input.grandTotal} TK`,
+          where?.en,
+          source.en,
+          `${fee} TK to open`,
+          short ? 'Short of stock' : null,
+        ]
           .filter(Boolean)
           .join(' · '),
       },
@@ -87,11 +140,11 @@ export function orderPlacedText(input: {
   return {
     bn: {
       title: `নতুন অর্ডার ${input.orderNumber}`,
-      body: `${input.customerName ?? 'একজন কাস্টমার'} · ৳${input.grandTotal} · ${source.bn}`,
+      body: `${input.customerName ?? 'একজন কাস্টমার'} · ৳${input.grandTotal} · ${source.bn}${short ? ' · স্টক কম' : ''}`,
     },
     en: {
       title: `New order ${input.orderNumber}`,
-      body: `${input.customerName ?? 'A customer'} · ${input.grandTotal} TK · ${source.en}`,
+      body: `${input.customerName ?? 'A customer'} · ${input.grandTotal} TK · ${source.en}${short ? ' · Short of stock' : ''}`,
     },
   };
 }

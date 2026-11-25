@@ -16,6 +16,14 @@ export const ordersSearch = z.object({
   source: z.enum(OrderSource).optional().catch(undefined),
   // PYG-22 (PF-25): only the locked pay-as-you-go orders, the লক করা chip.
   locked: z.literal('1').optional().catch(undefined),
+  // INV-25 (ORDERS-BEYOND-STOCK OB-11): only the orders still waiting for stock, the স্টক কম chip.
+  short: z.literal('1').optional().catch(undefined),
+  // OB-10: the orders a fill notice names, comma-separated.
+  ids: z
+    .string()
+    .regex(/^[0-9a-f-]{36}(,[0-9a-f-]{36}){0,49}$/)
+    .optional()
+    .catch(undefined),
 });
 
 export type OrdersSearch = z.infer<typeof ordersSearch>;
@@ -32,13 +40,16 @@ export function searchOf(filter: OrderFilter): Record<string, string | undefined
     holdingName: filter.holding ? filter.holdingName : undefined,
     source: filter.source,
     locked: filter.locked ? '1' : undefined,
+    short: filter.short ? '1' : undefined,
+    ids: filter.ids && filter.ids.length > 0 ? filter.ids.join(',') : undefined,
   };
 }
 
 /** The screen's filter from its address: To confirm when no tab is given. */
 export function filterOf(search: OrdersSearch): OrderFilter {
   return {
-    tab: search.tab ?? 'pending',
+    // OB-10: the orders a fill notice names, whatever their status.
+    tab: search.tab ?? (search.ids ? 'all' : 'pending'),
     q: search.q,
     from: search.from,
     to: search.to,
@@ -47,5 +58,7 @@ export function filterOf(search: OrdersSearch): OrderFilter {
     holdingName: search.holdingName,
     source: search.source,
     locked: search.locked === '1',
+    short: search.short === '1',
+    ids: search.ids ? search.ids.split(',') : undefined,
   };
 }

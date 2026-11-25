@@ -154,12 +154,13 @@ test('the list has a Processing tab after Confirmed, counted, with the booked or
     .toBe(true);
 });
 
-test('an order its verified advance payment confirmed is in Confirmed, tagged, and never in To confirm', async ({
+test('an order its verified advance payment confirmed is in Confirmed and never in To confirm', async ({
   page,
 }) => {
   await open(page, '/orders?tab=confirmed');
   await expect(row(page, MAHIN)).toBeVisible();
-  await expect(row(page, MAHIN)).toContainText('Advance payment verified');
+  // ORDERS-BEYOND-STOCK OB-20: the row says Confirmed; the order itself says the payment confirmed it.
+  await expect(row(page, MAHIN)).toContainText('Confirmed');
   await page.goto(`/${SLUG}/orders`);
   await expect(row(page, '261031-0047')).toBeVisible();
   await expect(row(page, MAHIN)).toHaveCount(0);
@@ -316,12 +317,12 @@ test('a booked order shows its tracking code and link, each with Copy', async ({
   await expectAccessible(page);
 });
 
-test('in Bangla: the tab, the tag, the lines and the lock say what the sketch says', async ({
+test('in Bangla: the tab, the status, the lines and the lock say what the sketch says', async ({
   page,
 }) => {
   await open(page, '/orders?tab=confirmed', { language: 'bn' });
   await expect(main(page).getByRole('button', { name: /^প্রসেসিং/ })).toBeVisible();
-  await expect(row(page, MAHIN)).toContainText('অ্যাডভান্স পেমেন্ট ভেরিফাইড');
+  await expect(row(page, MAHIN)).toContainText('কনফার্মড');
   await page.goto(`/${SLUG}/orders/o-48`);
   await expect(main(page)).toContainText(
     'কল লাগবে না: অ্যাডভান্স পেমেন্ট ভেরিফাই হয়েছে, তাই অর্ডার নিজে থেকেই কনফার্ম হয়েছে।',

@@ -231,7 +231,12 @@ test('one search: orders, customers and products grouped, each with See all', as
   const log = await open(page, '/search?q=0171');
   const orders = main(page).getByRole('link', { name: /^#261031-0047/ });
   await expect(orders).toBeVisible();
-  await expect(main(page).getByRole('link', { name: /Nusrat Jahan.*01711234567/ })).toBeVisible();
+  // The order row now shows the name and phone too (OB-20), so the customer is the link that isn't an order.
+  await expect(
+    main(page)
+      .locator('a:not([href*="/orders/"])')
+      .filter({ hasText: /Nusrat Jahan.*01711234567/ }),
+  ).toBeVisible();
   expect(log.calls.some((call) => call.path === '/orders' && call.query.includes('q=0171'))).toBe(
     true,
   );

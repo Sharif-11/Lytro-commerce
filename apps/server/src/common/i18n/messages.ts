@@ -1112,6 +1112,13 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'The start date is after the end date. Choose an earlier start.',
     bn: 'শুরুর তারিখ শেষের তারিখের পরে। আগের একটি তারিখ বেছে নিন।',
   },
+  // INV-25, OB-9: booking, handing over or shipping an order that still waits for stock.
+  OrderShortOfStock: {
+    en: (p) =>
+      `"${String(p.product)}" is short in stock for this order. Add stock, or cancel the order, before it leaves.`,
+    bn: (p) =>
+      `এই অর্ডারের "${String(p.product)}" স্টকে কম। পাঠানোর আগে স্টক যোগ করুন, অথবা অর্ডারটা ক্যানসেল করুন।`,
+  },
   NotEnoughStockForOrder: {
     en: (p) => `There is not enough "${String(p.product)}" in stock for this order.`,
     bn: (p) => `এই অর্ডারের জন্য স্টকে যথেষ্ট "${String(p.product)}" নেই।`,

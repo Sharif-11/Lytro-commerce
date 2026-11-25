@@ -50,6 +50,10 @@ export interface OrderItemFixture {
   unit?: 'piece' | 'kg';
   /** Its picture's large rendition, which the lightbox shows; the thumbnail itself when left out. */
   large?: string;
+  /** INV-25 (ORDERS-BEYOND-STOCK): the units it still waits for; none when left out. */
+  short?: number;
+  /** OB-12: what older orders wait for on the same stock, ahead of it. */
+  ahead?: { orders: number; quantity: number };
 }
 
 export interface OrderFixture {
@@ -417,6 +421,11 @@ function attributes(words: Words | null | undefined, language: Language, design 
     : [];
 }
 
+/** INV-25: what an order still waits for, across its lines. */
+function shortOf(order: OrderFixture): number {
+  return order.items.reduce((sum, item) => sum + (item.short ?? 0), 0);
+}
+
 export function orderSummary(order: OrderFixture, language: Language) {
   return {
     id: order.id,
@@ -437,6 +446,10 @@ export function orderSummary(order: OrderFixture, language: Language) {
     tableRef: order.table ?? null,
     // How many lines, as the server counts them.
     items: order.items.length,
+    // OB-20: the address line (masked away when erased), what it waits for, and its first lines' photos.
+    deliveryAddress: order.erased ? null : say(order.address, language),
+    short: shortOf(order).toFixed(3),
+    thumbs: order.items.flatMap((item) => (item.thumbnail ? [item.thumbnail] : [])).slice(0, 3),
     grandTotal: money(totalOf(order)),
     codAmount: money(totalOf(order) - paidOf(order)),
     cancelReason: order.cancelReason ?? null,
@@ -636,6 +649,7 @@ function detail(order: OrderFixture, language: Language, customerId: string | nu
     shopperNote: say(order.shopperNote, language),
     createdBy: order.source === 'dashboard' ? by : null,
     updatedAt: order.createdAt,
+    short: shortOf(order).toFixed(3),
     items: order.items.map((item, index) => ({
       id: `${order.id}-line-${String(index)}`,
       productId: item.productId ?? `p-${String(index)}`,
@@ -658,6 +672,10 @@ function detail(order: OrderFixture, language: Language, customerId: string | nu
       packAmount: null,
       itemDiscount: '0.00',
       itemTotal: money(item.quantity * item.unitPrice),
+      short: (item.short ?? 0).toFixed(3),
+      ahead: item.ahead
+        ? { orders: item.ahead.orders, quantity: item.ahead.quantity.toFixed(3) }
+        : null,
       returnedQuantity: `${String(item.returned ?? 0)}.000`,
       weightKg: item.weightKg === undefined ? null : item.weightKg.toFixed(3),
       ownDeliveryCharge: null,
@@ -791,6 +809,7 @@ export function ordersAnswer(
     const to = url.searchParams.get('dateTo');
     const source = url.searchParams.get('source');
     const attention = url.searchParams.get('attention');
+    const shortOnly = url.searchParams.get('short') === 'yes';
     const limit = Number(url.searchParams.get('limit') ?? '20');
     const dayOf = (iso: string) =>
       new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Dhaka' }).format(new Date(iso));
@@ -802,6 +821,7 @@ export function ordersAnswer(
       .filter((order) => to === null || dayOf(order.createdAt) <= to)
       .filter((order) => source === null || order.source === source)
       .filter((order) => attention === null || Boolean(order.parcel?.attention))
+      .filter((order) => !shortOnly || shortOf(order) > 0)
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     return {
       data: {
@@ -810,6 +830,8 @@ export function ordersAnswer(
         limit,
         total: found.length,
         pages: Math.max(1, Math.ceil(found.length / limit)),
+        // OB-11: how many of the shop's orders still wait for stock, whatever the filter.
+        short: fixture.orders.filter((order) => shortOf(order) > 0).length,
       },
     };
   }

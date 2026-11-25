@@ -190,7 +190,8 @@ function estimate(
       };
     }
     const { row, variant } = found;
-    const available = variant.stockState !== StockState.Out;
+    // INV-25 (OB-7): stock never makes a line unavailable; the order waits for it.
+    const available = variant.available;
     const total = unitOf(row, variant.price, item.modifiers) * item.quantity;
     if (available) counted.push({ tax: row.tax, total, row });
     return {

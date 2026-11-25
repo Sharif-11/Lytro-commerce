@@ -60,17 +60,21 @@ test('the list puts the day first: To confirm with each tab counted, the rows un
   await expect(tabs.getByRole('button', { name: /^Confirmed/ })).toContainText('1');
   await expect(tabs.getByRole('button', { name: /^All/ })).toContainText('9');
   await expect(row(page, '261031-0047')).toContainText('Nusrat Jahan');
-  await expect(row(page, '261031-0047')).toContainText('Mirpur, Dhaka · 2 items');
+  // ORDERS-BEYOND-STOCK OB-20: the address on two lines, no item count.
+  await expect(row(page, '261031-0047')).toContainText('Mirpur, Dhaka');
+  await expect(row(page, '261031-0047')).not.toContainText('2 items');
   await expect(row(page, '261031-0047')).toContainText('৳3,470');
   await expect(row(page, '261031-0047')).toContainText('New');
-  await expect(row(page, '261031-0046')).toContainText('No answer ×2');
+  await expect(row(page, '261031-0046')).toContainText('Rakib Hasan');
   await expect(row(page, '261031-0045')).toContainText('Takeaway');
   await expect(main(page)).toContainText('Today');
   await expectAccessible(page);
 
   await tabs.getByRole('button', { name: /^On hold/ }).click();
   await expect(page).toHaveURL(`/${SLUG}/orders?tab=hold`);
-  await expect(row(page, '261031-0043')).toContainText(/Call at /);
+  // OB-20 as amended (the owner, 2026-11-25): a held order keeps its call-back time on its row.
+  await expect(row(page, '261031-0043')).toContainText('On hold');
+  await expect(row(page, '261031-0043')).toContainText(/Call back /);
 
   await tabs.getByRole('button', { name: /^All/ }).click();
   await expect(main(page)).toContainText('Yesterday');
@@ -83,7 +87,8 @@ test('the list puts the day first: To confirm with each tab counted, the rows un
   await expect(more.getByRole('button', { name: /^Fake order/ })).toContainText('1');
   await more.getByRole('button', { name: /^Fake order/ }).click();
   await expect(page).toHaveURL(`/${SLUG}/orders?tab=cancelled&reason=fake_order`);
-  await expect(row(page, '261029-0031')).toContainText('Fake order');
+  // OB-20: the row shows the status; the reason is on the order and in the reason filter.
+  await expect(row(page, '261029-0031')).toContainText('Cancelled');
   await expect(tabs.getByRole('button', { name: /^Cancelled/ })).toHaveAttribute(
     'aria-pressed',
     'true',

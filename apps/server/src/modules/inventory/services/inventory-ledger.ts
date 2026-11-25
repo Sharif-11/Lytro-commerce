@@ -15,6 +15,7 @@ import type { ResolvedActor } from '../../catalogue/services/catalogue-activity'
 import { CatalogueVersion } from '../../catalogue/services/catalogue-version';
 import type { SerialStore } from '../ports/serial-store';
 import { comboFigures, comboState } from './combo-figures';
+import { ShortfallFiller } from './shortfall-filler';
 import type { StockBatchStore } from '../ports/stock-batch-store';
 import type { LowStockNotifier, StockStore } from '../ports/stock-store';
 import { LOW_STOCK_NOTIFIER, SERIAL_STORE, STOCK_BATCH_STORE, STOCK_STORE } from '../tokens';
@@ -63,8 +64,13 @@ export class InventoryLedger {
     @Inject(SERIAL_STORE) private readonly serials: SerialStore,
     @Inject(LOW_STOCK_NOTIFIER) private readonly notifier: LowStockNotifier,
     @Inject(CatalogueVersion) private readonly version: CatalogueVersion,
+    @Inject(ShortfallFiller) private readonly filler: ShortfallFiller,
   ) {}
 
+  /**
+   * Records `changes`. INV-25 (OB-8): stock that arrives goes first to the lines waiting for it (`ShortfallFiller.filledIn`
+   * says which orders it went to).
+   */
   async apply(
     tx: Transaction,
     tenantId: string,
@@ -143,6 +149,14 @@ export class InventoryLedger {
       }
     }
 
+    // INV-25 (ORDERS-BEYOND-STOCK Q3): a count or edit the seller made below what is held stands; the newest orders
+    // holding this stock give up enough of it to wait instead, before it leaves. A sale never does (INV-15).
+    for (const { change, on, delta } of landed) {
+      if (change.countsHeld === true && milli(delta) < 0) {
+        await this.filler.giveUp(tx, tenantId, on.variantId, -milli(delta));
+      }
+    }
+
     let movements: MovementRecord[];
     try {
       movements = await this.store.insertMovements(tx, tenantId, rows);
@@ -174,6 +188,10 @@ export class InventoryLedger {
       }
       await this.serials.markLeft(tx, tenantId, work.leaving, movement.id, work.soldTo);
     }
+    // INV-25 (ORDERS-BEYOND-STOCK OB-8): stock that arrived -- a receipt, an adjustment or count up, opening stock, a
+    // sellable return -- goes first to the lines waiting for it, oldest first, in this same transaction.
+    const arrived = rows.filter((row) => milli(row.quantityDelta) > 0).map((row) => row.variantId);
+    if (arrived.length > 0) await this.filler.fill(tx, tenantId, arrived);
     await this.refresh(tx, tenantId, [...new Set(rows.map((row) => row.productId))], true);
     return movements;
   }

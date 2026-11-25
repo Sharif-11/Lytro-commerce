@@ -33,6 +33,8 @@ import type { StockStore } from '../../modules/inventory/ports/stock-store';
 import type {
   MovementRecord,
   NewReservation,
+  NewShortfall,
+  OrderShortfallRecord,
   NewSerial,
   NewStockBatch,
   NewStockMovement,
@@ -153,6 +155,14 @@ export class DrizzleStockStore implements StockStore {
 
   lockLevel(tx: Transaction, tenantId: string, variantId: string): Promise<string> {
     return this.stock.lockLevel(tx, tenantId, variantId);
+  }
+
+  lockLevelFigures(
+    tx: Transaction,
+    tenantId: string,
+    variantId: string,
+  ): Promise<{ onHand: string; available: string }> {
+    return this.stock.lockLevelFigures(tx, tenantId, variantId);
   }
 
   setLowNotified(
@@ -500,5 +510,53 @@ export class DrizzleReservationStore implements ReservationStore {
 
   deleteAllForTenant(tx: Transaction, tenantId: string): Promise<void> {
     return this.reservations.deleteAllForTenant(tx, tenantId);
+  }
+
+  insertShortfall(
+    tx: Transaction,
+    tenantId: string,
+    row: NewShortfall,
+  ): Promise<OrderShortfallRecord> {
+    return this.reservations.insertShortfall(tx, tenantId, row);
+  }
+
+  listShortfallsForOrders(
+    tx: Transaction,
+    tenantId: string,
+    orderIds: string[],
+  ): Promise<OrderShortfallRecord[]> {
+    return this.reservations.listShortfallsForOrders(tx, tenantId, orderIds);
+  }
+
+  lockWaiting(
+    tx: Transaction,
+    tenantId: string,
+    variantId: string,
+  ): Promise<OrderShortfallRecord[]> {
+    return this.reservations.lockWaiting(tx, tenantId, variantId);
+  }
+
+  listWaitingOn(
+    tx: Transaction,
+    tenantId: string,
+    variantIds: string[],
+  ): Promise<OrderShortfallRecord[]> {
+    return this.reservations.listWaitingOn(tx, tenantId, variantIds);
+  }
+
+  lockHeldNewestFirst(
+    tx: Transaction,
+    tenantId: string,
+    variantId: string,
+  ): Promise<ReservationRecord[]> {
+    return this.reservations.lockHeldNewestFirst(tx, tenantId, variantId);
+  }
+
+  setShortfall(tx: Transaction, tenantId: string, id: string, quantity: string): Promise<void> {
+    return this.reservations.setShortfall(tx, tenantId, id, quantity);
+  }
+
+  deleteShortfallsForOrder(tx: Transaction, tenantId: string, orderId: string): Promise<number> {
+    return this.reservations.deleteShortfallsForOrder(tx, tenantId, orderId);
   }
 }

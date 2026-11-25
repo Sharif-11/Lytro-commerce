@@ -47,6 +47,7 @@ import type {
 } from '../types/inventory';
 import { batchChoiceOf } from './batch-choice';
 import { InventoryLedger } from './inventory-ledger';
+import { ShortfallFiller } from './shortfall-filler';
 import { SerialEntryService } from './serial-entry.service';
 import {
   milli,
@@ -142,6 +143,7 @@ export class StockService implements ProductStockHooks {
     @Inject(STOCK_STORE) private readonly store: StockStore,
     @Inject(SERIAL_STORE) private readonly serials: SerialStore,
     @Inject(InventoryLedger) private readonly ledger: InventoryLedger,
+    @Inject(ShortfallFiller) private readonly filler: ShortfallFiller,
     @Inject(SerialEntryService) private readonly serialEntry: SerialEntryService,
     @Inject(CatalogueActivity) private readonly activity: CatalogueActivity,
     @Inject(ProductService) private readonly catalogue: ProductService,
@@ -354,6 +356,7 @@ export class StockService implements ProductStockHooks {
               note: input.note ?? null,
               ...batch,
               serials,
+              countsHeld: true,
             },
           ],
           who,
@@ -373,7 +376,7 @@ export class StockService implements ProductStockHooks {
           },
         );
       }
-      return this.viewWithin(tx, tenantId, productId, true);
+      return this.withFilled(tx, await this.viewWithin(tx, tenantId, productId, true));
     });
   }
 
@@ -425,7 +428,7 @@ export class StockService implements ProductStockHooks {
     const who = await this.activity.resolve(tenantId, actor);
     return this.transactions.run(async (tx) => {
       await this.addStockWithin(tx, tenantId, productId, variantId, input, who, arrivals);
-      return this.viewWithin(tx, tenantId, productId, true);
+      return this.withFilled(tx, await this.viewWithin(tx, tenantId, productId, true));
     });
   }
 
@@ -459,8 +462,14 @@ export class StockService implements ProductStockHooks {
           throw error;
         }
       }
-      return this.viewWithin(tx, tenantId, productId, true);
+      return this.withFilled(tx, await this.viewWithin(tx, tenantId, productId, true));
     });
+  }
+
+  /** INV-25 (ORDERS-BEYOND-STOCK OB-10, OB-12): the view, with how many waiting orders this stock went to. */
+  private withFilled(tx: Transaction, view: ProductStockView): ProductStockView {
+    const filled = this.filler.filledIn(tx);
+    return filled.length > 0 ? { ...view, filledOrders: filled.length } : view;
   }
 
   /** INV-06, INV-24, PUR-07: one variant's arrival, in the caller's transaction (`addStock` says how it is counted). */

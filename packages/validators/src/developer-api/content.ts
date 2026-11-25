@@ -708,8 +708,8 @@ export const DOC_ROUTES: readonly DocRoute[] = [
     sell: true,
     st: 201,
     what: [
-      'কাস্টমারের অর্ডার, ক্যাশ অন ডেলিভারি। অর্ডারটি সাথে সাথে আপনার ড্যাশবোর্ডের অর্ডারে আসে, Pending অবস্থায়, কনফার্ম করার কলের অপেক্ষায়।',
-      "A shopper's order, cash on delivery. It lands in your dashboard's Orders at once, pending, waiting for your confirming call.",
+      'কাস্টমারের অর্ডার, ক্যাশ অন ডেলিভারি। অর্ডারটি সাথে সাথে আপনার ড্যাশবোর্ডের অর্ডারে আসে, Pending অবস্থায়, কনফার্ম করার কলের অপেক্ষায়। স্টকে না থাকা পণ্যও অর্ডার করা যায়: অর্ডারটি স্টক কম দেখায়, আর স্টক যোগ করলে পাঠানো যায়।',
+      "A shopper's order, cash on delivery. It lands in your dashboard's Orders at once, pending, waiting for your confirming call. A product out of stock can be ordered too: the order shows it short, and ships once you add the stock.",
     ],
     params: [
       P(
