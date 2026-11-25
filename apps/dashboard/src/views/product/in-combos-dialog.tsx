@@ -40,7 +40,8 @@ export function InCombosDialog({
           {combos.map((combo) => (
             <Link
               key={combo.id}
-              to="/$shop/products/$productId"
+              // To take the product out of the combo: the combo's editor (§7.4c).
+              to="/$shop/products/$productId/edit"
               params={{ shop: slug, productId: combo.id }}
               className={buttonClass('primary', 'md')}
               onClick={onClose}

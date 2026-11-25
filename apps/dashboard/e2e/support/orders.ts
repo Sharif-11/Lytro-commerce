@@ -114,6 +114,8 @@ export interface OrderFixture {
   };
   /** INV-15: the variants whose stock it holds. */
   holds?: string[];
+  /** §7.4c: the products its lines are of, for a product's orders (`?productId=`). */
+  products?: string[];
   /** Its customer was deleted at a privacy request (CUS-09). */
   erased?: boolean;
   /** The order's discount (ORD-06) and its staff note. */
@@ -182,6 +184,15 @@ const NUSRAT_ITEMS: OrderItemFixture[] = [
 const one = (name: Words, price: number, quantity = 1): OrderItemFixture[] => [
   { name, quantity, unitPrice: price },
 ];
+
+/** §7.4c: the day's orders with the first `count` of them holding a line of `productId`, for its page's recent orders. */
+export function productOrders(productId: string, count = 4): OrdersFixture {
+  const day = meghOrders();
+  day.orders.slice(0, count).forEach((order) => {
+    order.products = [productId];
+  });
+  return day;
+}
 
 /** The day's orders at Megh Fashion (Part 29's `O29`), newest first. */
 export function meghOrders(): OrdersFixture {
@@ -787,6 +798,7 @@ export function ordersAnswer(
     const q = url.searchParams.get('q');
     const reason = url.searchParams.get('cancelReason');
     const variant = url.searchParams.get('variantId');
+    const product = url.searchParams.get('productId');
     const from = url.searchParams.get('dateFrom');
     const to = url.searchParams.get('dateTo');
     const source = url.searchParams.get('source');
@@ -798,6 +810,7 @@ export function ordersAnswer(
       .filter((order) => shown(order, status) && matches(order, q))
       .filter((order) => reason === null || order.cancelReason === reason)
       .filter((order) => variant === null || (order.holds ?? []).includes(variant))
+      .filter((order) => product === null || (order.products ?? []).includes(product))
       .filter((order) => from === null || dayOf(order.createdAt) >= from)
       .filter((order) => to === null || dayOf(order.createdAt) <= to)
       .filter((order) => source === null || order.source === source)

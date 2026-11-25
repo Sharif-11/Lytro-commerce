@@ -12,7 +12,8 @@ import { drawnLibrary, type MatrixFixture } from './support/variants';
 
 async function open(page: Page, path: string, state: ShopState = {}): Promise<ApiLog> {
   const log = await mockApi(page, { language: 'en', ...state });
-  await page.goto(`/${SLUG}/products/${path}`);
+  // §7.4c: a product opens its page; the editor is at .../edit.
+  await page.goto(`/${SLUG}/products/${path === 'new' ? path : `${path}/edit`}`);
   await expect(page.getByRole('main').getByRole('heading').first()).toBeAttached();
   return log;
 }

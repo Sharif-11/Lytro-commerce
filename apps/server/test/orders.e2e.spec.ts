@@ -1242,6 +1242,56 @@ describeIfDatabase('the order list (ORD-13, ORD-45, DAT-13)', () => {
     expect(idsOf((await shop.get(`/orders?variantId=${shirt.variantId}`)).body)).toEqual([]);
   });
 
+  it("finds a product's orders, newest first, cancelled ones too, and only in this shop (§7.4c)", async () => {
+    const shop = await openShop(port, texts, 'ord');
+    const shirt = await product(shop, 'Shirt', 500, 10);
+    const shoes = await product(shop, 'Shoes', 300, 5);
+    const first = await place(shop, {
+      ...(await delivery(shop)),
+      items: [{ variantId: shirt.variantId, quantity: 1 }],
+    });
+    await place(shop, {
+      ...(await delivery(shop)),
+      items: [{ variantId: shoes.variantId, quantity: 1 }],
+    });
+    const both = await place(shop, {
+      ...(await delivery(shop)),
+      items: [
+        { variantId: shoes.variantId, quantity: 1 },
+        { variantId: shirt.variantId, quantity: 2 },
+      ],
+    });
+    const idsOf = (body: unknown) => (body as { orders: { id: string }[] }).orders.map((o) => o.id);
+    const found = await shop.get(`/orders?productId=${shirt.id}`);
+    expect(found.status, JSON.stringify(found.body)).toBe(200);
+    // An order with other products on it too is listed once.
+    expect(idsOf(found.body)).toEqual([both.id, first.id]);
+    expect((found.body as Page).total).toBe(2);
+    // The product page asks for its newest few.
+    expect(idsOf((await shop.get(`/orders?productId=${shirt.id}&limit=1`)).body)).toEqual([
+      both.id,
+    ]);
+
+    // Unlike the holding filter, a cancelled order is still one of the product's orders.
+    const cancelled = await shop.post(`/orders/${first.id}/cancel`, {
+      reason: 'customer_cancelled',
+    });
+    expect(cancelled.status, JSON.stringify(cancelled.body)).toBe(200);
+    expect(idsOf((await shop.get(`/orders?productId=${shirt.id}`)).body)).toEqual([
+      both.id,
+      first.id,
+    ]);
+    expect(idsOf((await shop.get(`/orders?productId=${shirt.id}&status=cancelled`)).body)).toEqual([
+      first.id,
+    ]);
+
+    const stranger = await openShop(port, texts, 'ord');
+    const theirs = await stranger.get(`/orders?productId=${shirt.id}`);
+    expect(theirs.status, JSON.stringify(theirs.body)).toBe(200);
+    expect(idsOf(theirs.body)).toEqual([]);
+    expect((await shop.get('/orders?productId=not-an-id')).status).toBe(400);
+  });
+
   it('filters by status and either axis, searches by name, phone and number, and pages at 20', async () => {
     const shop = await openShop(port, texts, 'ord');
     const cake = await product(shop, 'Cake', 900, null);

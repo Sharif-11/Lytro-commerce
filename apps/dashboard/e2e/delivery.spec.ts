@@ -254,9 +254,10 @@ test('a delete asks first; a zone products still name lists them, an archived on
   await expect(ask).toContainText('Past orders keep their charge.');
   await ask.getByRole('button', { name: 'Delete zone' }).click();
   const inUse = sheet(page, 'This zone is still in use');
+  // §7.4c: to change where it delivers, the product's editor.
   await expect(inUse.getByRole('link', { name: 'Open' })).toHaveAttribute(
     'href',
-    `/${SLUG}/products/p-1`,
+    `/${SLUG}/products/p-1/edit`,
   );
   await expect(inUse).toContainText('Wool muffler');
   await expect(inUse).toContainText('Archived');

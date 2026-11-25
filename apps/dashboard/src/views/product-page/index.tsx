@@ -146,8 +146,11 @@ function ProductView({ product }: { product: ProductDetail }): React.JSX.Element
   );
 
   const photos = product.images;
-  const designOf = (imageId: string): number | null =>
-    product.designs.find((each) => each.photoIds.includes(imageId))?.number ?? null;
+  // A design by the seller's name for it, else its number (as the share sheet names it).
+  const designOf = (imageId: string): string | null => {
+    const design = product.designs.find((each) => each.photoIds.includes(imageId));
+    return design ? design.name || t('psDesignN', { n: design.number }) : null;
+  };
   const tracked = !combo && kind.tracked && mayReadStock;
   // pd-detail-designs: each design's count by size in place of the Stock card, when the designs hold their own stock.
   const grid =
@@ -184,6 +187,10 @@ function ProductView({ product }: { product: ProductDetail }): React.JSX.Element
         <div className="flex min-w-0 flex-col gap-section">
           {photos.length > 0 || product.video ? (
             <div
+              // A strip that scrolls sideways is reached by keyboard too (axe: scrollable-region-focusable).
+              tabIndex={0}
+              role="group"
+              aria-label={t('mmTitle')}
               className="-mx-4 flex gap-2.5 overflow-x-auto px-4 lg:mx-0 lg:px-0"
               data-testid="pd-photos"
             >
@@ -198,7 +205,7 @@ function ProductView({ product }: { product: ProductDetail }): React.JSX.Element
                     />
                     <span className="text-[13px] text-fg-muted">
                       {design !== null
-                        ? t('psDesignN', { n: design })
+                        ? design
                         : at === 0
                           ? t('ppFirstPhoto')
                           : t('ppPhotoN', { n: at + 1 })}
@@ -634,11 +641,11 @@ function DesignGrid({
                     {cover ? (
                       <img
                         src={cover}
-                        alt={t('psDesignN', { n: design.number })}
+                        alt={design.name || t('psDesignN', { n: design.number })}
                         className="size-10 rounded-[8px] object-cover"
                       />
                     ) : (
-                      t('psDesignN', { n: design.number })
+                      design.name || t('psDesignN', { n: design.number })
                     )}
                   </th>
                   {columns.map((size) => {

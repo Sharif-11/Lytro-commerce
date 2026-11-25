@@ -144,7 +144,7 @@ export function ProductShareBody({ product }: { product: ProductDetail }): React
         </a>
       </div>
       {canShare ? null : (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2" data-testid="share-fallback">
           {fallback.map((each) => (
             <a
               key={each.name}

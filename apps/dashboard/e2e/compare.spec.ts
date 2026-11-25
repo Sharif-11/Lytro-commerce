@@ -61,6 +61,7 @@ import { meghOrders, type OrderFixture, type OrdersFixture } from './support/ord
 import { drawnCouriers, type CouriersFixture, type ParcelFixture } from './support/couriers';
 import { P88_CAT_PAIRS } from './compare-p88-cat';
 import { p40Pairs } from './compare-p40-designs';
+import { pdSharePairs } from './compare-pd-share';
 import { p88HelpPairs } from './compare-p88-help';
 import { P88_MONEY } from './compare-p88-money';
 import { DRAWN_BELL } from './support/phase7';
@@ -1314,7 +1315,7 @@ const TAX_ADDONS_STOCK: Pair[] = [
     screen: 'k31-addons',
     device: 'phone',
     language: 'bn',
-    path: '/products/p-1',
+    path: '/products/p-1/edit',
     state: { products: withAddOns() },
     scroll: /^অ্যাড-অন$/,
   },
@@ -1323,7 +1324,7 @@ const TAX_ADDONS_STOCK: Pair[] = [
     screen: 'k31-addons',
     device: 'desktop',
     language: 'en',
-    path: '/products/p-1',
+    path: '/products/p-1/edit',
     state: { products: withAddOns('en') },
     scroll: /^Add-ons$/,
   },
@@ -1332,7 +1333,7 @@ const TAX_ADDONS_STOCK: Pair[] = [
     screen: 'sh-k31-group',
     device: 'phone',
     language: 'bn',
-    path: '/products/p-1',
+    path: '/products/p-1/edit',
     state: { products: withAddOns() },
     then: openClass(/^অল্টারেশন/),
   },
@@ -1341,7 +1342,7 @@ const TAX_ADDONS_STOCK: Pair[] = [
     screen: 'sh-k31-group-custom',
     device: 'phone',
     language: 'bn',
-    path: '/products/p-1',
+    path: '/products/p-1/edit',
     state: { products: withAddOns() },
     then: async (page) => {
       await openClass(/^অল্টারেশন/)(page);
@@ -1355,7 +1356,7 @@ const TAX_ADDONS_STOCK: Pair[] = [
     screen: 'sh-k31-group-new',
     device: 'phone',
     language: 'bn',
-    path: '/products/p-1',
+    path: '/products/p-1/edit',
     then: openClass(/^অ্যাড-অন গ্রুপ যোগ/),
   },
   {
@@ -1393,7 +1394,7 @@ const TAX_ADDONS_STOCK: Pair[] = [
     screen: 'sh-k31-history',
     device: 'phone',
     language: 'bn',
-    path: '/products/p-1',
+    path: '/products/p-1/edit',
     state: { products: withOrderHistory() },
     then: async (page) => {
       await page.getByRole('main').getByRole('button', { name: 'স্টক হিস্ট্রি' }).click();
@@ -1535,7 +1536,7 @@ const COMBO_EDITOR: Pair[] = [
     screen: 'k31-combo',
     device: 'phone',
     language: 'bn',
-    path: '/products/p-eid',
+    path: '/products/p-eid/edit',
     state: { products: comboShop() },
     scroll: /^স্টক ও ডেলিভারি$/,
   },
@@ -1568,7 +1569,7 @@ const COMBO_EDITOR: Pair[] = [
     screen: 'k31-combo-saved',
     device: 'phone',
     language: 'bn',
-    path: '/products/p-eid',
+    path: '/products/p-eid/edit',
     state: { products: comboShop() },
   },
   {
@@ -1576,7 +1577,7 @@ const COMBO_EDITOR: Pair[] = [
     screen: 'k31-combo-saved',
     device: 'desktop',
     language: 'en',
-    path: '/products/p-eid',
+    path: '/products/p-eid/edit',
     state: { products: comboShop() },
   },
   {
@@ -1584,7 +1585,7 @@ const COMBO_EDITOR: Pair[] = [
     screen: 'k31-combo-more',
     device: 'desktop',
     language: 'en',
-    path: '/products/p-eid',
+    path: '/products/p-eid/edit',
     state: { products: comboShop() },
     scroll: /^Stock and delivery$/,
     then: async (page) => {
@@ -1596,7 +1597,7 @@ const COMBO_EDITOR: Pair[] = [
     screen: 'k31-combo-out',
     device: 'phone',
     language: 'bn',
-    path: '/products/p-eid',
+    path: '/products/p-eid/edit',
     state: { products: comboOut('p-panjabi', 'part_off_sale') },
   },
   {
@@ -1604,7 +1605,7 @@ const COMBO_EDITOR: Pair[] = [
     screen: 'k31-combo-archived',
     device: 'phone',
     language: 'bn',
-    path: '/products/p-eid',
+    path: '/products/p-eid/edit',
     state: { products: comboOut('p-lungi', 'part_archived') },
   },
   {
@@ -1612,7 +1613,7 @@ const COMBO_EDITOR: Pair[] = [
     screen: 'k31-combo-offsale',
     device: 'phone',
     language: 'bn',
-    path: '/products/p-eid',
+    path: '/products/p-eid/edit',
     state: { products: comboOut('p-lungi', 'part_off_sale') },
   },
   {
@@ -1620,7 +1621,7 @@ const COMBO_EDITOR: Pair[] = [
     screen: 'k31-combo-retired',
     device: 'phone',
     language: 'bn',
-    path: '/products/p-eid',
+    path: '/products/p-eid/edit',
     state: { products: comboOut('p-lungi', 'part_retired') },
   },
   {
@@ -1675,7 +1676,7 @@ const COMBO_EDITOR: Pair[] = [
     screen: 'sh-k31-part-edit',
     device: 'phone',
     language: 'bn',
-    path: '/products/p-eid',
+    path: '/products/p-eid/edit',
     state: { products: comboShop() },
     then: async (page) => {
       await page.getByRole('main').getByRole('button', { name: 'কটন পাঞ্জাবি বদলান' }).click();
@@ -1686,7 +1687,7 @@ const COMBO_EDITOR: Pair[] = [
     screen: 'sh-k31-part-measured',
     device: 'phone',
     language: 'bn',
-    path: '/products/p-eid',
+    path: '/products/p-eid/edit',
     state: { products: comboShop() },
     then: async (page) => {
       await page.getByRole('main').getByRole('button', { name: 'আইটেম যোগ করুন' }).click();
@@ -1702,7 +1703,7 @@ const COMBO_EDITOR: Pair[] = [
     screen: 'sh-k31-part-offsale',
     device: 'phone',
     language: 'bn',
-    path: '/products/p-eid',
+    path: '/products/p-eid/edit',
     state: { products: comboOffSale() },
     then: async (page) => {
       await page.getByRole('main').getByRole('button', { name: 'আইটেম যোগ করুন' }).click();
@@ -1721,7 +1722,7 @@ const COMBO_EDITOR: Pair[] = [
     screen: 'sh-k31-in-combo',
     device: 'phone',
     language: 'bn',
-    path: '/products/p-1',
+    path: '/products/p-1/edit',
     state: {
       products: { ...drawnProducts(), inCombos: { 'p-1': [{ id: 'p-eid', name: 'ঈদ কম্বো' }] } },
     },
@@ -1732,7 +1733,7 @@ const COMBO_EDITOR: Pair[] = [
     screen: 'sh-k31-in-combos',
     device: 'phone',
     language: 'bn',
-    path: '/products/p-1',
+    path: '/products/p-1/edit',
     state: {
       products: {
         ...drawnProducts(),
@@ -3828,8 +3829,8 @@ function stockCardPairs(): Pair[] {
     await main(page).getByRole('button', { name: '128 GB-এর IMEI / সিরিয়াল' }).click();
   };
   return [
-    one('pf-edit-mobile', '/products/p-ph', { state: phones }, 'desktop', 'en'),
-    one('stock-add', '/products/p-1', {
+    one('pf-edit-mobile', '/products/p-ph/edit', { state: phones }, 'desktop', 'en'),
+    one('stock-add', '/products/p-1/edit', {
       then: async (page) => {
         await tap('স্টক যোগ')(page);
         await pick(page, /^M · Black/);
@@ -3838,7 +3839,7 @@ function stockCardPairs(): Pair[] {
         await sheet(page).getByLabel('সাপ্লায়ার (অপশনাল)').fill('রহিম ট্রেডার্স');
       },
     }),
-    one('stock-add-serials', '/products/p-ph', {
+    one('stock-add-serials', '/products/p-ph/edit', {
       state: phones,
       before: noCamera,
       then: async (page) => {
@@ -3857,13 +3858,13 @@ function stockCardPairs(): Pair[] {
         await sheet(page).getByRole('button', { name: 'ঠিক আছে' }).click();
       },
     }),
-    one('sh-history-product', '/products/p-1', {
+    one('sh-history-product', '/products/p-1/edit', {
       then: async (page) => {
         await tap('স্টক হিস্ট্রি')(page);
         await pick(page, /^M · Black/);
       },
     }),
-    one('sh-pick-variant', '/products/p-1', {
+    one('sh-pick-variant', '/products/p-1/edit', {
       then: async (page) => {
         await tap('স্টক হিস্ট্রি')(page);
         await pick(page, /^M · Black/);
@@ -3872,16 +3873,19 @@ function stockCardPairs(): Pair[] {
           .click();
       },
     }),
-    one('sh-batches', '/products/p-fc', { state: { products: creamShop() }, then: tap('ব্যাচ') }),
-    one('sh-writeoff', '/products/p-fc', {
+    one('sh-batches', '/products/p-fc/edit', {
+      state: { products: creamShop() },
+      then: tap('ব্যাচ'),
+    }),
+    one('sh-writeoff', '/products/p-fc/edit', {
       state: { products: creamShop() },
       then: async (page) => {
         await tap('ব্যাচ')(page);
         await sheet(page).getByRole('button', { name: 'রাইট-অফ' }).click();
       },
     }),
-    one('sh-serials-product', '/products/p-ph', { state: phones, then: serialsOf128 }),
-    one('sh-serial-fix', '/products/p-ph', {
+    one('sh-serials-product', '/products/p-ph/edit', { state: phones, then: serialsOf128 }),
+    one('sh-serial-fix', '/products/p-ph/edit', {
       state: phones,
       then: async (page) => {
         await serialsOf128(page);
@@ -3890,7 +3894,7 @@ function stockCardPairs(): Pair[] {
           .click();
       },
     }),
-    one('sh-serials-missing', '/products/p-ph', {
+    one('sh-serials-missing', '/products/p-ph/edit', {
       state: phones,
       before: noCamera,
       then: async (page) => {
@@ -4294,14 +4298,17 @@ function stockPairs(): Pair[] {
     },
   };
   return [
-    one('sh-sizechart', '/products/p-1', { state: charted({ rows: chartRows }), then: openChart }),
-    one('sh-sizechart-picture', '/products/p-1', {
+    one('sh-sizechart', '/products/p-1/edit', {
+      state: charted({ rows: chartRows }),
+      then: openChart,
+    }),
+    one('sh-sizechart-picture', '/products/p-1/edit', {
       state: charted({ imageId: 'm-9' }),
       then: openChart,
     }),
-    one('sh-variant', '/products/p-1', { then: tap('M · Black-এর সেটিংস') }),
+    one('sh-variant', '/products/p-1/edit', { then: tap('M · Black-এর সেটিংস') }),
     // Design v3.15 (after the walkthrough): M · Black's SKU typed in S · Black's sheet, refused on Save.
-    one('sh-variant-sku-taken', '/products/p-1', {
+    one('sh-variant-sku-taken', '/products/p-1/edit', {
       state: { products: { ...drawnProducts(), refuse: { sku: 'TS-M-BL' } } },
       then: async (page) => {
         await tap('S · Black-এর সেটিংস')(page);
@@ -4315,12 +4322,12 @@ function stockPairs(): Pair[] {
           .waitFor();
       },
     }),
-    one('sh-made-to-order', '/products/p-1', {
+    one('sh-made-to-order', '/products/p-1/edit', {
       then: async (page) => {
         await main(page).getByRole('radio', { name: 'অর্ডার পেলে বানানো (স্টক লাগে না)' }).click();
       },
     }),
-    one('sh-deliversto', '/products/p-1', {
+    one('sh-deliversto', '/products/p-1/edit', {
       then: async (page) => {
         await tap(/^যেখানে ডেলিভারি হবে/)(page);
         await sheet(page).getByRole('radio', { name: 'নির্দিষ্ট কিছু জোনে' }).click();
@@ -4329,7 +4336,7 @@ function stockPairs(): Pair[] {
           .click();
       },
     }),
-    one('sh-policy', '/products/p-1', { then: tap(/^পেমেন্ট পলিসি/) }),
+    one('sh-policy', '/products/p-1/edit', { then: tap(/^পেমেন্ট পলিসি/) }),
     one('pf-books_stationery', '/products/new', { state: books, then: book('bn') }),
     one(
       'pf-books_stationery',
@@ -4436,12 +4443,12 @@ function variantPairs(): Pair[] {
     defaults: { presetKey: 'food_bakery', stockTracking: 'not_tracked', suggestedAttributeIds: [] },
   };
   return [
-    { ...one('product', '/products/p-1', { scroll: card }), name: 'product-variants' },
+    { ...one('product', '/products/p-1/edit', { scroll: card }), name: 'product-variants' },
     {
-      ...one('product', '/products/p-1', { scroll: card }, 'desktop', 'en'),
+      ...one('product', '/products/p-1/edit', { scroll: card }, 'desktop', 'en'),
       name: 'product-variants',
     },
-    one('product-size-added', '/products/p-1', {
+    one('product-size-added', '/products/p-1/edit', {
       scroll: card,
       then: async (page) => {
         await options(0)(page);
@@ -4449,8 +4456,8 @@ function variantPairs(): Pair[] {
         await sheet(page).getByRole('button', { name: 'ঠিক আছে' }).click();
       },
     }),
-    one('sh-options', '/products/p-1', { then: options(0) }),
-    one('sh-options-colour', '/products/p-1', {
+    one('sh-options', '/products/p-1/edit', { then: options(0) }),
+    one('sh-options-colour', '/products/p-1/edit', {
       then: async (page) => {
         await options(1)(page);
         await insert(page, 'Sky');
@@ -4459,7 +4466,7 @@ function variantPairs(): Pair[] {
     }),
     one(
       'sh-options-colour',
-      '/products/p-1',
+      '/products/p-1/edit',
       {
         then: async (page) => {
           await main(page).getByRole('button', { name: 'Add option' }).nth(1).click();
@@ -4471,21 +4478,21 @@ function variantPairs(): Pair[] {
       'desktop',
       'en',
     ),
-    one('sh-attribute', '/products/p-1', {
+    one('sh-attribute', '/products/p-1/edit', {
       then: async (page) => {
         await main(page).getByRole('button', { name: 'অ্যাট্রিবিউট যোগ করুন' }).click();
         await sheet(page).getByRole('searchbox').fill('Fi');
       },
     }),
-    one('sh-attribute-new', '/products/p-1', { then: create('Finish') }),
-    one('sh-attribute-picked', '/products/p-1', {
+    one('sh-attribute-new', '/products/p-1/edit', { then: create('Finish') }),
+    one('sh-attribute-picked', '/products/p-1/edit', {
       then: async (page) => {
         await create('Finish')(page);
         await sheet(page).getByRole('button', { name: 'তৈরি করে বেছে নিন' }).click();
         await sheet(page).getByText('এইমাত্র তৈরি', { exact: false }).waitFor();
       },
     }),
-    one('sh-attribute-full', '/products/p-1', {
+    one('sh-attribute-full', '/products/p-1/edit', {
       state: { products: threeSplits },
       then: async (page) => {
         await main(page).getByRole('button', { name: 'অ্যাট্রিবিউট যোগ করুন' }).click();
@@ -4495,20 +4502,20 @@ function variantPairs(): Pair[] {
           .click();
       },
     }),
-    one('sh-desc-text', '/products/p-1', {
+    one('sh-desc-text', '/products/p-1/edit', {
       then: async (page) => {
         await main(page)
           .getByRole('button', { name: /^Material/ })
           .click();
       },
     }),
-    one('sh-fill', '/products/p-1', {
+    one('sh-fill', '/products/p-1/edit', {
       then: async (page) => {
         await main(page).getByRole('button', { name: 'সবগুলোতে বসান' }).click();
         await sheet(page).getByRole('button', { name: /^L/ }).click();
       },
     }),
-    one('sh-remove-option', '/products/p-1', {
+    one('sh-remove-option', '/products/p-1/edit', {
       scroll: card,
       then: async (page) => {
         await main(page).getByRole('button', { name: 'Blue সরান' }).click();
@@ -4560,7 +4567,7 @@ function variantPairs(): Pair[] {
       'desktop',
       'en',
     ),
-    one('pf-variants-over', '/products/p-1', {
+    one('pf-variants-over', '/products/p-1/edit', {
       scroll: card,
       state: { products: hundred },
       then: async (page) => {
@@ -4592,29 +4599,33 @@ function editorPairs(): Pair[] {
     await page.getByRole('link', { name: 'হোম' }).first().click();
   };
   return [
-    one('product', '/products/p-1'),
-    one('product', '/products/p-1', {}, 'desktop', 'en'),
-    one('sh-category', '/products/p-1', { then: tap(/ক্যাটাগরি/) }),
-    one('sh-category-new-product', '/products/p-1', {
+    one('product', '/products/p-1/edit'),
+    one('product', '/products/p-1/edit', {}, 'desktop', 'en'),
+    one('sh-category', '/products/p-1/edit', { then: tap(/ক্যাটাগরি/) }),
+    one('sh-category-new-product', '/products/p-1/edit', {
       then: async (page) => {
         await tap(/ক্যাটাগরি/)(page);
         await page.getByRole('dialog').getByRole('button', { name: 'নতুন ক্যাটাগরি' }).click();
         await page.getByRole('dialog').getByLabel('নাম', { exact: true }).fill('শার্ট');
       },
     }),
-    one('sh-link', '/products/p-1', {
-      then: tap('ভ্যারিয়েন্ট বাছলে লিংকটা সরাসরি সেই ভ্যারিয়েন্টে খুলবে।'),
+    // §7.4c: Change the link is in More settings now; the sheet no longer picks a variant.
+    one('sh-link', '/products/p-1/edit', {
+      then: async (page) => {
+        await page.getByRole('main').getByText('আরও সেটিংস').click();
+        await tap('লিংক বদলান')(page);
+      },
     }),
-    one('sh-delete', '/products/p-1', {
+    one('sh-delete', '/products/p-1/edit', {
       then: async (page) => {
         await page.getByRole('main').getByText('আরও সেটিংস').click();
         await tap('আর্কাইভ করুন')(page);
       },
     }),
-    one('sh-leave', '/products/p-1', { then: leave }),
-    one('product-archived', '/products/p-7'),
-    one('product-archived', '/products/p-7', {}, 'desktop', 'en'),
-    one('product-copied', '/products/p-1', {
+    one('sh-leave', '/products/p-1/edit', { then: leave }),
+    one('product-archived', '/products/p-7/edit'),
+    one('product-archived', '/products/p-7/edit', {}, 'desktop', 'en'),
+    one('product-copied', '/products/p-1/edit', {
       then: async (page) => {
         await page.getByRole('main').getByText('আরও সেটিংস').click();
         await tap('কপি বানান')(page);
@@ -4622,16 +4633,16 @@ function editorPairs(): Pair[] {
       },
     }),
     one('pf-errors', '/products/new', { then: tap('সেভ করুন') }),
-    one('sh-media', '/products/p-1', { then: tap('ছবি 1') }),
-    one('sh-media', '/products/p-1', { then: tap('Photo 1') }, 'desktop', 'en'),
-    one('sh-media-past', '/products/p-1', {
+    one('sh-media', '/products/p-1/edit', { then: tap('ছবি 1') }),
+    one('sh-media', '/products/p-1/edit', { then: tap('Photo 1') }, 'desktop', 'en'),
+    one('sh-media-past', '/products/p-1/edit', {
       state: { products: { ...drawnProducts(), pastOrders: { 'm-3': 12 } } },
       then: async (page) => {
         await page.getByRole('button', { name: 'ছবি 1' }).click();
         await page.getByRole('dialog').getByRole('button', { name: 'ছবি 3 সরান' }).click();
       },
     }),
-    one('sh-media-full', '/products/p-1', {
+    one('sh-media-full', '/products/p-1/edit', {
       state: {
         products: { ...drawnProducts(), storage: { full: true, usedBytes: 2048 * 1024 * 1024 } },
       },
@@ -4645,7 +4656,7 @@ function editorPairs(): Pair[] {
         await tap('ছবি 1')(page);
       },
     }),
-    one('product-partial', '/products/p-1', {
+    one('product-partial', '/products/p-1/edit', {
       state: { products: { ...drawnProducts(), refuse: { images: true } } },
       then: async (page) => {
         await tap('ছবি 1')(page);
@@ -5707,6 +5718,8 @@ const THEMED = themedPairs([...PAIRS, ...MONEY]);
 const P88: Pair[] = [...p88HelpPairs(), ...P88_MONEY, ...P88_CAT_PAIRS];
 // TENANT-DASHBOARD-DESIGN §7.42 (Part 40): photo designs.
 const P40: Pair[] = p40Pairs();
+// §7.4c: the product list's share sheet and the seller's product page.
+const PD_SHARE: Pair[] = pdSharePairs();
 
 /** Scrolls the card holding this text to the top of its scrolling page. */
 async function scrollToCard(within: Locator, text: RegExp): Promise<void> {
@@ -5729,7 +5742,7 @@ async function scrollTo(within: Locator, heading: RegExp): Promise<void> {
 }
 
 test.describe('the built shell beside the prototype', () => {
-  for (const pair of [...PAIRS, ...MONEY, ...STEPS, ...THEMED, ...P88, ...P40]) {
+  for (const pair of [...PAIRS, ...MONEY, ...STEPS, ...THEMED, ...P88, ...P40, ...PD_SHARE]) {
     test(`${pair.name} on a ${pair.device} in ${pair.language}`, async ({ browser }) => {
       // The pictures set their own sizes, so they are taken once, not in every project.
       test.skip(test.info().project.name !== 'desktop', 'taken once, in the desktop project');

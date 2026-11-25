@@ -11,7 +11,7 @@ import { creamShop, phoneShop, SAMPLE_IMEIS as IMEI } from './support/stock';
 
 async function open(page: Page, id: string, state: ShopState = {}): Promise<ApiLog> {
   const log = await mockApi(page, { language: 'en', ...state });
-  await page.goto(`/${SLUG}/products/${id}`);
+  await page.goto(`/${SLUG}/products/${id}/edit`);
   await expect(page.getByRole('main').getByRole('heading').first()).toBeAttached();
   return log;
 }
