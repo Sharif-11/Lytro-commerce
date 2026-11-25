@@ -142,7 +142,7 @@ export function visit() {
   const landed = call(
     'GET',
     hosts.shop(SHOP.slug),
-    `/${PAGE}/${PRODUCT.slug}?fbclid=IwAR${RUN}${String(n)}`,
+    `/${PAGE}/${PRODUCT.id}?fbclid=IwAR${RUN}${String(n)}`,
     null,
     { tags: { kind: 'page', page: PAGE } },
   );

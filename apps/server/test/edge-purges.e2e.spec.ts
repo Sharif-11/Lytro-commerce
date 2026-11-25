@@ -94,6 +94,19 @@ describeIfDatabase("what a change queues for Cloudflare's copies (D9-32)", () =>
     expect(purges).toEqual([[`p:${id}`]]);
   });
 
+  // The owner, 2026-11-25: the storefront's অফার link, on every page's header, shows only while something is on sale.
+  it('a product going on sale or coming off it drops every page of the shop; a new sale price alone does not', async () => {
+    const shop = await openShop(port, texts, 'edge-sale');
+    const id = await product(shop, 5);
+    const edit = (body: Record<string, unknown>) => async () => {
+      const edited = await shop.patch(`/products/${id}`, body);
+      expect(edited.status, JSON.stringify(edited.body)).toBe(200);
+    };
+    expect(await queuedBy(edit({ regularPrice: 400 }))).toContainEqual([`s:${shop.slug}`]);
+    expect(await queuedBy(edit({ basePrice: 280 }))).toEqual([[`p:${id}`]]);
+    expect(await queuedBy(edit({ regularPrice: null }))).toContainEqual([`s:${shop.slug}`]);
+  });
+
   it("hiding a product drops the shop's lists too", async () => {
     const shop = await openShop(port, texts, 'edge-hide');
     const id = await product(shop, 5);

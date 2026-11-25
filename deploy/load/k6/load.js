@@ -189,7 +189,8 @@ export function shopper() {
   }
   pause(2);
   const product = pick(shop.products, n * 31);
-  page(shop.slug, `/p/${product.slug}`);
+  // By its ID, as every product link names it (the owner, 2026-11-25); a slug link would be a redirect first.
+  page(shop.slug, `/p/${product.id}`);
   // As the product page asks it since D9-32: one product's charge is a GET Cloudflare's edge keeps.
   const estimate = call(
     'GET',
@@ -230,7 +231,7 @@ export function website() {
   ok(listed, 'the products read', [200]);
   pause(2);
   const product = pick(shop.products, n * 17);
-  const detail = call('GET', hosts.api, `/v1/catalogue/products/${product.slug}`, null, {
+  const detail = call('GET', hosts.api, `/v1/catalogue/products/${product.id}`, null, {
     headers,
     tags: { kind: 'read', read: 'product' },
   });
