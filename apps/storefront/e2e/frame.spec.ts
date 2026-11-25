@@ -153,7 +153,7 @@ test.describe('header and footer (SFT-13, SFT-21, TEN-18)', () => {
     const shop = await openShop(page);
     await page.goto(shop.url('/'));
     const footer = page.locator('footer.foot');
-    await expect(footer.getByRole('link', { name: '01711-223344' })).toHaveAttribute(
+    await expect(footer.getByRole('link', { name: '01711223344' })).toHaveAttribute(
       'href',
       'tel:01711-223344',
     );
@@ -161,7 +161,7 @@ test.describe('header and footer (SFT-13, SFT-21, TEN-18)', () => {
     await expect(footer.getByText('Shop 12, Rapa Plaza')).toBeVisible();
     // UI/UX batch 2 (2.2): the shop's WhatsApp, Messenger and Facebook page, each opening in a new tab.
     const chats: [string, string, string][] = [
-      ["The shop's WhatsApp", '01711 223 344', 'https://wa.me/8801711223344'],
+      ["The shop's WhatsApp", '01711223344', 'https://wa.me/8801711223344'],
       ["The shop's Messenger", 'm.me/meghfashion', 'https://m.me/meghfashion'],
       [
         "The shop's Facebook page",

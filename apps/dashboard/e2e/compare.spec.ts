@@ -1195,9 +1195,9 @@ const PAYMENT_METHODS: Pair[] = [
     await dialogOf(page).getByLabel('অ্যাকাউন্টের নাম').fill('মেঘ');
     await dialogOf(page).getByRole('button', { name: 'সেভ করুন' }).click();
   }),
-  pm('sh-pm33-edit', 'sh-pm33-edit', drawnMethods('bn'), tapMain('এডিট 01911 222 333')),
+  pm('sh-pm33-edit', 'sh-pm33-edit', drawnMethods('bn'), tapMain('এডিট 01911222333')),
   pm('dlg-pm33-delete', 'dlg-pm33-delete', drawnMethods('bn'), async (page) => {
-    await tapMain('এডিট 01711 234 567')(page);
+    await tapMain('এডিট 01711234567')(page);
     await dialogOf(page).getByRole('button', { name: 'ডিলিট করুন' }).click();
   }),
   pm('sh-pm33-bank', 'sh-pm33-bank', drawnMethods('bn'), async (page) => {

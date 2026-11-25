@@ -102,7 +102,7 @@ export function PersonRow({
   const sub = member.isOwner
     ? t('everyPermission')
     : [
-        member.name !== null && member.phone ? bangladeshiPhone.grouped(member.phone) : null,
+        member.name !== null && member.phone ? bangladeshiPhone.display(member.phone) : null,
         roleNames.length > 0 ? roleNames.join(', ') : t('noRole'),
       ]
         .filter(Boolean)

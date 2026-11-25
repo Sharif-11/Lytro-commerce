@@ -235,7 +235,7 @@ function CallSheet({
       <p className="-mt-1 text-[14px] text-fg-muted">
         {t('howWentSub', {
           name: firstName,
-          phone: order.customerPhone ? bangladeshiPhone.grouped(order.customerPhone) : '',
+          phone: order.customerPhone ? bangladeshiPhone.display(order.customerPhone) : '',
         })}
       </p>
       {log.isError ? <ErrorBanner error={log.error} /> : null}

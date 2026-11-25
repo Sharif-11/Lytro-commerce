@@ -3,7 +3,7 @@ import type { CustomerSummary } from '@/types/customers';
 
 /** A customer's name, or their phone where a table's order left none. */
 export const customerName = (customer: Pick<CustomerSummary, 'name' | 'phone'>): string =>
-  customer.name ?? (customer.phone ? bangladeshiPhone.grouped(customer.phone) : '');
+  customer.name ?? (customer.phone ? bangladeshiPhone.display(customer.phone) : '');
 
 // Short everyday words, 7 letters at most: two of them and four digits fit the password's 20 characters, and read
 // easily when a shopper types what the shop sent them.

@@ -3,6 +3,7 @@ import { useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@lytronix/ui';
 import {
+  phoneShown,
   PlanPaymentStatus,
   SalesBucket,
   SmsLogStatus,
@@ -26,7 +27,6 @@ import { NOTE } from '@/components/ui/sizes';
 import { StatusChip } from '@/components/ui/status-chip';
 import { dhakaDay, formatDay, taka, useAgo } from '@/lib/format';
 import { amountOf } from '@/lib/payment-amounts';
-import { spacedPhone } from '@/lib/phone-words';
 import { formatSessionTime } from '@/lib/session-time';
 import type { OperatorShop } from '@/types/operator';
 import type { ShopSales } from '@/types/shop-figures';
@@ -206,7 +206,7 @@ export function SmsPanel({ shop, onClose }: ListPanelProps): React.JSX.Element {
                   }
                 >
                   <span className={DETAIL}>
-                    <span className="mono">{spacedPhone(each.toPhone)}</span> ·{' '}
+                    <span className="mono">{phoneShown(each.toPhone)}</span> ·{' '}
                     {t('p88shops.attempts', { n: each.attempts })}
                   </span>
                   {each.lastError ? <span className={MONO_DETAIL}>{each.lastError}</span> : null}
@@ -321,7 +321,7 @@ export function WaitingPanel({
               <Lines title={`${t(`paymentKinds.${payment.kind}`)} · ${taka(amountOf(payment))}`}>
                 <span className={DETAIL}>
                   <span className="mono">{payment.transactionId ?? '—'}</span> ·{' '}
-                  {payment.senderNumber ? spacedPhone(payment.senderNumber) : '—'} ·{' '}
+                  {payment.senderNumber ? phoneShown(payment.senderNumber) : '—'} ·{' '}
                   {ago(payment.createdAt)}
                 </span>
               </Lines>

@@ -45,11 +45,10 @@ describe('BangladeshiPhone', () => {
     expect(phone.forField('+88017')).toBe('+88017');
   });
 
-  it('shows the local form with a hyphen, in groups, for WhatsApp and with +880', () => {
-    expect(phone.display('+8801712345678')).toBe('01712-345678');
-    expect(phone.grouped('+8801712345678')).toBe('01712 345 678');
+  it('shows a number as one run of digits, local or with +880, and for WhatsApp (the owner, 2026-11-25)', () => {
+    expect(phone.display('+8801712345678')).toBe('01712345678');
     expect(phone.forWhatsapp('01712345678')).toBe('8801712345678');
-    expect(phone.international('+8801711234567')).toBe('+880 1711 234 567');
+    expect(phone.international('+8801711234567')).toBe('+8801711234567');
     expect(phone.international('+88017')).toBe('+88017');
   });
 });

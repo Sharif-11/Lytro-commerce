@@ -107,7 +107,7 @@ The SVG wordmarks in `docs/brand/` are set in live text. Before any production u
 
 Scale: 12, 14, 16, 18, 22, 28, 36, 48 px. UI line height 1.45, display 1.1, Bangla 1.6. Body text 16 px on phones, never 14. Uppercase labels get 0.06 em letter spacing and are used for eyebrows only.
 
-**Numbers and money.** Western digits everywhere, including Bangla UI, because order numbers, phone numbers and amounts are read aloud and typed back. Taka is written `৳1,250` with the sign first and no space; paisa shown only when non-zero. Three-digit grouping, matching bKash and Nagad statements. Dates in Bangla UI follow `১৭ অক্টোবর` for display and `17 Oct 2026` in tables; times are 12-hour with Bangla period words (সকাল, দুপুর, বিকাল, রাত).
+**Numbers and money.** Western digits everywhere, including Bangla UI, because order numbers, phone numbers and amounts are read aloud and typed back. Taka is written `৳1,250` with the sign first and no space; paisa shown only when non-zero. Three-digit grouping, matching bKash and Nagad statements. Dates in Bangla UI follow `১৭ অক্টোবর` for display and `17 Oct 2026` in tables; times are 12-hour with Bangla period words (সকাল, দুপুর, বিকাল, রাত). Phone numbers show as one run of digits, no spaces or dashes: `01711234567`, `+8801711234567` where the country code is written, and `017•••••842` masked (the owner, 2026-11-25; `phoneShown` in @lytronix/validators).
 
 ---
 

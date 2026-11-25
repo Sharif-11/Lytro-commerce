@@ -40,7 +40,7 @@ test.describe('the list', () => {
     await expect(main.getByText('-13d')).toBeVisible();
     await expect(main.getByText('Suspended')).toBeVisible();
     await expect(main.getByText('1 overrides').first()).toBeVisible();
-    await expect(main.getByText('01712 345678')).toBeVisible();
+    await expect(main.getByText('01712345678')).toBeVisible();
   });
 
   test('searches as you type, and the address keeps the word', async ({ page }) => {

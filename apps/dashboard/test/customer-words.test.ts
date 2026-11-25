@@ -21,7 +21,7 @@ describe('a new password for a shopper (CUS-14)', () => {
 describe('a customer as a row names them', () => {
   it('by their name, or their phone where a table left none', () => {
     expect(customerName({ name: 'Nusrat Jahan', phone: '01711234567' })).toBe('Nusrat Jahan');
-    expect(customerName({ name: null, phone: '01711234567' })).toBe('01711 234 567');
+    expect(customerName({ name: null, phone: '01711234567' })).toBe('01711234567');
     expect(customerName({ name: null, phone: null })).toBe('');
   });
 });

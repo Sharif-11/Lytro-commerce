@@ -28,7 +28,7 @@ export function methodName(method: AccountMethod, t: TFunction<'menu'>): string 
 export function accountNumberOf(account: PaymentAccount): string {
   return account.number === null
     ? (account.accountNumber ?? '')
-    : bangladeshiPhone.grouped(account.number);
+    : bangladeshiPhone.display(account.number);
 }
 
 export function typeWord(type: WalletAccountType | null, t: TFunction<'menu'>): string {

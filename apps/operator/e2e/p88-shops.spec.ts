@@ -58,7 +58,7 @@ test.describe('the list', () => {
     await expect(main.getByText("Searching owners' phones too.", { exact: false })).toBeVisible();
     await expect(main.getByRole('link', { name: 'Rahim Fashion' })).toBeVisible();
     await expect(main.getByRole('link', { name: 'Sadia Collection' })).toBeVisible();
-    await expect(main.getByText('01815 345678')).toBeVisible();
+    await expect(main.getByText('01815345678')).toBeVisible();
     await page.goto('/shops?q=%2B880%201712-345678');
     await expect(main.getByRole('link', { name: 'Rahim Fashion' })).toBeVisible();
     await expect(main.getByRole('link', { name: 'Sadia Collection' })).toHaveCount(0);
@@ -107,7 +107,7 @@ test.describe("a shop's figures", () => {
     await figure(page, "SMS that didn't go").click();
     const sms = dialog(page, "SMS that didn't go · Rahim Fashion");
     await expect(sms.getByText('#261018-0044 · 1 units · balance too low')).toBeVisible();
-    await expect(sms.getByText('01715 000111 · 3 tries')).toBeVisible();
+    await expect(sms.getByText('01715000111 · 3 tries')).toBeVisible();
     await sms.getByRole('button', { name: 'Close' }).click();
 
     await figure(page, 'Failed courier calls').click();
@@ -211,7 +211,7 @@ test.describe("the owner's sign-in", () => {
     await page.getByRole('button', { name: 'Reset sign-in' }).click();
     const panel = dialog(page, "Reset the owner's sign-in");
     await expect(panel.getByText('Rahim Fashion · Rahim Uddin')).toBeVisible();
-    await expect(panel.getByLabel('The phone the owner gave you')).toHaveValue('01712 345678');
+    await expect(panel.getByLabel('The phone the owner gave you')).toHaveValue('01712345678');
     await expect(panel.getByText("This isn't the account's number")).toHaveCount(0);
     await panel.getByRole('textbox', { name: 'Reason' }).fill('Lost the phone');
     await panel.getByRole('button', { name: 'Sign out and send the code' }).click();

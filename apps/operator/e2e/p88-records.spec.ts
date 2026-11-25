@@ -105,7 +105,7 @@ test.describe('reports', () => {
   }) => {
     const log = await open(page, '/reports?view=consumers');
     await expect(main(page)).toContainText('Faiza Shoes');
-    await expect(main(page)).toContainText('01611 223300');
+    await expect(main(page)).toContainText('01611223300');
     await expect(main(page)).toContainText('7.9 GB');
     await main(page).getByRole('button', { name: 'SMS' }).click();
     await expect(main(page)).toContainText('4,200 SMS units');

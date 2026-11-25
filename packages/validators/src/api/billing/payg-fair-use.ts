@@ -26,14 +26,14 @@ export type ApiCapInput = z.infer<typeof apiCapInputSchema>;
 const MASK = '•';
 
 /**
- * PYG-22 (PF-21): a locked order's phone, its first three and last three digits: `017•• ••• 842`. A number written with
- * the country code reads as the local one.
+ * PYG-22 (PF-21): a locked order's phone, its first three and last three digits: `017•••••842`, one run like every phone
+ * shown (phoneShown; the owner, 2026-11-25). A number written with the country code reads as the local one.
  */
 export function maskedPhone(phone: string): string {
   const digits = phone.replace(/\D/g, '');
   const local = digits.startsWith('880') ? `0${digits.slice(3)}` : digits;
   if (local.length < 6) return MASK.repeat(local.length);
-  return `${local.slice(0, 3)}${MASK.repeat(2)} ${MASK.repeat(3)} ${local.slice(-3)}`;
+  return `${local.slice(0, 3)}${MASK.repeat(local.length - 6)}${local.slice(-3)}`;
 }
 
 /** PYG-22 (PF-21, PFQ-6): a locked order's name, its first letter only: `স•••`. */

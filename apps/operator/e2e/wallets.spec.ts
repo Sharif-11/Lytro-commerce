@@ -8,7 +8,7 @@ import { mockApi, type ConsoleState } from './support/mock-api';
 async function open(page: Page, state: ConsoleState = {}) {
   const log = await mockApi(page, state);
   await page.goto('/wallets');
-  await expect(main(page).getByText('01711 000000')).toBeVisible();
+  await expect(main(page).getByText('01711000000')).toBeVisible();
   return log;
 }
 
@@ -152,7 +152,7 @@ test('adds a number from its own card, next in the order', async ({ page }) => {
   await expect(panel.getByLabel('Provider')).toHaveValue('Rocket');
   await panel.getByLabel('Number').fill(' 01911 000009 ');
   await panel.getByRole('button', { name: 'Add wallet' }).click();
-  await expect(page.getByText('Rocket 01911 000009 added.')).toBeVisible();
+  await expect(page.getByText('Rocket 01911000009 added.')).toBeVisible();
   expect(log.sent('POST', '/operator/platform-wallets')).toEqual({
     provider: 'Rocket',
     number: '01911 000009',
@@ -166,12 +166,12 @@ test('Shown saves at once, and a number can be removed', async ({ page }) => {
   const log = await open(page);
   const rocket = card(page, 'Rocket');
   await rocket.getByRole('switch', { name: 'Shown to sellers' }).click();
-  await expect(page.getByText('Sellers can see Rocket 01911 0000001 now.')).toBeVisible();
+  await expect(page.getByText('Sellers can see Rocket 019110000001 now.')).toBeVisible();
   expect(log.sent('PATCH', '/operator/platform-wallets/w3')).toEqual({ enabled: true });
   await rocket.getByRole('button', { name: 'Remove' }).click();
   const panel = page.getByRole('dialog', { name: 'Remove this wallet?' });
   await panel.getByRole('button', { name: 'Remove' }).click();
-  await expect(page.getByText('Rocket · 01911 0000001 removed.')).toBeVisible();
+  await expect(page.getByText('Rocket · 019110000001 removed.')).toBeVisible();
 });
 
 test('says when a method is on with nothing shown to shops', async ({ page }) => {
