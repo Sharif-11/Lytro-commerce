@@ -794,6 +794,77 @@ flow, the server and the storefront.
    new-product flow has proved itself. This proposal changes `/products/new` only.
 8. **On a computer, the right-hand column holds আরও সেটিংস and the combo link** (`pq-wide`). I recommend keeping it.
 
+### 7.4c The product's share link in the list, and a product page for the seller (proposal 2026-11-25, awaiting the owner)
+
+The owner, 2026-11-25: "i think the product card in product list need the sharable link also. sketch first please";
+then "currently when seller click a product from product list it directly lands to product edit form but the correct
+flow is product detail page for seller with button for editing, deleting etc, sharing etc". Drawn in
+`brand/lytro-dashboard.html`, group "Products · share link and product page (proposal 2026-11-25)". Screenshots are in
+`Lytro screenshots/product-list-share/`; `before-products-list.png` is today's list on staging. One PR builds it after
+approval, with no separate sketch PR (the owner, 2026-11-25).
+
+**The list (`pl-share-row`, `pl-share-wide`).** Each row stays as built: the first photo, the name with its tags,
+"n variants · category", and the price over the stock chip. A share button sits at the right, in its own 52 px column
+with a 44 px tap target. Tapping the **row** opens the product page (`pd-detail`), not the editor. Tapping **share**
+opens the share sheet.
+- An **inactive** product's share button is shown greyed and does nothing, with the label "অ্যাক্টিভ করলে শেয়ার করা
+  যাবে" (shoppers can't see an inactive product yet).
+- **Archived** products have no share button. Their tab is for restoring or deleting, and their link shows nothing.
+
+**The share sheet (`pl-share-sheet`, `-design`, `-copied`, `-paused`).** The body is the quick-add save sheet's
+(`pq-saved`, §7.4b), without "saved ✓" and without the add-another buttons; one component serves both.
+- The product's photo, name and price.
+- The landing link `/l/<slug>` on the shop's own address (the verified custom domain, else `<slug>.lytro.app`).
+- লিংক কপি করুন, শেয়ার করুন (Web Share, falling back to WhatsApp, Facebook and Messenger), and পেজটা দেখুন.
+- **নির্দিষ্ট ডিজাইনের লিংক:** on a product with photo designs, "পুরো প্রোডাক্ট" (the default) or one design. A
+  design adds the storefront's `?d=<design id>`, so the page opens with that design chosen. The sheet's photo follows
+  the choice.
+- The shop's link, as a secondary block.
+- A shop that isn't open yet (pay-as-you-go not activated, or the storefront off) still shows the link, with one line
+  saying when it opens and the action that opens it.
+- Copied: the button turns to "কপি হয়েছে ✓" for 1.6 s, and the toast says so.
+
+**The product page (`pd-detail`, `-designs`, `-made`, `-wide`).** A read view, top to bottom:
+1. The photo strip: each design labelled, the video last with its ▶.
+2. The name and status (অ্যাক্টিভ, or the archived chip), then the price and category.
+3. **Stock.**
+   - One shared stock: the built Stock card's three figures (বিক্রি করা যাবে, শিপের অপেক্ষায়, হাতে আছে).
+   - Designs × sizes: the grid, red when sold out and amber when low. Once orders beyond stock are built, a short
+     cell shows "1টা কম".
+   - Made to order: one line, with no figures.
+   - স্টক যোগ করুন opens the built add-stock sheet.
+4. **Recent orders:** the last 3 with this product, in the new order-row style (photo, name, phone with its digits
+   together, total, status), and সব দেখুন.
+5. **The product link:** the link with Copy, Share and See (Share opens the share sheet).
+6. **The last 30 days:** pieces sold, sales in taka and orders, with সেলস দেখুন to the built product sales page
+   (`/sales/:productId`).
+7. **Links:** স্টক হিস্টরি (the built history sheet) and কম্বোতে আছে (the combos it is in).
+
+Actions: **এডিট করুন** (primary; opens today's editor), **শেয়ার**, and **⋮** with দোকানে দেখুন, কপি বানান (the
+built Duplicate), আর্কাইভ and ডিলিট. Delete opens the built remove dialog (`pd-delete`): Archive is the default, or
+"একেবারে ডিলিট", each with the built note.
+- On a phone the actions sit in the foot bar: Edit, Share, ⋮.
+- On a computer they sit in the head: See in the shop, Share, ⋮, Edit. The photos, stock and orders take the left
+  column; the link, the sales and the links take the right.
+
+**Archived (`pd-archived`):** the built banner (peArchived), the photos, name and price, with ফিরিয়ে আনুন and
+একেবারে ডিলিট. No share card and no stock.
+
+**Open questions, each with my recommendation:**
+1. **A link per design** (`?d=`) in the share sheet, or the whole product only? **Include it,** with the whole product
+   as the default: a seller posting one colour on Facebook wants the shopper to land on that colour.
+2. **The editor's own link card** (link-card.tsx, with its variant link `?v=` and "লিংক বদলান"), once the product page
+   has a link card? **Remove it from the editor,** which becomes edit-only. Keep "লিংক বদলান" (changing the slug) in
+   the editor's more settings. Drop the per-variant link from the screens (the backend and old links keep working),
+   since the design link covers what shoppers choose.
+3. **Which sales numbers?** **Pieces sold, sales in taka and orders, over the last 30 days,** linking to the sales page
+   for more.
+4. **Does "কপি বানান" (Duplicate) belong in ⋮?** **Yes.** It is built (`useDuplicateProduct`) and sellers use it for
+   similar products. Its pay-as-you-go fee note follows it, as in the editor.
+5. **After Save in the editor:** return to the product page, not the list? **Yes.** A new product's first save still
+   shows the quick-add share sheet (§7.4b).
+6. **Recent orders:** **3 rows.** More is the orders list, filtered to this product (সব দেখুন).
+
 ### 7.5 Categories (`/categories`)
 
 **Job.** Keep a small tree the storefront can navigate, without ever blocking a product (PRD-03: a
