@@ -4,11 +4,12 @@ import {
   ProductRowSource,
   PUBLIC_PAGE_SIZE_MAX,
   STOREFRONT_ALL_PRODUCTS_PAGE,
-  STOREFRONT_GRID_FILL,
   STOREFRONT_THEMES,
   StorefrontFill,
   StorefrontLinkKind,
   StorefrontSectionKind,
+  storefrontAllProductsAt,
+  storefrontGridLines,
   storefrontRowFill,
   type HeroSource,
   type StorefrontCollection,
@@ -174,26 +175,32 @@ export function mayAllHide(
   );
 }
 
-/**
- * SB-32 as amended (the owner, 2026-11-26, "yes to all"): the rows whose grid ends on a full line -- the four that fill
- * themselves from the shop's lists. A row picked by hand or an offer's shows all it has; a carousel has no lines.
- */
-const ENDS_ON_A_LINE: ReadonlySet<ProductRowSource> = new Set([
+/** SB-32 as amended (the owner, 2026-11-26, "yes to all"): the rows that fill themselves from the shop's own lists. */
+const FROM_LISTS: ReadonlySet<ProductRowSource> = new Set([
   ProductRowSource.Newest,
   ProductRowSource.OnSale,
   ProductRowSource.BestSellers,
   ProductRowSource.Category,
 ]);
 
+/**
+ * SB-32 as amended: a row of newest, on sale, best sellers or one category -- the rows whose grid ends on a full line,
+ * and the ones the design editor says are not showing. A row picked by hand or an offer's always shows all it has.
+ */
+export function fillsFromLists(section: Pick<ProductsSection, 'source'>): boolean {
+  return FROM_LISTS.has(section.source);
+}
+
 /** SB-32 as amended: how many of a row's cards it shows -- such a grid whole lines of four, the rest in "সব প্রোডাক্ট". */
 export function rowShows(
   section: Pick<ProductsSection, 'source' | 'layout'>,
   available: number,
 ): number {
-  if (section.layout !== ProductRowLayout.Grid || !ENDS_ON_A_LINE.has(section.source)) {
+  // A carousel has no lines.
+  if (section.layout !== ProductRowLayout.Grid || !fillsFromLists(section)) {
     return available;
   }
-  return Math.floor(available / STOREFRONT_GRID_FILL) * STOREFRONT_GRID_FILL;
+  return storefrontGridLines(available);
 }
 
 /** SB-32: a list asked for its own count and as many again as the rows above may show, so it fills after skipping them. */
@@ -258,17 +265,11 @@ export function homeReadPlan(design: PublicStorefrontDesign, shop: ShopFacts = {
 }
 
 /**
- * SB-32 Q1: where "সব প্রোডাক্ট" goes on every home, the seller's own included -- after the page's last row of
- * products; with none, before the trust strip, else at the end. The index of the section it goes before.
+ * SB-32 Q1: where "সব প্রোডাক্ট" goes on every home, the seller's own included: the index of the section it goes before
+ * (`storefrontAllProductsAt`, which the design editor's locked row follows too).
  */
 export function allProductsAt(sections: readonly StorefrontSection[]): number {
-  let last = -1;
-  sections.forEach((section, index) => {
-    if (section.kind === StorefrontSectionKind.Products) last = index;
-  });
-  if (last >= 0) return last + 1;
-  const trust = sections.findIndex((section) => section.kind === StorefrontSectionKind.Trust);
-  return trust >= 0 ? trust : sections.length;
+  return storefrontAllProductsAt(sections);
 }
 
 /**

@@ -18,7 +18,9 @@ import type {
   PublicCategory,
   PublicStorefrontDesign,
 } from '../src/lib/api/storefront-api';
+import { DashboardOrigin } from '../src/lib/design/dashboard-origin';
 import { homeLayout, homeReadPlan, mayAllHide, rowShows } from '../src/lib/design/home-reads';
+import { leftOut } from '../src/lib/design/left-out';
 import { type LinkFacts, linkShows } from '../src/lib/design/links';
 
 // STOREFRONT-BUILDER-PLAN SB-32 as amended (the owner, 2026-11-26, "yes to all"): a seller's own slide or banner hides
@@ -241,5 +243,89 @@ describe('an automatic grid ends on a full line (SB-32 as amended)', () => {
       nextCursor: null,
     });
     expect(names(laid.rows.get(picked.id))).toHaveLength(6);
+  });
+});
+
+describe('what the home leaves out, for the design editor (SB-32 as amended, de-*)', () => {
+  const newest = row(20, Source.Newest, { count: 4 });
+  const lipstick = row(21, Source.Category, { count: 4 });
+  const best = row(22, Source.BestSellers, { count: 4 });
+  const picked = row(23, Source.Picked, { productIds: ['x'] });
+  const offerRow = row(24, Source.Offer, { offerId: 'ended' });
+  const wide: StorefrontSection = {
+    id: id(25),
+    visible: true,
+    kind: StorefrontSectionKind.WideBanner,
+    banner: slide(toCategory('perfume')),
+  };
+  const own = banners([slide(ON_SALE), slide(JUST_IN), slide(offer('ended'))]);
+  const slides = hero([slide(PRODUCT), slide(toCategory('perfume'))]);
+
+  it('reports exactly what the render drops: a short row, a row its repeats left short, own items leading nowhere', () => {
+    const d = design([slides, newest, lipstick, best, picked, offerRow, own, wide]);
+    const rows = new Map<string, ProductCard[]>([
+      [newest.id, cards('a', 'b', 'c', 'd', 'e')],
+      // Two lipsticks: short of a grid.
+      [lipstick.id, cards('l1', 'l2')],
+      // Five best sellers, but three already among the newest: two left, short.
+      [best.id, cards('a', 'b', 'c', 'x1', 'x2')],
+      [picked.id, cards('p1')],
+    ]);
+    const laid = homeLayout(d, rows, { products: [], nextCursor: null });
+    expect([...laid.rows.keys()]).toEqual([newest.id, picked.id]);
+    expect(leftOut(d, laid.rows, facts({ sale: { products: 0 } }))).toEqual({
+      rows: [
+        { sectionId: lipstick.id, fill: 4 },
+        { sectionId: best.id, fill: 4 },
+      ],
+      items: [
+        { sectionId: slides.id, index: 1, link: StorefrontLinkKind.Category },
+        { sectionId: own.id, index: 0, link: StorefrontLinkKind.OnSale },
+        { sectionId: own.id, index: 2, link: StorefrontLinkKind.Offer },
+        { sectionId: wide.id, index: 0, link: StorefrontLinkKind.Category },
+      ],
+    });
+  });
+
+  it('never names a picked or an offer row, or an automatic section', () => {
+    const d = design([picked, offerRow, { ...own, fill: StorefrontFill.Auto }]);
+    expect(leftOut(d, new Map(), facts({ sale: { products: 0 } }))).toEqual({
+      rows: [],
+      items: [],
+    });
+  });
+
+  it('says a carousel needs 5', () => {
+    const carousel = row(26, Source.Newest, { layout: ProductRowLayout.Carousel, count: 6 });
+    expect(leftOut(design([carousel]), new Map(), facts()).rows).toEqual([
+      { sectionId: carousel.id, fill: 5 },
+    ]);
+  });
+});
+
+describe('who may read /preview/layout from a browser (SB-32 as amended)', () => {
+  it('lets only the dashboard read it', () => {
+    const origins = new DashboardOrigin('lytro.app');
+    expect(origins.headersFor('https://app.lytro.app')).toEqual({
+      'access-control-allow-origin': 'https://app.lytro.app',
+      vary: 'Origin',
+    });
+    for (const other of [
+      'https://evil.example',
+      'https://rodh.lytro.app',
+      'http://app.lytro.app',
+      null,
+    ]) {
+      expect(origins.headersFor(other)).toEqual({ vary: 'Origin' });
+    }
+    // Staging's dashboard names its own domain.
+    expect(new DashboardOrigin('staging.lytro.app').allows('https://app.staging.lytro.app')).toBe(
+      true,
+    );
+  });
+
+  it('lets a local dashboard read it only where the domain is localhost', () => {
+    expect(new DashboardOrigin('localhost').allows('http://localhost:5173')).toBe(true);
+    expect(new DashboardOrigin('lytro.app').allows('http://localhost:5173')).toBe(false);
   });
 });
