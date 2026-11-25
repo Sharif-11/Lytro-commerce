@@ -42,6 +42,8 @@ const productCardSchema = z.object({
   bestSeller: z.boolean(),
   // DC-1, DC-5: the design this card shows; null for a product's own card.
   designId: z.string().nullable(),
+  // The owner, 2026-11-25: the product has a video (a play mark on its card).
+  hasVideo: z.boolean(),
 });
 
 // OFFERS-PLAN OF-8, OF-12: an offer by its link name.

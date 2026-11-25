@@ -240,6 +240,8 @@ describeIfDatabase('the public product list (PRD-09, CCH-11, CCH-12)', () => {
         'bestSeller',
         // STOREFRONT-BUILDER-PLAN DC-1: the design a card shows; null for a product's own card.
         'designId',
+        // The owner, 2026-11-25: whether the product has a video (a play mark on its card).
+        'hasVideo',
       ].sort(),
     );
     expect(products[0]).toMatchObject({
@@ -393,6 +395,87 @@ describeIfDatabase('the public product list (PRD-09, CCH-11, CCH-12)', () => {
     expect(other.status).toBe(400);
     expect(fieldsOf(other)).toEqual({ cursor: 'invalid_format' });
     const forged = Buffer.from(JSON.stringify(['newest', "'; DROP", 'x'])).toString('base64url');
+    expect((await callApi(`/v1/catalogue/products?sort=newest&cursor=${forged}`, key)).status).toBe(
+      400,
+    );
+  });
+});
+
+// The owner, 2026-11-25: "here the storefront must be populated even if there is no stock. And just re order the stock
+// out products at last".
+describeIfDatabase('sold-out products listed last (SB-9 as amended 2026-11-25)', () => {
+  /** A product with one default variant and this much stock (none: sold out, as a new seller often leaves it). */
+  const product = (shop: ShopClient, name: string, price: number, stock = 0) =>
+    simple(shop, name, price, { variants: [{ optionIds: [], openingStock: stock }] });
+
+  it('lists a shop whose products are all sold out', async () => {
+    const shop = await openShop(port, texts, 'pub-all-out');
+    const key = await keyFor(shop);
+    const first = await product(shop, 'First', 200);
+    const second = await product(shop, 'Second', 300);
+    const newest = await page(key, '?sort=newest');
+    expect(newest.products.map((card) => card.id)).toEqual([second.id, first.id]);
+    expect(newest.products.map((card) => card.stockState)).toEqual(['out', 'out']);
+    expect((await page(key, '')).products).toHaveLength(2);
+  });
+
+  it('puts sold-out cards last in every order, keeping each part in its own order, across pages', async () => {
+    const shop = await openShop(port, texts, 'pub-out-last');
+    const key = await keyFor(shop);
+    const emptyCheap = await product(shop, 'Empty 200', 200);
+    const stockedDear = await product(shop, 'Stocked 500', 500, 3);
+    const emptyCheapest = await product(shop, 'Empty 100', 100);
+    const stockedCheap = await product(shop, 'Stocked 300', 300, 3);
+    const order = {
+      newest: [stockedCheap, stockedDear, emptyCheapest, emptyCheap],
+      featured: [stockedCheap, stockedDear, emptyCheapest, emptyCheap],
+      price_low: [stockedCheap, stockedDear, emptyCheapest, emptyCheap],
+      price_high: [stockedDear, stockedCheap, emptyCheap, emptyCheapest],
+    };
+    for (const [sort, expected] of Object.entries(order)) {
+      const ids = expected.map((made) => made.id);
+      expect(
+        (await page(key, `?sort=${sort}`)).products.map((card) => card.id),
+        sort,
+      ).toEqual(ids);
+      // One card a page: the keyset carries the order across every page.
+      const paged = await everyPage(key, `?sort=${sort}&limit=1`);
+      expect(
+        paged.map((card) => card.id),
+        `${sort}, a card a page`,
+      ).toEqual(ids);
+    }
+    // The shopper's own "in stock only" still leaves the sold-out ones out.
+    expect((await page(key, '?inStock=true&sort=newest')).products.map((card) => card.id)).toEqual([
+      stockedCheap.id,
+      stockedDear.id,
+    ]);
+    // A row the seller picked keeps the seller's order, its sold-out cards last.
+    const picked = [emptyCheap.id, stockedDear.id, emptyCheapest.id, stockedCheap.id];
+    expect(
+      (await page(key, `?productIds=${picked.join(',')}`)).products.map((card) => card.id),
+    ).toEqual([stockedDear.id, stockedCheap.id, emptyCheap.id, emptyCheapest.id]);
+  });
+
+  it('resumes a cursor made before the stock key among the cards in stock, and refuses a stock key not 0 or 1', async () => {
+    const shop = await openShop(port, texts, 'pub-old-cursor');
+    const key = await keyFor(shop);
+    await product(shop, 'One', 100, 2);
+    await product(shop, 'Two', 200, 2);
+    await product(shop, 'Three', 300, 2);
+    const first = await page(key, '?sort=newest&limit=1');
+    const cursor = first.nextCursor ?? '';
+    const decoded = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8')) as string[];
+    expect(decoded[1]).toBe('1');
+    const old = Buffer.from(JSON.stringify([decoded[0], ...decoded.slice(2)])).toString(
+      'base64url',
+    );
+    const viaNew = await page(key, `?sort=newest&limit=1&cursor=${cursor}`);
+    const viaOld = await page(key, `?sort=newest&limit=1&cursor=${old}`);
+    expect(viaOld.products.map((card) => card.id)).toEqual(viaNew.products.map((card) => card.id));
+    const forged = Buffer.from(JSON.stringify([decoded[0], '2', ...decoded.slice(2)])).toString(
+      'base64url',
+    );
     expect((await callApi(`/v1/catalogue/products?sort=newest&cursor=${forged}`, key)).status).toBe(
       400,
     );

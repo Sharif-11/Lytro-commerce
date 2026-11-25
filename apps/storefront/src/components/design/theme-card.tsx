@@ -3,6 +3,7 @@ import { ProductCardStyle } from '@lytronix/validators/common';
 import type { ProductCard } from '@/lib/api/storefront-api';
 import { isNew } from '@/lib/catalogue/browse';
 import { money, type Words } from '@/lib/i18n/words';
+import { Icon } from '../icon';
 import { DesignIcon } from './design-icon';
 
 // STOREFRONT-BUILDER-PLAN SB-10, SB-17, SB-21: the theme's product card, as the sketch draws it, on the designed home
@@ -45,6 +46,12 @@ export function ThemeCard({
     <a className={`sb-card sb-${style}`} href={cardHref(product)}>
       <div className="sb-im">
         {product.image ? <img src={product.image.urls.thumbnail} alt="" loading="lazy" /> : null}
+        {/* The owner, 2026-11-25: a play mark when the product has a video; the video itself loads on its page. */}
+        {product.hasVideo === true ? (
+          <span className="sb-vid" role="img" aria-label={words.t('has_video')}>
+            <Icon name="play" />
+          </span>
+        ) : null}
         <div className="sb-tags">
           {saving > 0 ? <span className="sb-tag sb-sale">−{saving}%</span> : null}
           {isNew(product.createdAt, now) ? (

@@ -64,6 +64,7 @@ interface Card {
   stockState: string;
   image: { id: string } | null;
   designId: string | null;
+  hasVideo: boolean;
 }
 
 interface SellerCard {
@@ -176,6 +177,37 @@ async function designedBurka(shop: ShopClient) {
   };
 }
 
+/** A product in as many designs as `shades` (one photo each), in one size; its designs' IDs in their own order. */
+async function designedProduct(
+  shop: ShopClient,
+  name: string,
+  shades: number[],
+): Promise<{ id: string; designs: string[] }> {
+  const photos: string[] = [];
+  for (const shade of shades) photos.push(await upload(shop, shade));
+  const made = await product(shop, name, photos);
+  const keys = photos.map((_, index) => `d${String(index)}`);
+  const saved = await shop.put(`/products/${made.id}/images`, {
+    photos: photos.map((mediaId, index) => ({ mediaId, design: keys[index] })),
+    designs: keys.map((key, index) => ({ key, name: `ডিজাইন ${String(index + 1)}` })),
+  });
+  expect(saved.status, JSON.stringify(saved.body)).toBe(200);
+  const designs = (saved.body as { designs: { id: string; number: number }[] }).designs;
+  const design = await admin.query<{ id: string }>(
+    'SELECT id FROM tenant.attributes WHERE photo_designs',
+  );
+  const split = await shop.put(`/products/${made.id}/variants`, {
+    variantAttributes: [
+      { attributeId: design.rows[0]?.id, optionIds: designs.map((row) => row.id) },
+    ],
+  });
+  expect(split.status, JSON.stringify(split.body)).toBe(200);
+  return {
+    id: made.id,
+    designs: [...designs].sort((a, b) => a.number - b.number).map((row) => row.id),
+  };
+}
+
 async function keyFor(shop: ShopClient): Promise<string> {
   const made = await shop.post('/api-keys', { name: 'Website', websites: [SITE] });
   expect(made.status, JSON.stringify(made.body)).toBe(201);
@@ -262,6 +294,112 @@ describeIfDatabase('design cards (DC-1, DC-5)', () => {
       cursor = page.nextCursor;
     } while (cursor !== null);
     expect(seen.sort()).toEqual(spread.map(cardOf).sort());
+  });
+
+  // The owner, 2026-11-25: "here the storefront must be populated even if there is no stock. And just re order the
+  // stock out products at last" -- a sold-out design no longer leaves a list (DC-5 as amended).
+  it("shows a sold-out design's card last, in the default order, the seller's order and across pages", async () => {
+    const shop = await openShop(port, texts, 'cards-out');
+    const plain = await product(shop, 'Cotton saree', [await upload(shop, 90)]);
+    const abaya = await designedProduct(shop, 'Abaya', [30, 120, 200]);
+    const [first, second, third] = abaya.designs;
+    if (!first || !second || !third) throw new Error('three designs');
+    const key = await keyFor(shop);
+    // Every size of the first design sells out.
+    await admin.query(
+      `UPDATE tenant.product_variants v SET stock_state = 'out'
+       FROM tenant.variant_attribute_values va WHERE va.variant_id = v.id AND va.option_id = $1`,
+      [first],
+    );
+    await admin.query(
+      'UPDATE tenant.catalogue_state SET version = version + 1 WHERE tenant_id = $1',
+      [shop.tenantId],
+    );
+    const card = (designId: string | null, productId = abaya.id) =>
+      `${productId}:${designId ?? ''}`;
+
+    const listed = (await list(key, 'designs=true')).products;
+    expect(listed.map(cardOf)).toHaveLength(4);
+    expect(listed.map(cardOf).slice(0, 3).sort()).toEqual(
+      [card(second), card(third), card(null, plain.id)].sort(),
+    );
+    expect(listed.at(-1)).toMatchObject({ designId: first, stockState: 'out' });
+    // In the shop's own order (DC-6, DC-7): the seller's order holds within each part, the sold-out design after.
+    const order = [card(first), card(null, plain.id), card(third), card(second)];
+    const saved = await shop.put('/storefront/design/cards/order', {
+      cards: [
+        { productId: abaya.id, designId: first },
+        { productId: plain.id, designId: null },
+        { productId: abaya.id, designId: third },
+        { productId: abaya.id, designId: second },
+      ],
+    });
+    expect(saved.status, JSON.stringify(saved.body)).toBe(200);
+    const expected = [order[1], order[2], order[3], order[0]];
+    // (Another question than the one read above: the version is read through a cache of a few seconds, CCH-04.)
+    expect((await list(key, 'designs=true&limit=20')).products.map(cardOf)).toEqual(expected);
+    // A card a page gives the same order: the cursor carries which part it is in.
+    const seen: string[] = [];
+    let cursor: string | null = null;
+    do {
+      const page: { products: Card[]; nextCursor: string | null } = await list(
+        key,
+        `designs=true&limit=1${cursor === null ? '' : `&cursor=${cursor}`}`,
+      );
+      seen.push(...page.products.map(cardOf));
+      cursor = page.nextCursor;
+    } while (cursor !== null);
+    expect(seen).toEqual(expected);
+    // The shopper's "In stock only" still leaves the sold-out design out.
+    expect((await list(key, 'designs=true&inStock=true')).products.map(cardOf)).toEqual(
+      expected.slice(0, 3),
+    );
+  });
+
+  // The owner, 2026-11-25: a play mark on a card whose product has a video, so the list says which.
+  it("says which cards have a video: a product's own and each of its design cards", async () => {
+    const shop = await openShop(port, texts, 'cards-video');
+    const plain = await product(shop, 'Cotton saree', [await upload(shop, 70)]);
+    const photo = await upload(shop, 150);
+    const filmed = await designedProduct(shop, 'Silk saree', [110, 190]);
+    // Its video: a ready video row of the shop's stands in (0066 lets a product hold only a ready video; a real one needs
+    // ffmpeg, as media-video.e2e has), since a card says only whether there is one.
+    const film = await admin.query<{ id: string }>(
+      `INSERT INTO tenant.media (tenant_id, kind, purpose, content_type, declared_bytes)
+       SELECT tenant_id, 'video', purpose, 'video/mp4', declared_bytes FROM tenant.media WHERE id = $1
+       RETURNING id`,
+      [photo],
+    );
+    // As media moves: uploading, then processing, then ready with when and its hash (media_ready_check).
+    await admin.query("UPDATE tenant.media SET status = 'processing' WHERE id = $1", [
+      film.rows[0]?.id,
+    ]);
+    await admin.query(
+      `UPDATE tenant.media SET status = 'ready', ready_at = now(),
+         hash = encode(sha256(convert_to(id::text, 'UTF8')), 'hex')
+       WHERE id = $1`,
+      [film.rows[0]?.id],
+    );
+    await admin.query('UPDATE tenant.products SET video_id = $1 WHERE id = $2', [
+      film.rows[0]?.id,
+      filmed.id,
+    ]);
+    await admin.query(
+      'UPDATE tenant.catalogue_state SET version = version + 1 WHERE tenant_id = $1',
+      [shop.tenantId],
+    );
+    const key = await keyFor(shop);
+    const spread = (await list(key, 'designs=true')).products;
+    expect(spread.map((card) => [cardOf(card), card.hasVideo]).sort()).toEqual(
+      [
+        [`${plain.id}:`, false],
+        [`${filmed.id}:${filmed.designs[0] ?? ''}`, true],
+        [`${filmed.id}:${filmed.designs[1] ?? ''}`, true],
+      ].sort(),
+    );
+    const own = (await list(key, 'limit=10')).products;
+    expect(own.find((card) => card.id === filmed.id)?.hasVideo).toBe(true);
+    expect(own.find((card) => card.id === plain.id)?.hasVideo).toBe(false);
   });
 });
 

@@ -190,14 +190,11 @@ export class StorefrontDesignRepository {
   /**
    * SB-30 (the owner, 2026-11-24): the shop's first `limit` categories in its own order -- top-level ones first, each
    * level by its place, then name, as the Categories page lists them -- that shoppers see (it and every category above
-   * it visible) and that hold an active product in stock, in them or any category under them (the same products the
-   * category's own list shows).
+   * it visible) and that hold an active product, in them or any category under them (the same products the category's
+   * own list shows). Amended 2026-11-25 (the owner: "the storefront must be populated even if there is no stock"): a
+   * product counts whatever its stock; its row lists the sold-out ones last.
    */
-  async firstStockedCategories(
-    tx: Transaction,
-    tenantId: string,
-    limit: number,
-  ): Promise<string[]> {
+  async firstFilledCategories(tx: Transaction, tenantId: string, limit: number): Promise<string[]> {
     await this.transactions.setTenantContext(tx, tenantId);
     const result = await tx.execute<{ id: string }>(sql`
       WITH RECURSIVE tree (id, depth, path, shown) AS (
@@ -223,7 +220,7 @@ export class StorefrontDesignRepository {
         SELECT 1 FROM scope
         JOIN tenant.product_categories pc ON pc.tenant_id = ${tenantId} AND pc.category_id = scope.id
         JOIN tenant.products p ON p.tenant_id = pc.tenant_id AND p.id = pc.product_id
-        WHERE scope.root = tree.id AND p.active AND p.deleted_at IS NULL AND p.stock_state <> 'out')
+        WHERE scope.root = tree.id AND p.active AND p.deleted_at IS NULL)
       ORDER BY tree.depth, tree.path, lower(c.name), c.id
       LIMIT ${limit}`);
     return result.rows.map((row) => row.id);

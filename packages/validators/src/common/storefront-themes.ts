@@ -735,7 +735,7 @@ function startingCategoryRow(categoryId: string, at: number): StorefrontSection 
 
 /**
  * SB-11: the design a shop has before it saves its own: its theme's starting page, every section on auto. SB-30: with
- * a row for each of `categoryIds` (the shop's first categories holding something in stock, at most
+ * a row for each of `categoryIds` (the shop's first categories holding a product, whatever its stock, at most
  * STARTING_CATEGORY_ROWS), after the theme's last row of products.
  */
 export function startingDesign(
