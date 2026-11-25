@@ -476,6 +476,7 @@ export const DOC_ROUTES: readonly DocRoute[] = [
       categoryIds: [C_SAREE],
       images: [{ ...IMG1, width: 1200, height: 1500, designId: null }],
       video: null,
+      cover: IMG1,
       options: [
         {
           attributeId: COLOR,

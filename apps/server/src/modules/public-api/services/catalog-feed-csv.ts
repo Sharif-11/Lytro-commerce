@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { FeedAttributeRow } from '@lytronix/db';
 import { StockState } from '@lytronix/validators';
 import { toCsv } from '../../../common/csv';
-import { MediaLinks } from '../../../common/media-links';
+import { coverOf, MediaLinks, type ImageView } from '../../../common/media-links';
 import type { PublicCatalogueStore } from '../ports/public-catalogue-store';
 import { CATALOG_FEED_SETTINGS, PUBLIC_CATALOGUE_STORE } from '../tokens';
 import type { CatalogFeedSettings } from './catalog-feed.service';
@@ -67,14 +67,21 @@ export class CatalogFeedCsv {
   build(tenantId: string, shopSlug: string, ownDomain: string | null): Promise<string> {
     return this.store.run(async (tx) => {
       const variants = await this.store.listFeedVariants(tx, tenantId);
-      const images = new Map<string, { url: string; designId: string | null }[]>();
+      const images = new Map<string, { view: ImageView; designId: string | null }[]>();
       for (const row of await this.store.listFeedImages(tx, tenantId)) {
-        const url = this.links.image(tenantId, row.mediaId, row.hash).urls.main;
+        const view = this.links.image(tenantId, row.mediaId, row.hash);
         images.set(row.productId, [
           ...(images.get(row.productId) ?? []),
-          { url, designId: row.designId },
+          { view, designId: row.designId },
         ]);
       }
+      // STO-09: a product with no photo shows its video's poster, so Meta never gets an item without a picture.
+      const videos = new Map(
+        (await this.store.listFeedVideos(tx, tenantId)).map((row) => [
+          row.productId,
+          this.links.video(tenantId, row.mediaId, row.hash),
+        ]),
+      );
       const values = attributeValues(await this.store.listFeedAttributes(tx, tenantId, WANTED));
       const origin = this.settings.shopOrigin(shopSlug, ownDomain);
       const valueOf = (column: Column, productId: string, variantId: string): string =>
@@ -90,7 +97,7 @@ export class CatalogFeedCsv {
                   ...all.filter((photo) => photo.designId === row.designId),
                   ...all.filter((photo) => photo.designId === null),
                 ]
-          ).map((photo) => photo.url);
+          ).map((photo) => photo.view);
           return {
             id: row.variantId,
             item_group_id: row.productId,
@@ -104,8 +111,11 @@ export class CatalogFeedCsv {
             condition: row.condition,
             price: `${row.price} BDT`,
             link: `${origin}/l/${encodeURIComponent(row.productSlug)}?v=${row.variantId}`,
-            image_link: photos[0] ?? '',
-            additional_image_link: photos.slice(1, 1 + MORE_IMAGES).join(','),
+            image_link: coverOf(photos, videos.get(row.productId) ?? null)?.urls.main ?? '',
+            additional_image_link: photos
+              .slice(1, 1 + MORE_IMAGES)
+              .map((photo) => photo.urls.main)
+              .join(','),
             brand: valueOf('brand', row.productId, row.variantId),
             color: valueOf('color', row.productId, row.variantId),
             size: valueOf('size', row.productId, row.variantId),

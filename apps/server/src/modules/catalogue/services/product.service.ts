@@ -51,6 +51,7 @@ import { UsageWarnings } from '../../usage-warnings/services/usage-warnings';
 import { MissingReference } from '../../../common/errors/missing-reference';
 import { StockRefused } from '../../../common/errors/stock-refused';
 import { UniqueViolation } from '../../../common/errors/unique-violation';
+import { coverOf as productCoverOf } from '../../../common/media-links';
 import { readSerials } from '../../../common/serial-entry';
 import { dhakaDate } from '../../../common/time';
 import { PayAsYouGoBillingService } from '../../balance/services/payg-billing.service';
@@ -2629,9 +2630,10 @@ export class ProductService {
     for (const productId of new Set(productIds)) {
       const detail = await this.detail(tx, tenantId, productId);
       const described = detail.attributes.filter((row) => row.role === AttributeRole.Informational);
-      const photo = detail.images[0];
+      // STO-09: the product's cover -- its first photo, else its video's poster.
+      const photo = productCoverOf(detail.images, detail.video);
       // ATR-20 (PD-7): a design's variant shows its design's cover, the design's first photo, whichever the shopper
-      // tapped; every other variant, the product's first photo.
+      // tapped; every other variant, the product's cover.
       const photoById = new Map(detail.images.map((image) => [image.id, image]));
       const coverOf = new Map(
         detail.designs.map((design) => [
