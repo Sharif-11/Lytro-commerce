@@ -78,6 +78,7 @@ interface PublicShop {
     preview: boolean;
   };
   sale: { products: number; bestDiscount: number };
+  productCount: number;
 }
 
 interface Card {
@@ -351,12 +352,13 @@ describeIfDatabase("a shop's storefront design (SB-11 to SB-16)", () => {
       );
       expect(shown.icon).toBeNull();
       expect(shown.sale).toEqual({ products: 0, bestDiscount: 0 });
+      expect(shown.productCount).toBe(0);
     },
     SLOW,
   );
 
   it(
-    'starts with a row for each of its first three categories holding a product, sold out too, until it publishes its own page (SB-30)',
+    'starts with a row for each of its first three categories that can fill one, sold out too, until it publishes its own page (SB-30, SB-32)',
     async () => {
       const shop = await openShop(port, texts, 'sf-cat-rows');
       const made = async (name: string, body: Record<string, unknown>) => {
@@ -364,27 +366,35 @@ describeIfDatabase("a shop's storefront design (SB-11 to SB-16)", () => {
         expect(created.status, JSON.stringify(created.body)).toBe(201);
         return created.body as { id: string; slug: string };
       };
-      // In the shop's order: one with nothing in it and one hidden (both left out); one whose only product is sold out,
-      // which counts since 2026-11-25 (the owner: "the storefront must be populated even if there is no stock"); then
-      // two that sell, the second through its sub-category; and two more that sell, left out past the first three.
+      // SB-32 (2026-11-26): a category's row needs a grid's four products to show, so a category counts with four.
+      const products = async (name: string, categoryId: string, count: number) => {
+        for (let at = 1; at <= count; at += 1) {
+          await product(shop, `${name} ${String(at)}`, { categoryIds: [categoryId] });
+        }
+      };
+      // In the shop's order: one with nothing in it, one hidden and one with three (all left out); one whose products
+      // include a sold-out one, which counts since 2026-11-25 (the owner: "the storefront must be populated even if
+      // there is no stock"); then two with four, the second through its sub-category; and one more, left out past the
+      // first three.
       await made('Empty', { sortOrder: 1 });
       const hidden = await made('Hidden', { sortOrder: 2, visible: false });
-      const soldOut = await made('Sold out', { sortOrder: 3 });
-      const kurti = await made('Kurti', { sortOrder: 4 });
-      const women = await made('Women', { sortOrder: 5 });
+      const small = await made('Small', { sortOrder: 3 });
+      const soldOut = await made('Sold out', { sortOrder: 4 });
+      const kurti = await made('Kurti', { sortOrder: 5 });
+      const women = await made('Women', { sortOrder: 6 });
       const saree = await made('Saree', { sortOrder: 1, parentId: women.id });
-      const shoes = await made('Shoes', { sortOrder: 6 });
-      const bags = await made('Bags', { sortOrder: 7 });
-      await product(shop, 'Hidden kurti', { categoryIds: [hidden.id] });
+      const shoes = await made('Shoes', { sortOrder: 7 });
+      await products('Hidden kurti', hidden.id, 4);
+      await products('Small', small.id, 3);
       const gone = await product(shop, 'Gone', {
         categoryIds: [soldOut.id],
         variants: [{ optionIds: [], openingStock: 0 }],
       });
       expect((await shop.get(`/products/${gone.id}`)).body).toMatchObject({ stockState: 'out' });
-      await product(shop, 'Kurti', { categoryIds: [kurti.id] });
-      await product(shop, 'Saree', { categoryIds: [saree.id] });
-      await product(shop, 'Sneaker', { categoryIds: [shoes.id] });
-      await product(shop, 'Tote', { categoryIds: [bags.id] });
+      await products('Kept', soldOut.id, 3);
+      await products('Kurti', kurti.id, 4);
+      await products('Saree', saree.id, 4);
+      await products('Sneaker', shoes.id, 4);
 
       const editor = await editorOf(shop);
       const start = startingDesign(editor.startingTheme, [soldOut.id, kurti.id, women.id]);
@@ -400,6 +410,8 @@ describeIfDatabase("a shop's storefront design (SB-11 to SB-16)", () => {
       expect(shown.design.categories.map((category) => category.id).sort()).toEqual(
         [soldOut.id, kurti.id, women.id].sort(),
       );
+      // SB-32: "সব প্রোডাক্ট · Nটি" counts every active product, a hidden category's and a sold-out one included.
+      expect(shown.productCount).toBe(4 + 3 + 4 + 4 + 4 + 4);
 
       // A page the shop published is its own: categories never add rows to it.
       const own = startingDesign(editor.startingTheme);

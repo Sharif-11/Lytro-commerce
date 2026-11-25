@@ -65,6 +65,13 @@ export interface StorefrontSaleSummary {
   bestDiscount: number;
 }
 
+/** SB-9, SB-32: what the shop's pages say of its products, read together. */
+export interface StorefrontFigures {
+  sale: StorefrontSaleSummary;
+  /** SB-32: its active products, every one its lists show ("সব প্রোডাক্ট · Nটি"). */
+  productCount: number;
+}
+
 /**
  * SB-12, SB-14: what a write leaves -- the three copies, and every photo any of them names (`storefrontMediaIds` of
  * each), so the media library counts the uses without reading the documents.
@@ -192,9 +199,15 @@ export class StorefrontDesignRepository {
    * level by its place, then name, as the Categories page lists them -- that shoppers see (it and every category above
    * it visible) and that hold an active product, in them or any category under them (the same products the category's
    * own list shows). Amended 2026-11-25 (the owner: "the storefront must be populated even if there is no stock"): a
-   * product counts whatever its stock; its row lists the sold-out ones last.
+   * product counts whatever its stock; its row lists the sold-out ones last. SB-32 (2026-11-26): a category counts only
+   * when it holds `fill` products or more, enough to fill its row.
    */
-  async firstFilledCategories(tx: Transaction, tenantId: string, limit: number): Promise<string[]> {
+  async firstFilledCategories(
+    tx: Transaction,
+    tenantId: string,
+    limit: number,
+    fill: number,
+  ): Promise<string[]> {
     await this.transactions.setTenantContext(tx, tenantId);
     const result = await tx.execute<{ id: string }>(sql`
       WITH RECURSIVE tree (id, depth, path, shown) AS (
@@ -216,25 +229,33 @@ export class StorefrontDesignRepository {
       SELECT tree.id
       FROM tree
       JOIN tenant.categories c ON c.tenant_id = ${tenantId} AND c.id = tree.id
-      WHERE tree.shown AND EXISTS (
-        SELECT 1 FROM scope
+      WHERE tree.shown AND (
+        SELECT count(DISTINCT p.id) FROM scope
         JOIN tenant.product_categories pc ON pc.tenant_id = ${tenantId} AND pc.category_id = scope.id
         JOIN tenant.products p ON p.tenant_id = pc.tenant_id AND p.id = pc.product_id
-        WHERE scope.root = tree.id AND p.active AND p.deleted_at IS NULL)
+        WHERE scope.root = tree.id AND p.active AND p.deleted_at IS NULL) >= ${fill}
       ORDER BY tree.depth, tree.path, lower(c.name), c.id
       LIMIT ${limit}`);
     return result.rows.map((row) => row.id);
   }
 
-  /** SB-9: how many active products are on sale, and the biggest saving among them. */
-  async sale(tx: Transaction, tenantId: string): Promise<StorefrontSaleSummary> {
+  /**
+   * SB-9: how many active products are on sale, and the biggest saving among them; SB-32: how many active products
+   * there are. One read of the shop's products.
+   */
+  async figures(tx: Transaction, tenantId: string): Promise<StorefrontFigures> {
     await this.transactions.setTenantContext(tx, tenantId);
-    const result = await tx.execute<{ products: number; best: number | null }>(sql`
-      SELECT count(*)::int AS products, max(p.best_discount)::int AS best
+    const result = await tx.execute<{ products: number; best: number | null; listed: number }>(sql`
+      SELECT count(*) FILTER (WHERE p.best_discount > 0)::int AS products,
+        max(p.best_discount) FILTER (WHERE p.best_discount > 0)::int AS best,
+        count(*)::int AS listed
       FROM tenant.products p
-      WHERE p.tenant_id = ${tenantId} AND p.active AND p.deleted_at IS NULL AND p.best_discount > 0`);
+      WHERE p.tenant_id = ${tenantId} AND p.active AND p.deleted_at IS NULL`);
     const row = result.rows[0];
-    return { products: row?.products ?? 0, bestDiscount: row?.best ?? 0 };
+    return {
+      sale: { products: row?.products ?? 0, bestDiscount: row?.best ?? 0 },
+      productCount: row?.listed ?? 0,
+    };
   }
 
   /** DC-2: whether each design of a product is its own card; on for a shop that has never turned it off. */

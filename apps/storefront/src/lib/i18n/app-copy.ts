@@ -189,6 +189,10 @@ export const APP_COPY = {
   sb_language: ['ভাষা', 'Language'],
   sb_shop_by: ['ক্যাটাগরি অনুযায়ী কিনুন', 'Shop by category'],
   sb_n_products: ['{n}টি পণ্য', '{n} products'],
+  // SB-32 (the owner, 2026-11-26: "use সব প্রোডাক্ট"): the home's every-other-product grid, its count and its button.
+  sb_all_count: ['· {n}টি', '· {n}'],
+  sb_more_n: ['আরও {n}টি প্রোডাক্ট দেখুন', 'See {n} more'],
+  sb_more: ['আরও প্রোডাক্ট দেখুন', 'See more'],
   sb_just_in: ['নতুন এসেছে', 'Just in'],
   sb_on_sale: ['অফার কালেকশন', 'On sale'],
   sb_best_sellers: ['সবচেয়ে বেশি বিক্রি', 'Best sellers'],

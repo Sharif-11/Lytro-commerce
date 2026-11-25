@@ -1,5 +1,5 @@
 import { SectionHeadStyle, type StorefrontPhoto } from '@lytronix/validators';
-import type { CSSProperties } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import type { ImageView } from '@/lib/api/storefront-api';
 import type { Words } from '@/lib/i18n/words';
 import { DesignIcon } from './design-icon';
@@ -31,7 +31,8 @@ export function SectionHead({
   words,
 }: {
   style: SectionHeadStyle;
-  title: string;
+  /** SB-32: "সব প্রোডাক্ট" adds its count beside its name. */
+  title: ReactNode;
   all: string | null;
   words: Words;
 }) {

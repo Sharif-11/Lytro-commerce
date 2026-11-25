@@ -108,6 +108,8 @@ export interface PublicShop {
   design?: PublicStorefrontDesign;
   /** SB-9: what is on sale now, for the announcement that writes itself. */
   sale?: { products: number; bestDiscount: number };
+  /** SB-32: how many active products the shop has ("সব প্রোডাক্ট · Nটি"); absent from an older server's answer. */
+  productCount?: number;
   /** BL-10, RAT-14: what each kilo past the first adds to a zone's charge ("0.00" for nothing). */
   extraDeliveryChargePerKg?: string;
   /** PYG-23 (PAYG-FAIR-USE-PLAN PF-13): a pay-as-you-go storefront waiting for its first top-up; absent from an older

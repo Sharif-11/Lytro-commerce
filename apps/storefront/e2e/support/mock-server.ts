@@ -710,7 +710,13 @@ function listPage(fixture: ShopFixture, params: URLSearchParams) {
   // As the server does since 2026-11-25: every order lists the sold-out cards last, each part in its own order.
   const soldOut = (row: (typeof rows)[number]) => (row.card.stockState === StockState.Out ? 1 : 0);
   rows = [...rows].sort((a, b) => soldOut(a) - soldOut(b));
-  return { products: rows.slice(0, limit).map((row) => row.card), nextCursor: null };
+  // A page and where the next starts, as the server's keyset cursor does (here, the place in the list).
+  const from = Number(params.get('cursor') ?? 0);
+  const end = from + limit;
+  return {
+    products: rows.slice(from, end).map((row) => row.card),
+    nextCursor: end < rows.length ? String(end) : null,
+  };
 }
 
 async function publicApi(

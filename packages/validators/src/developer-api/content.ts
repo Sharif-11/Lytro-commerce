@@ -265,6 +265,7 @@ export const DOC_ROUTES: readonly DocRoute[] = [
         designCards: false,
       },
       sale: { products: 3, bestDiscount: 20 },
+      productCount: 35,
       contact: {
         phone: '01711234567',
         email: 'hello@meghfashion.com',
