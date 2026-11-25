@@ -301,7 +301,7 @@ test.describe('the cart (SFT-05, SFT-20)', () => {
     await expect(cart.locator('.cl').nth(0).locator('.price')).toHaveText('৳1,250');
     // ORDERS-BEYOND-STOCK OB-7, OB-18: a sold-out item is ordered like any other, priced, with no stock wording.
     const frock = cart.locator('.cl', { hasText: 'Kids Frock' });
-    await expect(frock).not.toHaveClass(/off/);
+    await expect(frock).not.toHaveClass(/\boff\b/);
     await expect(frock).not.toContainText(/sold out/i);
     await expect(frock.locator('.price')).toHaveText('৳690');
     await expect(cart.locator('.cl.off').nth(0)).toContainText('No longer sold, not in the total');

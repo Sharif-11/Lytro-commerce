@@ -545,6 +545,8 @@ export const orderListQuerySchema = z.object({
   // OB-10 (the owner on #448): just these orders, as a fill notice links to them; up to 50, comma-separated.
   ids: z
     .string()
+    // SEC-12: at most 50 IDs of 36 characters, with the commas between them.
+    .max(50 * 37)
     .transform((value) => value.split(',').filter((each) => each !== ''))
     .pipe(z.array(z.uuid()).min(1).max(50))
     .optional(),
