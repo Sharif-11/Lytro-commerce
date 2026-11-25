@@ -425,6 +425,7 @@ svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.75;str
       <optgroup label="Developers · the API docs (sketch)"><option value="dev-keys">API keys · Developer docs, under the lead</option><option value="dev-keys-none">· no key of your own yet</option><option value="dev-docs">Developer API · getting started (a phone folds the list)</option><option value="dev-docs-nokey">· no key yet: step 1 makes one</option><option value="dev-toc">· on a phone: On this page, open</option><option value="dev-auth">· authentication and headers</option><option value="dev-limits">· limits: this plan, this cycle</option><option value="dev-used-up">· this cycle’s requests used up</option><option value="dev-limits-payg">· limits on pay-as-you-go, fair use on (2026-11-25)</option><option value="dev-used-up-payg">· pay-as-you-go: the month’s API limit reached</option><option value="dev-errors">· errors: the envelope and every code</option><option value="dev-products">· a route: GET /v1/catalogue/products, curl</option><option value="dev-products-js">· the same, JavaScript</option><option value="dev-copied">· a sample copied</option><option value="dev-order">· POST /v1/orders: body, Idempotency-Key</option><option value="dev-track">· GET /v1/track/{trackingId}</option><option value="dev-shopper">· shopper accounts: the token</option></optgroup>
       <optgroup label="New product · quick add (proposal 2026-11-25)"><option value="pq-first">First landing: the new shop's welcome on quick add</option><option value="pq-saved">Saved: the landing link to copy, share or open</option><option value="pq-saved-paused">Saved, the storefront paused until its top-up</option><option value="pq-empty">Empty: photos, name, price, stock, sizes, description</option><option value="pq-filled">· one photo, 10 in hand</option><option value="pq-stock-one">· three designs, ONE shared stock box (default)</option><option value="pq-nostock">· Save with no stock: the warning</option><option value="pq-made">· made to order switched on in more settings: no stock box</option><option value="pq-size-add">Sheet · সাইজ যোগ করুন: S–XXL, free size, 28–44, typed</option><option value="pq-size-added">· sizes S M L under the stock, one shared box, a video after the 3 designs</option><option value="pq-stock-split-designs">· split: a box under each design</option><option value="pq-stock-split-grid">· split: designs x sizes grid, one row empty</option><option value="pq-stock-grouped">· split: 4 photos, one grouped, one plain</option><option value="pq-photo-menu">Sheet · this photo: own design, same design, not a design</option><option value="pq-colour">· one photo, colours (added from more settings) and sizes</option><option value="pq-more-open">· more settings open: made to order on, category, size chart as a picture</option><option value="pq-other">· a shop that is not clothing: no size button, options in more settings</option><option value="pq-fee">· fee on top: balance short</option><option value="pq-fee-ok">· fee on top: enough balance</option><option value="pq-wide">· the split grid on a computer (switch to Computer)</option></optgroup>
       <optgroup label="Orders beyond stock (proposal 2026-11-25)"><option value="obs-list">Orders · photo, name, phone, address, total, status; the স্টক কম chip; a courier's news and a call-back when they apply</option><option value="obs-list-short">· the স্টক কম chip on: only short orders</option><option value="obs-list-payg">· a pay-as-you-go shop: a locked order masked as today</option><option value="obs-order">Order · short: the banner, the short line, Book waits</option><option value="obs-book-blocked">· Book tapped while short (sheet)</option><option value="obs-add-stock">· Add stock from the order, where it goes (sheet)</option><option value="obs-filled">· stock added: covered, Book live (toast)</option><option value="obs-print">Orders · printing labels: a short order can not be picked</option><option value="obs-alert">The bell · a new order arrived short; stock given</option></optgroup>
+      <optgroup label="The install box (proposal 2026-11-26)"><option value="app-first">First landing · Install the app (Chrome on Android)</option><option value="app-first-fb">· inside Facebook on Android: Open in Chrome</option><option value="app-first-ios">· an iPhone, in Safari: Apple's two taps</option><option value="app-first-ios-fb">· an iPhone, inside Facebook</option><option value="app-first-other">· Android before Chrome offers it, or another browser: the menu steps</option><option value="app-home">Home · the same row on top, until installed or closed</option><option value="app-home-fb">· inside Facebook</option></optgroup>
       <optgroup label="Later phases (design only)"><option value="storefront">Storefront settings · slides as a carousel (Slice 12)</option><option value="storefront-tiles">· one banner and two tiles (Slice 12)</option><option value="storefront-empty">· no slides yet (Slice 12)</option><option value="sh-slide">· slide editor with the focal point (Slice 12)</option><option value="sh-slide-new">· new slide (Slice 12)</option><option value="sh-slide-preview">· both crops (Slice 12)</option><option value="sh-slide-delete">· remove slide (Slice 12)</option><option value="storefront-saved">· slide saved (Slice 12)</option></optgroup>
     </select>
   </label>
@@ -684,11 +685,14 @@ function render() {
   const f = document.getElementById('frame');
   f.className = 'frame ' + ST.device; f.dataset.lang = ST.lang;
   const scr = SCREENS[ST.screen] || SCREENS.home;
-  const chrome = `<div class="statusbar"><span>9:41</span><span>●●● ᯤ ▮</span></div><div class="urlbar"><span class="dots"><i></i><i></i><i></i></span><span class="url">app.lytro.app/megh${scr.path || ''}</span></div>`;
-  if (scr.bare) { f.innerHTML = chrome + `<div class="shell">${scr.render()}</div>`; return; }
+  // A screen may stand in a shop state and a browser of its own (the install box's views, 2026-11-26).
+  const keepShop = ST.shop; if (scr.shop) ST.shop = scr.shop;
+  const chrome = `<div class="statusbar"><span>9:41</span><span>●●● ᯤ ▮</span></div>${scr.inapp ? inappBar(scr.inapp) : ''}<div class="urlbar"><span class="dots"><i></i><i></i><i></i></span><span class="url">app.lytro.app/megh${scr.path || ''}</span></div>`;
+  if (scr.bare) { f.innerHTML = chrome + `<div class="shell">${scr.render()}</div>`; ST.shop = keepShop; return; }
   const support = ST.shop === 'support' ? `<div class="supportbar">${ic('shield')}<span>${t('bSupport', { n: 42 })}</span></div>` : '';
   const page = `<div class="page">${banners()}${scr.render()}</div>`;
   f.innerHTML = chrome + `<div class="shell">${support}<div class="body">${rail(scr.hub)}${secnav(scr.hub, scr.sec)}<div class="main">${appbar(scr)}${header(scr)}<div class="scroll">${page}</div>${tabbar(scr.hub)}</div></div>${scr.sheet ? scr.sheet() : ''}${scr.toast ? `<div class="toast">${scr.toast()}</div>` : ''}</div>`;
+  ST.shop = keepShop;
 }
 function setLang(l) { ST.lang = l; document.querySelectorAll('#segLang button').forEach(b => b.classList.toggle('on', b.dataset.v === l)); render(); }
 
@@ -11055,6 +11059,58 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 .obs-addr{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 </style>`);
 /* ---------- end of orders beyond stock (proposal) ---------- */
+/* ---------- The install box (proposal 2026-11-26): the shop's app, offered the moment the shop is made ----------
+   The owner, 2026-11-26: "The app install instruction must appear after signup so that they can install the app
+   immediately, currently it is nested", then "sketch option A but the instruction is lengthy make it shorter. user
+   likes app already". One short row on the first landing (quick add, above its welcome) and on top of Home, until the
+   app is installed or the row is closed; the Menu keeps its own row (Part 27). Its words follow the browser it is open
+   in: Chrome installs at once; Facebook's own browser cannot install, so the row opens the page in Chrome; an iPhone
+   has no install button, so the row names Apple's two taps. */
+const INSTALL_ROW = {
+  chrome: { sub: null, act: ['ইনস্টল', 'Install'] },
+  fb: { sub: null, act: ['Chrome-এ খুলুন', 'Open in Chrome'] },
+  ios: { sub: ['Share → Add to Home Screen', 'Share → Add to Home Screen'], act: null },
+  other: { sub: ['⋮ → Install app / Add to Home screen', '⋮ → Install app / Add to Home screen'], act: null },
+  'ios-fb': { sub: ['⋯ → Safari-তে খুলুন → Share → Add to Home Screen', '⋯ → Open in Safari → Share → Add to Home Screen'], act: null },
+};
+const installRow = (kind) => {
+  const r = INSTALL_ROW[kind];
+  // Chrome's one tap fits on one line; anything else goes under the title, so the words never squeeze.
+  const inline = kind === 'chrome';
+  const under = r.act ? `<span class="inb-act">${btn('p sm', L(...r.act))}</span>` : `<span class="l2">${L(...r.sub)}</span>`;
+  return `<div class="install inb ${inline ? '' : 'stack'}">${ap27()}<span class="b"><b>${L('অ্যাপ ইনস্টল করুন', 'Install the app')}</b>${inline ? '' : under}</span>${inline ? btn('p sm', L(...r.act)) : ''}<button class="inb-x" aria-label="${L('পরে', 'Later')}">${ic('x', 18)}</button></div>`;
+};
+/* Facebook's own browser, as a seller from the ad sees it: its close cross, the page, and its ⋯ menu. */
+function inappBar() {
+  return `<div class="fbbar"><span class="fbx">${ic('x', 20)}</span><span class="fbu"><b>Lytro</b><span>app.lytro.app</span></span><span class="fbm">${ic('more', 20)}</span></div>`;
+}
+const APP_FIRST = SCREENS['pq-first'];
+const appFirst = (kind, inapp) => {
+  SCREENS[kind === 'chrome' ? 'app-first' : `app-first-${kind}`] = { ...APP_FIRST, shop: 'new', inapp, get title() { return APP_FIRST.title; }, render: () => APP_FIRST.render().replace(pqFirst(), installRow(kind) + pqFirst()) };
+};
+appFirst('chrome', null);
+appFirst('fb', 'fb');
+appFirst('ios', null);
+appFirst('ios-fb', 'fb');
+appFirst('other', null);
+SCREENS['app-home'] = { ...SCREENS.home, shop: 'new', render: () => installRow('chrome') + SCREENS.home.render() };
+SCREENS['app-home-fb'] = { ...SCREENS.home, shop: 'new', inapp: 'fb', render: () => installRow('fb') + SCREENS.home.render() };
+document.head.insertAdjacentHTML('beforeend', `<style>
+.install.inb{margin-bottom:12px;padding:10px 6px 10px 12px;gap:10px}
+.install.inb .ap{width:40px;height:40px;font-size:16px}
+.install.inb .b b{display:block;font-size:15px;font-weight:600;color:var(--text)}
+.install.inb .inb-x{border:0;background:none;color:var(--n700);width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:8px;flex:none;cursor:pointer}
+.frame .fbbar{display:flex;align-items:center;gap:12px;height:48px;padding:0 12px;background:#fff;border-bottom:1px solid var(--line);color:#1c1e21}
+.frame .fbbar .fbu{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.25}
+.frame .fbbar .fbu b{font-size:14px}
+.frame .fbbar .fbu span{font-size:12px;color:#65676b}
+.frame.phone .fbbar ~ .shell{top:92px}
+.install.inb.stack{align-items:flex-start}
+.install.inb .inb-act{display:block;margin-top:8px}
+.install.inb.stack .l2{margin-top:2px}
+</style>`);
+(function initApp() { const h = location.hash.replace('#', ''); if (h && h.startsWith('app-') && SCREENS[h] && h !== ST.screen) { ST.screen = h; document.getElementById('selScreen').value = h; render(); } })();
+/* ---------- end of the install box (proposal) ---------- */
 </script>
 </body>
 </html>
