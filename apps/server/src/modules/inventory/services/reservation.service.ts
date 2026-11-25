@@ -389,7 +389,12 @@ export class ReservationService {
     const freed = rows.filter((row) => released.has(row.id));
     if (fill) await this.fillAndRefresh(tx, tenantId, freed);
     else {
-      await this.ledger.refresh(tx, tenantId, [...new Set(freed.map((row) => row.productId))], true);
+      await this.ledger.refresh(
+        tx,
+        tenantId,
+        [...new Set(freed.map((row) => row.productId))],
+        true,
+      );
     }
     return released.size;
   }
@@ -401,7 +406,11 @@ export class ReservationService {
     rows: Pick<ReservationRecord, 'productId' | 'variantId'>[],
   ): Promise<void> {
     if (rows.length === 0) return;
-    await this.filler.fill(tx, tenantId, rows.map((row) => row.variantId));
+    await this.filler.fill(
+      tx,
+      tenantId,
+      rows.map((row) => row.variantId),
+    );
     await this.ledger.refresh(tx, tenantId, [...new Set(rows.map((row) => row.productId))], true);
   }
 }

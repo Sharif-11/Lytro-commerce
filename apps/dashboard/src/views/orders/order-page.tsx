@@ -389,7 +389,11 @@ function OrderBody({ order }: { order: Order }): React.JSX.Element {
             ) : undefined
           }
         >
-          <b>{t('obs.bannerTitle', { count: order.items.filter((item) => Number(item.short) > 0).length })}</b>
+          <b>
+            {t('obs.bannerTitle', {
+              count: order.items.filter((item) => Number(item.short) > 0).length,
+            })}
+          </b>
           {' · '}
           {t('obs.bannerBody')}
         </Banner>
@@ -894,9 +898,7 @@ function ItemsCard({
               ) : null}
             </div>
             <ItemChips item={item} />
-            {Number(item.short) > 0 ? (
-              <ShortLine item={item} onAddStock={onAddStock} />
-            ) : null}
+            {Number(item.short) > 0 ? <ShortLine item={item} onAddStock={onAddStock} /> : null}
             {item.components.length > 0 ? (
               <div className="clear-both mt-0.5 mb-1.5 flex flex-col gap-1.5 border-l-[3px] border-neutral-200 pl-3">
                 <div className="text-[14px] font-semibold text-fg-muted">

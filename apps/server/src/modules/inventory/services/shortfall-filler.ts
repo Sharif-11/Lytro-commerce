@@ -109,7 +109,9 @@ export class ShortfallFiller {
       const pack = held.packAmount === null ? null : milli(held.packAmount);
       const missing = need - free;
       const back =
-        pack === null ? Math.min(ordered, missing) : Math.min(ordered, Math.ceil(missing / pack) * 1000);
+        pack === null
+          ? Math.min(ordered, missing)
+          : Math.min(ordered, Math.ceil(missing / pack) * 1000);
       await this.reservations.resolve(tx, tenantId, [held.id], ReservationStatus.Released);
       if (ordered - back > 0) {
         await this.reservations.insert(tx, tenantId, {

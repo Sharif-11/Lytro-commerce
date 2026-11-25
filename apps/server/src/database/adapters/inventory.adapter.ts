@@ -528,7 +528,11 @@ export class DrizzleReservationStore implements ReservationStore {
     return this.reservations.listShortfallsForOrders(tx, tenantId, orderIds);
   }
 
-  lockWaiting(tx: Transaction, tenantId: string, variantId: string): Promise<OrderShortfallRecord[]> {
+  lockWaiting(
+    tx: Transaction,
+    tenantId: string,
+    variantId: string,
+  ): Promise<OrderShortfallRecord[]> {
     return this.reservations.lockWaiting(tx, tenantId, variantId);
   }
 

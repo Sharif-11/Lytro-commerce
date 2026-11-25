@@ -1895,7 +1895,10 @@ export class OrderService {
       createdBy: person(order.createdBy),
       createdAt: order.createdAt,
       updatedAt: order.updatedAt,
-      items: lines.map((line) => ({ ...itemView(line, components, current), short: shortOf(line.id) })),
+      items: lines.map((line) => ({
+        ...itemView(line, components, current),
+        short: shortOf(line.id),
+      })),
       short: [...waiting.values()].reduce((sum, value) => sum + value, 0).toFixed(3),
       calls: calls.map((call) => ({
         id: call.id,

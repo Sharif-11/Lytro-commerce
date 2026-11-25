@@ -50,7 +50,9 @@ test('the list marks a short order and its chip lists only the orders waiting fo
   page,
 }) => {
   const log = await open(page, '/orders');
-  const chip = main(page).getByRole('group').getByRole('button', { name: /^Short of stock/ });
+  const chip = main(page)
+    .getByRole('group')
+    .getByRole('button', { name: /^Short of stock/ });
   await expect(chip).toContainText('1');
   const row = main(page).getByRole('link', { name: /^#261031-0044/ });
   await expect(row).toContainText('Sumaiya Akter');
@@ -62,9 +64,9 @@ test('the list marks a short order and its chip lists only the orders waiting fo
 
   await chip.click();
   await expect(main(page).getByRole('link', { name: /^#261031-/ })).toHaveCount(1);
-  expect(log.calls.some((call) => call.path === '/orders' && call.query.includes('short=yes'))).toBe(
-    true,
-  );
+  expect(
+    log.calls.some((call) => call.path === '/orders' && call.query.includes('short=yes')),
+  ).toBe(true);
 });
 
 test('a short order says why it waits, greys the step that hands it on, and adds stock from the order (OB-9, OB-12)', async ({

@@ -483,7 +483,9 @@ export class OrderRepository {
         short: sql<string>`(SELECT coalesce(sum(s.quantity), 0)::text FROM ${stockShortfalls} s
           WHERE s.tenant_id = ${orders.tenantId} AND s.order_id = ${orders.id})`,
         // OB-20: the photos its first three lines were ordered with, read per row of this page by the line index.
-        thumbs: sql<string[]>`(SELECT coalesce(array_agg(t.thumbnail_url ORDER BY t.position), ARRAY[]::text[]) FROM (
+        thumbs: sql<
+          string[]
+        >`(SELECT coalesce(array_agg(t.thumbnail_url ORDER BY t.position), ARRAY[]::text[]) FROM (
           SELECT l.thumbnail_url, l.position FROM ${orderLines} l
           WHERE l.tenant_id = ${orders.tenantId} AND l.order_id = ${orders.id} AND l.thumbnail_url IS NOT NULL
           ORDER BY l.position LIMIT 3) t)`,

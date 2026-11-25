@@ -360,7 +360,10 @@ describeIfDatabase('entering an order (ORD-01, ORD-04, ORD-05, ORD-06, PRD-07)',
     ]);
     expect([one.status, two.status]).toEqual([201, 201]);
     expect(await reserved(vase.variantId)).toBe('1.000');
-    expect([(one.body as Order).short, (two.body as Order).short].sort()).toEqual(['0.000', '1.000']);
+    expect([(one.body as Order).short, (two.body as Order).short].sort()).toEqual([
+      '0.000',
+      '1.000',
+    ]);
   });
 
   it('starts a confirmed order confirmed, and never refuses a made-to-order item for stock', async () => {

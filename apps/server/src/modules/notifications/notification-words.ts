@@ -75,13 +75,25 @@ export function orderPlacedText(input: {
     return {
       bn: {
         title: `নতুন অর্ডার ${input.orderNumber}`,
-        body: [`৳${input.grandTotal}`, where?.bn, source.bn, `খুলতে ৳${fee}`, short ? 'স্টক কম' : null]
+        body: [
+          `৳${input.grandTotal}`,
+          where?.bn,
+          source.bn,
+          `খুলতে ৳${fee}`,
+          short ? 'স্টক কম' : null,
+        ]
           .filter(Boolean)
           .join(' · '),
       },
       en: {
         title: `New order ${input.orderNumber}`,
-        body: [`${input.grandTotal} TK`, where?.en, source.en, `${fee} TK to open`, short ? 'Short of stock' : null]
+        body: [
+          `${input.grandTotal} TK`,
+          where?.en,
+          source.en,
+          `${fee} TK to open`,
+          short ? 'Short of stock' : null,
+        ]
           .filter(Boolean)
           .join(' · '),
       },

@@ -330,7 +330,8 @@ export function OrderRow({
   const words = useOrderWords();
   const shown = words.status(order.status);
   const short = Number(order.short);
-  const phone = order.customerPhone === null ? null : bangladeshiPhone.forField(order.customerPhone);
+  const phone =
+    order.customerPhone === null ? null : bangladeshiPhone.forField(order.customerPhone);
   const content = (
     <>
       {/* OB-20: the number isn't shown, but a screen reader still names the order by it. */}
@@ -392,7 +393,10 @@ export function OrderRow({
   return picking ? (
     short > 0 ? (
       // OB-9: an order still short of stock can't leave, so its label isn't printed.
-      <div className="flex min-h-16 w-full items-center gap-3 px-4 py-3 opacity-80" aria-disabled="true">
+      <div
+        className="flex min-h-16 w-full items-center gap-3 px-4 py-3 opacity-80"
+        aria-disabled="true"
+      >
         <span className="w-6 flex-none" aria-hidden="true" />
         <span className="flex min-w-0 flex-1 flex-col gap-1">
           <span className="flex min-w-0 items-center gap-3">{content}</span>

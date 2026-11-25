@@ -577,7 +577,12 @@ describeIfDatabase('holding stock for orders (INV-15, PRD-07)', () => {
       expect.objectContaining({ soldVariantId: comb.variantId, quantity: '1.000' }),
     ]);
     // OB-9: an order still waiting can't leave.
-    await expect(ship(shop, held.map((row) => ({ reservationId: row.id })))).rejects.toMatchObject({
+    await expect(
+      ship(
+        shop,
+        held.map((row) => ({ reservationId: row.id })),
+      ),
+    ).rejects.toMatchObject({
       code: 'conflict',
       messageKey: 'OrderShortOfStock',
       params: { product: 'Comb' },

@@ -940,35 +940,38 @@ describeIfDatabase('what the screens read (Slice 4.8): areas, calls, couriers, H
   });
 });
 
-describeIfDatabase('orders beyond stock through the routes (INV-25, OB-7, OB-9, OB-11, OB-20)', () => {
-  it('takes an order beyond stock, lists it short, and ships it only once stock covers it', async () => {
-    const shop = await openShop(port, texts, 'beyond-routes');
-    const kurti = await product(shop, 'Chikon kurti', 900, 1);
-    const order = await place(shop, kurti.variantId, 3);
-    type Detail = { short: string; items: { short: string }[] };
-    const detail = (await shop.get(`/orders/${order.id}`)).body as Detail;
-    expect(detail.short).toBe('2.000');
-    expect(detail.items[0]?.short).toBe('2.000');
-    // OB-11, OB-20: the list's short chip and its row.
-    type Page = {
-      short: number;
-      orders: { id: string; short: string; thumbs: string[]; deliveryAddress: string | null }[];
-    };
-    const page = (await shop.get('/orders?short=yes')).body as Page;
-    expect(page.short).toBe(1);
-    expect(page.orders.map((row) => row.id)).toEqual([order.id]);
-    expect(page.orders[0]).toMatchObject({ short: '2.000', deliveryAddress: 'House 12, Road 3' });
-    // OB-9: it can't leave while short.
-    const refused = await ship(shop, order);
-    expect(refused.status).toBe(409);
-    expect(errorOf(refused).message).toContain('Chikon kurti');
-    // OB-8: stock that arrives fills it, and then it ships.
-    const added = await shop.put(`/products/${kurti.id}/variants/${kurti.variantId}/stock`, {
-      onHand: 3,
+describeIfDatabase(
+  'orders beyond stock through the routes (INV-25, OB-7, OB-9, OB-11, OB-20)',
+  () => {
+    it('takes an order beyond stock, lists it short, and ships it only once stock covers it', async () => {
+      const shop = await openShop(port, texts, 'beyond-routes');
+      const kurti = await product(shop, 'Chikon kurti', 900, 1);
+      const order = await place(shop, kurti.variantId, 3);
+      type Detail = { short: string; items: { short: string }[] };
+      const detail = (await shop.get(`/orders/${order.id}`)).body as Detail;
+      expect(detail.short).toBe('2.000');
+      expect(detail.items[0]?.short).toBe('2.000');
+      // OB-11, OB-20: the list's short chip and its row.
+      type Page = {
+        short: number;
+        orders: { id: string; short: string; thumbs: string[]; deliveryAddress: string | null }[];
+      };
+      const page = (await shop.get('/orders?short=yes')).body as Page;
+      expect(page.short).toBe(1);
+      expect(page.orders.map((row) => row.id)).toEqual([order.id]);
+      expect(page.orders[0]).toMatchObject({ short: '2.000', deliveryAddress: 'House 12, Road 3' });
+      // OB-9: it can't leave while short.
+      const refused = await ship(shop, order);
+      expect(refused.status).toBe(409);
+      expect(errorOf(refused).message).toContain('Chikon kurti');
+      // OB-8: stock that arrives fills it, and then it ships.
+      const added = await shop.put(`/products/${kurti.id}/variants/${kurti.variantId}/stock`, {
+        onHand: 3,
+      });
+      expect(added.status, JSON.stringify(added.body)).toBe(200);
+      expect(((await shop.get(`/orders/${order.id}`)).body as Detail).short).toBe('0.000');
+      expect(((await shop.get('/orders?short=yes')).body as Page).short).toBe(0);
+      await shipped(shop, order);
     });
-    expect(added.status, JSON.stringify(added.body)).toBe(200);
-    expect(((await shop.get(`/orders/${order.id}`)).body as Detail).short).toBe('0.000');
-    expect(((await shop.get('/orders?short=yes')).body as Page).short).toBe(0);
-    await shipped(shop, order);
-  });
-});
+  },
+);
