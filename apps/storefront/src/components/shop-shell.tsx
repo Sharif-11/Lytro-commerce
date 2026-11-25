@@ -83,7 +83,13 @@ export function ShopShell({
             <DesignedFooter shop={page.info} categories={frame.categories} language={language} />
           </div>
         ) : (
-          <Footer shop={page.info} language={language} landing={false} storefrontOn />
+          <Footer
+            shop={page.info}
+            language={language}
+            landing={false}
+            storefrontOn
+            hasCategories={frame.categories.length > 0}
+          />
         )
       }
     >

@@ -95,11 +95,19 @@ export function hasTiles(
 }
 
 /**
- * SB-32 (the owner, 2026-11-26): a row the seller picked by hand shows as chosen; every other row fills itself, skips
- * what a row above it showed, and shows only when it can still fill (`storefrontRowFill`).
+ * SB-32 (the owner, 2026-11-26): a row the seller picked by hand shows as chosen; every other row fills itself and skips
+ * what a row above it showed.
  */
 export function fillsItself(section: ProductsSection): boolean {
   return section.source !== ProductRowSource.Picked;
+}
+
+/**
+ * SB-32: whether a row shows only when it can still fill (`storefrontRowFill`) -- not a hand-picked row, nor a running
+ * offer's (the owner, 2026-11-26: an offer's row always shows, however few of its cards are left).
+ */
+export function mustFill(section: ProductsSection): boolean {
+  return fillsItself(section) && section.source !== ProductRowSource.Offer;
 }
 
 /** SB-32: "সব প্রোডাক্ট" -- the cards the rows above did not show. */
@@ -233,7 +241,7 @@ export function homeLayout(
       ? read.filter((card) => !seen.has(cardKey(card))).slice(0, section.count)
       : [...read];
     if (cards.length === 0) continue;
-    if (fillsItself(section) && cards.length < storefrontRowFill(section)) continue;
+    if (mustFill(section) && cards.length < storefrontRowFill(section)) continue;
     for (const card of cards) {
       seen.add(cardKey(card));
       above.add(card.id);

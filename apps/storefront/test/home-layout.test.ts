@@ -130,6 +130,21 @@ describe('what the home shows (SB-32)', () => {
     expect(names(laid.rows.get(NEWEST.id))).toEqual(['c', 'd', 'e', 'f']);
   });
 
+  // The owner, 2026-11-26: a running offer's row always shows, however few are left; it still skips what showed above.
+  it("shows an offer's row short of its grid, skipping what a row above showed", () => {
+    const offer = row(6, ProductRowSource.Offer, { offerId: 'eid' });
+    const laid = homeLayout(
+      design([NEWEST, offer]),
+      new Map([
+        [NEWEST.id, cards('a', 'b', 'c', 'd')],
+        [offer.id, cards('a', 'x', 'y')],
+      ]),
+      { products: cards('a', 'b', 'c', 'd', 'x', 'y', 'z'), nextCursor: null },
+    );
+    expect(names(laid.rows.get(offer.id))).toEqual(['x', 'y']);
+    expect(names(laid.all.shown)).toEqual(['z']);
+  });
+
   it('a small shop shows each product once, the newest four then the rest (ha-small)', () => {
     const seven = cards('a', 'b', 'c', 'd', 'e', 'f', 'g');
     const laid = homeLayout(

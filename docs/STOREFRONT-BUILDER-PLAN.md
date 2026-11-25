@@ -147,7 +147,7 @@ Every row on the home page reads on its own. In a 35-product shop with 23 uncate
 
 | # | Decision | Decided |
 |---|---|---|
-| SB-32 | **"সব প্রোডাক্ট" on the home page.** | **The new section.** After the page's last row of products (where SB-30 puts its rows), a section "সব প্রোডাক্ট · 35টি" with See all. It holds every active product the rows above did not show, categorised or not, in the shop's own order (§5), with sold-out products last. There's no "অন্যান্য" label or chip: an uncategorised product is just a product. On a phone it is 2 across, on a computer 4, 12 at a time. "আরও Nটি প্রোডাক্ট দেখুন" adds the next 12 in place; the button goes once everything is in.<br>**Nothing shows twice.** The product rows read top to bottom, and each skips what a row above it showed.<br>**No row that cannot fill.** An automatic row (newest, on sale, best sellers, a category, a running offer) shows only when it can fill itself: a grid needs 4 and a carousel 5, because a computer shows 5 at once. If it can't, its products come in "সব প্রোডাক্ট".<br>**SB-30** takes the first three categories that can still fill a row.<br>**Cards** are unchanged: the built "নতুন" (PRODUCT_NEW_DAYS, 14 days), "সেরা বিক্রি" (SB-22), "N বার অর্ডার হয়েছে" (SB-23) and "মাত্র Nটি বাকি" (SB-24). There are no made-up signals: no invented sold counts and no "someone just ordered" pop-ups. |
+| SB-32 | **"সব প্রোডাক্ট" on the home page.** | **The new section.** After the page's last row of products (where SB-30 puts its rows), a section "সব প্রোডাক্ট · 35টি" with See all. It holds every active product the rows above did not show, categorised or not, in the shop's own order (§5), with sold-out products last. There's no "অন্যান্য" label or chip: an uncategorised product is just a product. On a phone it is 2 across, on a computer 4, 12 at a time. "আরও Nটি প্রোডাক্ট দেখুন" adds the next 12 in place; the button goes once everything is in.<br>**Nothing shows twice.** The product rows read top to bottom, and each skips what a row above it showed.<br>**No row that cannot fill.** An automatic row (newest, on sale, best sellers, a category) shows only when it can fill itself: a grid needs 4 and a carousel 5, because a computer shows 5 at once. If it can't, its products come in "সব প্রোডাক্ট". A running offer's row always shows, however few of its products are left (the owner, 2026-11-26), and still skips what a row above it showed.<br>**SB-30** takes the first three categories that can still fill a row.<br>**Cards** are unchanged: the built "নতুন" (PRODUCT_NEW_DAYS, 14 days), "সেরা বিক্রি" (SB-22), "N বার অর্ডার হয়েছে" (SB-23) and "মাত্র Nটি বাকি" (SB-24). There are no made-up signals: no invented sold counts and no "someone just ordered" pop-ups. |
 
 **The words.** The owner chose "সব প্রোডাক্ট" ("use সব প্রোডাক্ট", then "yes change spelling"). It is the shopper
 storefront's word everywhere "সব পণ্য" was: this section, the header chip, the menu, the footer link and the all-products
@@ -160,7 +160,9 @@ those not already shown above.
    their last row of products. With no product row, it goes before the trust strip, or at the end. A seller can't
    remove it, since a home that hides products is what this fixes.
 2. **Q2. Which rows the rules cover: yes, automatic rows only.** Newest, on sale, best sellers, a category and a running
-   offer must fill, and skip what an earlier row showed. A row the seller picked by hand (SB-29) always shows as chosen;
+   offer skip what an earlier row showed, and all but the offer must fill. **The owner, 2026-11-26 ("follow your
+   recommendation"): a running offer's row always shows**, however few of its products are left. A row the seller picked
+   by hand (SB-29) always shows as chosen;
    the automatic rows below it skip its products.
 3. **Q3. "নতুন": yes, keep 14 days** (PRODUCT_NEW_DAYS, already built); nothing to build.
 4. **Q4. A dashboard nudge, "Xটা প্রোডাক্টের ক্যাটাগরি নেই": not now.**

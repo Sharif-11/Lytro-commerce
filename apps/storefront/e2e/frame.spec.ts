@@ -208,6 +208,19 @@ test.describe('header and footer (SFT-13, SFT-21, TEN-18)', () => {
     await expect(page.locator('footer.foot .fshop')).toContainText('Quiet Shop');
   });
 
+  // The link leads to the home's categories (`#categories`); with none, there is nowhere to go.
+  test('a shop with no categories has no Categories link in the footer', async ({ page }) => {
+    const shop = await openShop(page, () => ({ categories: [] }));
+    await page.goto(shop.url('/'));
+    await expect(page.locator('#categories')).toHaveCount(0);
+    await expect(
+      page.locator('footer.foot').getByRole('link', { name: 'Track order' }),
+    ).toBeVisible();
+    await expect(page.locator('footer.foot').getByRole('link', { name: 'Categories' })).toHaveCount(
+      0,
+    );
+  });
+
   test('the header reaches the shop, search and the cart', async ({ page }) => {
     const shop = await openShop(page);
     await page.goto(shop.url('/'));

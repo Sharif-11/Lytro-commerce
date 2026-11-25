@@ -222,11 +222,14 @@ export function Footer({
   language,
   landing,
   storefrontOn,
+  hasCategories = false,
 }: {
   shop: PublicShop;
   language: Language;
   landing: boolean;
   storefrontOn: boolean;
+  /** Whether the home draws its categories (`#categories`), so the link has somewhere to go. */
+  hasCategories?: boolean;
 }) {
   const words = new Words(language);
   const { phone, email, address } = shop.contact;
@@ -310,7 +313,7 @@ export function Footer({
         </div>
         <div className="links">
           {landing && storefrontOn ? <a href="/">{words.t('browse_shop')}</a> : null}
-          {landing ? null : <a href="/#categories">{words.t('categories')}</a>}
+          {landing || !hasCategories ? null : <a href="/#categories">{words.t('categories')}</a>}
           <a href="/track">{words.t('track')}</a>
           {landing ? null : <a href="/account">{words.t('account')}</a>}
           <LanguageSwitch language={language} as="link" />
