@@ -273,7 +273,7 @@ test.describe('a landing page (LND-01, LND-02, LND-14)', () => {
     const answer = await page.goto(shop.url('/l/old-panjabi'));
     expect(answer?.status()).toBe(404);
     await expect(
-      page.getByRole('heading', { name: 'This product is no longer available' }),
+      page.getByRole('heading', { name: "This product isn't available any more" }),
     ).toBeVisible();
   });
 });

@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { RowList } from '@/components/ui/list-row';
 import { ShopMark } from '@/components/ui/shop-mark';
+import { ShopSiteArrow, ShopSiteLink } from '@/components/shop-site-link';
 import { useHelpSubLine } from '@/hooks/use-help-sub-line';
 import { appConfig } from '@/lib/app-config';
 import { helpLineReachable } from '@/lib/help-line';
@@ -135,15 +136,20 @@ export function MenuView(): React.JSX.Element {
           phone under them, full width; on a computer at their end. The old last row stays. */}
       <Card flush>
         <div className="flex min-h-16 flex-wrap items-center gap-3 px-4 py-3 lg:flex-nowrap">
-          <ShopMark shopName={tenant.shopName} slug={slug} logo={tenant.logo} size={40} />
-          <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <span className="overflow-hidden text-[16px] font-medium text-ellipsis whitespace-nowrap">
-              {tenant.shopName}
+          <ShopSiteLink className="flex min-w-0 flex-1 items-center gap-3">
+            <ShopMark shopName={tenant.shopName} slug={slug} logo={tenant.logo} size={40} />
+            <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+              <span className="flex min-w-0 items-center text-[16px] font-medium">
+                <span className="overflow-hidden text-ellipsis whitespace-nowrap">
+                  {tenant.shopName}
+                </span>
+                <ShopSiteArrow />
+              </span>
+              <span className="text-[14px] text-fg-muted">
+                {[appConfig.shopHost(slug), role, personName].filter(Boolean).join(' · ')}
+              </span>
             </span>
-            <span className="text-[14px] text-fg-muted">
-              {[appConfig.shopHost(slug), role, personName].filter(Boolean).join(' · ')}
-            </span>
-          </span>
+          </ShopSiteLink>
           <Button
             tone="outline"
             size="sm"

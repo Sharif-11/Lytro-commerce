@@ -200,6 +200,83 @@ picture rule below. The sketch is `ha-cat-rotate` and `ha-cat-noimage`.
 **`ha-small`, 7 products.** Each product shows once and no row is half empty. "সব প্রোডাক্ট" can end on one card, as a
 category page does. That is the end of a list, not an empty row.
 
+**SB-33: the empty states. The owner's ask, 2026-11-26** ("we need to design an empty product ui/ux for showing no
+products"). This covers every page where a shopper can land on no products. It is drawn as the builder sketch's `em-*`
+screens. `em-home-now` is the home as built; the rest is the proposal. Captures of the built pages are in
+`Lytro screenshots/empty-states/live-*.png`.
+
+**What's built today.**
+- **The home with no products.** The hero, categories and product rows each draw nothing at 0. What's left is the
+  announcement, the header, the trust strip and the footer, with nothing between them, so a shopper can't tell whether
+  the shop is open.
+- **List pages** (all products, a category, /offers): a title, the "শুধু স্টকে আছে" switch, and one grey line,
+  "কিছু পাওয়া যায়নি".
+- **Search:** "কিছু পাওয়া যায়নি", a hint, and a "ক্যাটাগরি দেখুন" button.
+- **A gone product:** a bare page with the logo, "এই প্রোডাক্টটি আর নেই", and "দোকানে যান".
+- **A category with no products** still has its header chip, so shoppers are led to the empty page.
+
+| # | Decision | Proposed |
+|---|---|---|
+| SB-33 | **No dead ends, no empty headings.** | Every empty page has one calm message with a line icon in the theme's colours, then a next step:<br>- if the shop has other products, 4 of them (in stock first) and "সব প্রোডাক্ট দেখুন";<br>- if it has none, the ways to reach it.<br>Empty sections stay hidden, as built. A footer with no categories has no Categories column, and the empty "কিছু পাওয়া যায়নি" line goes. The words carry nothing technical and no blame: never "the seller hasn't added products". |
+
+**The pages:**
+- **`em-home-empty`: the home with no products.**
+  - In the hero's place, in the shop's own colours: its mark, "নতুন কালেকশন শিগগিরই আসছে", its name and its
+    tagline.
+  - Below: a card, "কিছু খুঁজছেন? মেসেজ করুন, কী আছে আর কী আসছে জানিয়ে দেব।", with the shop's contacts.
+  - The cart shows no count. The floating WhatsApp button is off on this page, because the card carries WhatsApp.
+  - `em-home-empty-desktop` is the same page at 1280 px.
+- **`em-list-empty`: "সব প্রোডাক্ট" with no products.**
+  - The switch and the grey line go. The home's words and contacts appear instead.
+  - When products exist but "শুধু স্টকে আছে" empties the list, it says "স্টকে থাকা কোনো প্রোডাক্ট নেই", with
+    "সবগুলো দেখুন" to lift the filter.
+- **`em-category-empty`: a category with none, while the shop has others.**
+  - "এই ক্যাটাগরিতে নতুন প্রোডাক্ট শিগগিরই আসছে। ততক্ষণ শপের অন্য প্রোডাক্টগুলো দেখুন।"
+  - Then "এই শপের আরও প্রোডাক্ট": the newest 4, in stock first.
+- **`em-search-none`.**
+  - "“লাল জামদানি” পাওয়া যায়নি" and the built hint.
+  - The categories that have products appear as chips, in the button's place.
+  - Then "জনপ্রিয় প্রোডাক্ট": the 4 most ordered.
+  - The search page's white look and its bar stay.
+- **`em-offers-none`: /offers with nothing on sale.**
+  - "এখন কোনো অফার চলছে না। নতুন অফার এলে এখানেই দেখাবে।", then "নতুন এসেছে", the newest 4.
+  - With no offer, "অফার" is gone from the header and the footer (this PR's other half).
+  - A named offer's ended page (`o-ended`) is unchanged.
+- **`em-product-gone`: a removed or hidden product's link.**
+  - The answer stays HTTP 404, but the page has the shop's header, "এই প্রোডাক্টটি এখন আর নেই। শপের অন্য
+    প্রোডাক্টগুলো দেখুন।", and the newest 4.
+  - With the storefront off (only /l/ is served), it stays today's bare page, worded "শপ".
+  - A sold-out product is not this page: its own page shows it sold out (`pp-out`).
+
+**Contact, by plan** (the public API already filters it, PYG-29):
+- **A paid plan, or any shop while fair use is off.** The card shows only what the shop set:
+  - WhatsApp as the big button;
+  - Messenger and call side by side;
+  - "ফেসবুক পেজে দেখুন" as a link.
+
+  With Facebook alone, Facebook is the big button.
+- **Pay as you go with fair use on** (`em-home-empty-payg`). The server gives no phone, WhatsApp or Messenger, only the
+  address and the Facebook page. So the card offers Facebook only, and there's no floating WhatsApp button.
+- **No contact at all.** The card says "শিগগিরই আবার আসুন। আমরা শপ সাজাচ্ছি। কিছুদিন পর নতুন প্রোডাক্ট দেখতে
+  পাবেন।", with no button.
+
+**The owner's answers, 2026-11-26** ("follow your recommendation"):
+1. **Q1. The empty home shows contact buttons, by plan as above: yes.**
+2. **Q2. A removed product keeps its HTTP 404: yes.**
+3. **Q3. This joins the same PR as the product ID links and SB-32: yes.** It touches the same list and home pages.
+
+4. **Q4. Categories with no products leave the header chips, the menu, the footer and search's suggestions: yes**
+   ("follow your recommendation"). The test is the category's product count, which includes its subcategories and
+   counts out-of-stock products, so a category with only sold-out products stays, and so does a parent whose
+   subcategories hold products. The category's own page stays for old links (`em-category-empty`). A category page's
+   own subcategory chips skip the empty ones too.
+
+**APPROVED 2026-11-26** ("sketch is approved"). Built in the same branch as the dashboard's shop-name link. The build
+matches the built storefront where the sketch drew sample data:
+- the band has no tagline, because a shop has none;
+- the trust strip stays the home's own (inner pages go to the footer, as built);
+- the built storefront has no floating WhatsApp button, so there is none to hide.
+
 ---
 
 ## 3. Requirement changes (`SRS-detailed.md`)

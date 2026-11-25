@@ -24,6 +24,7 @@ import {
 } from '@/lib/design/home-reads';
 import type { Words } from '@/lib/i18n/words';
 import { type OpenShopPage, type PageFrame, storefrontApi } from '@/lib/storefront';
+import { EmptyHome } from '../catalogue/empty-state';
 import { AllProductsGrid } from './all-products';
 import { SectionHead } from './design-parts';
 import { Hero } from './hero';
@@ -180,16 +181,24 @@ export function DesignedHome({
   frame,
   reads,
   words,
+  bare = false,
 }: {
   info: PublicShop;
   design: PublicStorefrontDesign;
   frame: PageFrame;
   reads: DesignedHomeReads;
   words: Words;
+  /** SB-33 (em-home-empty): no product yet -- "coming soon" in the hero's place, the ways to reach the shop, the trust
+      strip; no section that would draw nothing. */
+  bare?: boolean;
 }) {
   const look = designLook(design, info.brand);
+  const sections = bare
+    ? design.sections.filter((section) => section.kind === StorefrontSectionKind.Trust)
+    : design.sections;
   const now = Date.now();
-  const at = allProductsAt(design.sections);
+  // SB-33: an empty shop's home has no "সব প্রোডাক্ট" (it would draw nothing); SB-32 places it otherwise.
+  const at = bare ? -1 : allProductsAt(sections);
   const all = (
     <AllProductsSection
       key="all-products"
@@ -209,7 +218,8 @@ export function DesignedHome({
           <link rel="stylesheet" href={look.fontsUrl} precedence="default" />
         </>
       ) : null}
-      {design.sections.flatMap((section, index) => [
+      {bare ? <EmptyHome shop={info} words={words} /> : null}
+      {sections.flatMap((section, index) => [
         ...(index === at ? [all] : []),
         <DesignedSection
           key={section.id}
@@ -223,7 +233,7 @@ export function DesignedHome({
           look={look}
         />,
       ])}
-      {at === design.sections.length ? all : null}
+      {at === sections.length ? all : null}
     </div>
   );
 }

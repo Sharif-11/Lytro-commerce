@@ -25,7 +25,7 @@ import {
   type CollectionView,
   collectionViews,
 } from '@/lib/design/collections';
-import { deliveryRange } from '@/lib/catalogue/browse';
+import { deliveryRange, offeredCategories } from '@/lib/catalogue/browse';
 import { money, type Words } from '@/lib/i18n/words';
 import { WALLET_NAMES } from '@/lib/order/wallet-names';
 import { AnnouncementBar } from './announcement-bar';
@@ -85,7 +85,8 @@ export function Categories({
   words: Words;
 }) {
   const style = section.style ?? theme.categories;
-  const tiles: CategoryTile[] = categories.flatMap((category) => {
+  // SB-32: only a category with a picture; SB-33, Q4: only one with something to see, as the chips and the menu.
+  const tiles: CategoryTile[] = offeredCategories(categories).flatMap((category) => {
     const picture = category.cover ?? category.image;
     if (!picture) return [];
     return [

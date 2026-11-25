@@ -30,16 +30,15 @@ export function NothingHerePage({ words }: { words: Words }) {
   );
 }
 
-/** LND-03: a product link that leads nowhere now, in the shop's own colours, with a way into the shop while its
-    storefront is on. */
+/** LND-03: a product link that leads nowhere now, in the shop's own colours, while the shop's storefront is off (only its
+    product links are served, so there is no shop to lead to). With the storefront on, the not-found page is the shop's
+    own (SB-33, `GoneInShop`). */
 export function GonePage({
   words,
   shop,
-  storefrontOn,
 }: {
   words: Words;
   shop: ShopFace & { brand: PublicBrand | null };
-  storefrontOn: boolean;
 }) {
   return (
     <BarePage
@@ -48,13 +47,6 @@ export function GonePage({
       mark={<Logo shop={shop} />}
       title={words.t('gone_h')}
       text={words.t('gone_p')}
-      action={
-        storefrontOn ? (
-          <a className="btn primary" href="/">
-            {words.t('go_shop')}
-          </a>
-        ) : null
-      }
     />
   );
 }

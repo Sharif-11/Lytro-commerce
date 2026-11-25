@@ -2,11 +2,13 @@ import { spreadsDesigns } from '@/lib/design/card-links';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { withBusyMetadata, withBusyPage } from '@/components/busy-page';
+import { EmptyList } from '@/components/catalogue/empty-state';
 import { ListView } from '@/components/catalogue/list-view';
 import { EdgeMark } from '@/components/edge-mark';
 import { OfflinePage } from '@/components/pages';
 import { ShopShell } from '@/components/shop-shell';
-import { listParams } from '@/lib/catalogue/browse';
+import { listHref, listParams } from '@/lib/catalogue/browse';
+import { emptyNext, shownOn } from '@/lib/catalogue/empty';
 import { pageTheme } from '@/lib/design/design-look';
 import { loadFrame, loadShopPage, storefrontApi } from '@/lib/storefront';
 
@@ -43,9 +45,11 @@ export default withBusyPage(async function BestPage({ searchParams }: Props) {
     storefrontApi.products(page.shop, page.shopper, asked),
   ]);
   const { words } = page;
+  const next = await emptyNext(page, list, listed.inStock);
+  const theme = pageTheme(page.info);
   return (
     <ShopShell page={page} frame={frame} back="/" title={words.t('sb_best_sellers')}>
-      <EdgeMark page={page} listing products={list?.products ?? []} />
+      <EdgeMark page={page} listing products={shownOn(list, next)} />
       <ListView
         words={words}
         heading={
@@ -60,7 +64,25 @@ export default withBusyPage(async function BestPage({ searchParams }: Props) {
         sortable={false}
         page={list ?? { products: [], nextCursor: null }}
         query={asked}
-        theme={pageTheme(page.info)}
+        theme={theme}
+        empty={
+          next ? (
+            <EmptyList
+              next={next}
+              line={{
+                icon: 'bag',
+                title: words.t('em_soon'),
+                text: words.t('em_cat_p'),
+                moreTitle: words.t('em_more_shop'),
+              }}
+              unfiltered={listHref('/best', { ...listed, inStock: false }, 'newest')}
+              shop={page.info}
+              theme={theme}
+              words={words}
+              now={Date.now()}
+            />
+          ) : null
+        }
       />
     </ShopShell>
   );

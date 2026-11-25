@@ -338,3 +338,39 @@
 .sfb .sb-drawer .langs{display:inline-flex;margin:6px 16px 24px;border:1.5px solid var(--line-strong);border-radius:999px;padding:3px}
 .sfb .sb-drawer .langs button{padding:6px 16px;border:0;border-radius:999px;background:none;color:inherit;font:inherit;font-weight:600;font-size:14px;cursor:pointer}
 .sfb .sb-drawer .langs button.on{background:var(--main);color:var(--on-main)}
+/* SB-33 (the owner, 2026-11-26): the empty pages, the sketch's em-* screens. */
+.sfb.sb-em-plain{background:transparent;width:100%}
+/* On a wide screen the search panel takes its content's width; a size container has none, so the panel spans its 720 px. */
+.sover .spanel:has(.sb-em-plain){width:100%}
+.sfb .sb-em-hero{background:var(--hero-bg);color:var(--hero-h);text-align:center;padding:38px 20px 34px}
+.sfb .sb-em-hero .sb-em-mk{width:64px;height:64px;border-radius:var(--r-mark);background:var(--bg);color:var(--main);display:grid;place-items:center;margin:0 auto 14px;font:700 26px/1 var(--fh);overflow:hidden}
+.sfb .sb-em-hero .sb-em-mk img{width:100%;height:100%;object-fit:contain}
+.sfb .sb-em-hero .sb-em-kick{color:var(--hero-kick);font-weight:700;font-size:13.5px;letter-spacing:.02em}
+.sfb .sb-em-hero h1{font-size:30px;line-height:1.25;margin:6px 0 8px;color:var(--hero-h)}
+.sfb .sb-em-box{text-align:center;padding:30px 4px 10px;max-width:440px;margin:0 auto}
+.sfb .sb-em-box.sb-em-card{background:var(--q-bg);border-radius:16px;padding:26px 18px 22px;margin-top:8px;border:1px solid var(--line)}
+.sfb .sb-em-ic{width:64px;height:64px;border-radius:50%;background:var(--accent-soft);color:var(--main);display:grid;place-items:center;margin:0 auto 14px}
+.sfb .sb-em-ic .sb-i{width:30px;height:30px}
+.sfb .sb-em-box h1,.sfb .sb-em-box h2{color:var(--sec-h);font-size:21px;line-height:1.35;margin:0 0 6px}
+.sfb .sb-em-box p{color:var(--muted);font-size:15px;margin:0 auto;max-width:340px}
+.sfb .sb-em-acts{display:flex;flex-direction:column;gap:10px;margin:18px auto 0;max-width:340px}
+.sfb .sb-em-two{display:flex;gap:10px}
+.sfb .sb-em-two .sb-em-btn{flex:1}
+.sfb .sb-em-btn{display:flex;align-items:center;justify-content:center;gap:8px;height:48px;border-radius:var(--r-btn);font-weight:700;font-size:15px}
+.sfb .sb-em-btn .sb-i{width:19px;height:19px}
+.sfb .sb-em-btn.sb-em-wa{background:#157a42;color:#fff}
+.sfb .sb-em-btn.sb-em-pri{background:var(--btn-bg);color:var(--btn-fg)}
+.sfb .sb-em-btn.sb-em-out{border:1.5px solid var(--main);color:var(--main)}
+.sfb .sb-em-link{display:inline-flex;align-items:center;gap:6px;margin-top:4px;color:var(--link);font-weight:700;font-size:14.5px;text-decoration:underline;text-underline-offset:3px}
+.sfb .sb-em-link .sb-i{width:17px;height:17px}
+.sfb .sb-em-chips{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:16px auto 0;max-width:420px}
+.sfb .sb-em-chips a{background:var(--chip-bg);color:var(--chip-fg);border-radius:99px;padding:7px 15px;font-weight:600;font-size:14px}
+.sfb .sb-em-more{padding:22px 0 6px}
+.sfb .sb-em-all{display:flex;align-items:center;justify-content:center;gap:8px;margin:18px auto 4px;height:46px;max-width:340px;border:1.5px solid var(--main);border-radius:var(--r-btn);color:var(--main);font-weight:700;font-size:14.5px}
+.sfb .sb-em-all .sb-i{width:17px;height:17px}
+@container (min-width:900px){
+  .sfb .sb-em-hero{padding:64px 20px 56px}
+  .sfb .sb-em-hero h1{font-size:42px}
+  .sfb .sb-em-box{padding-top:44px}
+  .sfb .sb-em-box.sb-em-card{max-width:520px}
+}

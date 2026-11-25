@@ -1,6 +1,7 @@
 import { Link, useParams } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/icon';
+import { ShopSiteArrow, ShopSiteLink } from '@/components/shop-site-link';
 import { ShopMark } from '@/components/ui/shop-mark';
 import { BellButton } from '@/views/notifications/bell';
 import { BalancePill } from './balance-pill';
@@ -39,7 +40,11 @@ export function AppBar({ canSearch, canAdd }: BarActionsProps): React.JSX.Elemen
         </Link>
       ) : null}
       <div className="flex min-w-0 flex-1 items-center gap-2.5">
-        {back ? null : <ShopMark shopName={tenant.shopName} slug={slug} logo={tenant.logo} />}
+        {back ? null : (
+          <ShopSiteLink className="flex flex-none" decorative>
+            <ShopMark shopName={tenant.shopName} slug={slug} logo={tenant.logo} />
+          </ShopSiteLink>
+        )}
         {back ? (
           <span className="overflow-hidden text-[16px] font-semibold text-ellipsis whitespace-nowrap">
             {title ? t(title) : tenant.shopName}
@@ -47,9 +52,12 @@ export function AppBar({ canSearch, canAdd }: BarActionsProps): React.JSX.Elemen
         ) : (
           // The owner, 2026-11-19: the balance under the shop's name, hidden until tapped.
           <span className="flex min-w-0 flex-col leading-[1.2]">
-            <span className="overflow-hidden text-[16px] font-semibold text-ellipsis whitespace-nowrap">
-              {tenant.shopName}
-            </span>
+            <ShopSiteLink className="flex min-w-0 items-center text-[16px] font-semibold">
+              <span className="overflow-hidden text-ellipsis whitespace-nowrap">
+                {tenant.shopName}
+              </span>
+              <ShopSiteArrow />
+            </ShopSiteLink>
             <BalancePill size="sm" />
           </span>
         )}

@@ -79,9 +79,13 @@ export function categoryById(
 /** The chips over a category's grid: its subcategories after "All" (the category itself), or, when it has none, the
     categories it sits among with itself on. */
 export function chipsFor(found: FoundCategory): { all: boolean; chips: PublicCategory[] } {
-  return found.category.children.length > 0
-    ? { all: true, chips: found.category.children }
-    : { all: false, chips: found.siblings };
+  // SB-33, Q4: a chip leads only where there is something to see -- the page's own category always keeps its own.
+  const offered = (list: readonly PublicCategory[]) =>
+    list.filter((each) => each.productCount > 0 || each.id === found.category.id);
+  const children = offered(found.category.children);
+  return children.length > 0
+    ? { all: true, chips: children }
+    : { all: false, chips: offered(found.siblings) };
 }
 
 /** The orders a category or New arrivals page offers; a search orders by relevance only. */
@@ -119,4 +123,16 @@ export function searchOf(query: Record<string, string | string[] | undefined>): 
   const q = query['q'];
   const text = typeof q === 'string' ? q.replace(/\s+/gu, ' ').trim() : '';
   return text === '' ? null : text;
+}
+
+/**
+ * STOREFRONT-BUILDER-PLAN SB-33, Q4 (the owner, 2026-11-26): the categories the header's chips, the menu, the footer and
+ * search's suggestions name -- those holding a product a shopper sees, whatever its stock, in them or under them, each
+ * with only such subcategories. A category with none keeps its own page (an old link shows it empty), it is just not
+ * offered.
+ */
+export function offeredCategories(tree: readonly PublicCategory[]): PublicCategory[] {
+  return tree
+    .filter((category) => category.productCount > 0)
+    .map((category) => ({ ...category, children: offeredCategories(category.children) }));
 }

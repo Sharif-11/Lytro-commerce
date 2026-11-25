@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { offeredCategories } from '@/lib/catalogue/browse';
 import { frameBrand, pageTheme } from '@/lib/design/design-look';
 import type { OpenShopPage, PageFrame } from '@/lib/storefront';
 import { DesignedFooter, DesignedHeader } from './design/chrome';
@@ -40,8 +41,10 @@ export function ShopShell({
   children: ReactNode;
 }) {
   const language = page.words.language;
+  // SB-33, Q4: the header's chips, the menu and the footer name only categories with something to see.
+  const offered = offeredCategories(frame.categories);
   const nav: HeaderNav = {
-    categories: frame.categories,
+    categories: offered,
     current,
     shopPhone: page.info.contact.phone,
     areaId: frame.areaId,
@@ -80,7 +83,7 @@ export function ShopShell({
       footer={
         theme ? (
           <div className="sfb sfb-foot" style={theme.variables}>
-            <DesignedFooter shop={page.info} categories={frame.categories} language={language} />
+            <DesignedFooter shop={page.info} categories={offered} language={language} />
           </div>
         ) : (
           <Footer

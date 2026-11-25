@@ -2,6 +2,7 @@ import { cardKey } from '@/lib/design/card-links';
 import type { ReactNode } from 'react';
 import type { ProductCard as Card, ProductPage } from '@/lib/api/storefront-api';
 import { deliveryRange, heroLine } from '@/lib/catalogue/browse';
+import { emptyNext } from '@/lib/catalogue/empty';
 import type { DesignedHomeReads } from '@/lib/design/home-reads';
 import { money } from '@/lib/i18n/words';
 import { loadFrame, type OpenShopPage, type PageFrame, storefrontApi } from '@/lib/storefront';
@@ -22,6 +23,8 @@ export interface HomeReads {
   frame: PageFrame;
   newest: ProductPage | null;
   designed: DesignedHomeReads | null;
+  /** SB-33: the shop has no product a shopper sees yet, so the designed home is its "coming soon" page. */
+  bare: boolean;
 }
 
 /** The home's reads, made by the page itself (home and /cart), so a server too busy for them shows the busy page
@@ -30,13 +33,17 @@ export async function loadHome(page: OpenShopPage): Promise<HomeReads> {
   const design = page.info.design;
   if (design) {
     const [frame, designed] = await Promise.all([loadFrame(page), loadDesignedHome(page, design)]);
-    return { frame, newest: null, designed };
+    const home = { frame, newest: null, designed, bare: false };
+    // SB-33: a home that read no product anywhere asks once more, so a design without a product row isn't taken for a
+    // shop without products.
+    if (homeProducts(home).length > 0) return home;
+    return { ...home, bare: (await emptyNext(page, null, false))?.kind === 'bare' };
   }
   const [frame, newest] = await Promise.all([
     loadFrame(page),
     storefrontApi.products(page.shop, page.shopper, { sort: 'newest', limit: NEW_ON_HOME }),
   ]);
-  return { frame, newest, designed: null };
+  return { frame, newest, designed: null, bare: false };
 }
 
 /** D9-32: every product the home shows, so a change to any of them purges it from the edge. */
@@ -96,6 +103,7 @@ export function HomeView({
           frame={frame}
           reads={home.designed}
           words={words}
+          bare={home.bare}
         />
         <InstallCard language={words.language} shopName={page.info.name} />
       </ShopShell>

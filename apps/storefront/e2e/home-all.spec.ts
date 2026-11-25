@@ -132,6 +132,31 @@ test.describe('the categories section (SB-32)', () => {
     await expect(page.locator('.sb-nav a', { hasText: /^Kurti$/ })).toHaveCount(1);
   });
 
+  // SB-33, Q4 (the owner, 2026-11-26): a category with nothing to see is not offered, whatever its picture.
+  test('leaves out a category with no products even with its own photo, as the chips do', async ({
+    page,
+    browser,
+  }) => {
+    const shops = await sketchShops(browser);
+    let emptyName = '';
+    const shop = await openShop(page, (language) => {
+      const made = studioWith(shops.studio, 0)(language);
+      const categories = (made.categories ?? []).map((category, at) => {
+        if (at !== 1) return category;
+        emptyName = category.name;
+        return { ...category, productCount: 0, children: [] };
+      });
+      return { ...made, categories };
+    });
+    await page.goto(shop.url('/'));
+    const tiles = page.locator('#categories .sb-cat:not(.sb-copy)');
+    await expect(tiles).toHaveCount(shops.studio.cats.length - 1);
+    await expect(tiles.filter({ hasText: emptyName })).toHaveCount(0);
+    await expect(page.locator('.sb-nav a', { hasText: new RegExp(`^${emptyName}$`) })).toHaveCount(
+      0,
+    );
+  });
+
   test('has no section when no category has a picture', async ({ page, browser }) => {
     const shops = await sketchShops(browser);
     const shop = await openShop(page, (language) => {
