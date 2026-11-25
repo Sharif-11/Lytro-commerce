@@ -10615,12 +10615,34 @@ function obsOrder(short) {
 }
 /* The list: a "স্টক কম" chip with its count beside the states, and each short order says how many it waits for. */
 const OBS_SHORT = { '261031-0047': 2, '261031-0044': 1 };
+/* OB-20 (the owner on #443: "order listing should show the selected design"): every row leads with the photos its lines
+   were ordered with (order_lines.thumbnail_url: a design's cover, else the product's first photo), up to 3 stacked, then
+   +N. Several designs of one kurti (hue-shifted, as the builder sketch draws its designs) so the rows differ by design. */
+const OBS_ROW_PICS = {
+  '261031-0047': [['fashion-5', 0], ['fashion-3', 0]],
+  '261031-0046': [['fashion-5', 150]],
+  '261031-0045': [['fashion-1', 0]],
+  '261031-0044': [['fashion-5', 215], ['fashion-5', 285], ['fashion-7', 0], ['fashion-5', 150], ['fashion-2', 0]],
+  '261031-0043': [['fashion-6', 0]],
+  '261030-0039': [['fashion-2', 0], ['fashion-5', 0]],
+  '261030-0038': [['fashion-4', 0]],
+  '261029-0031': [['fashion-7', 0]],
+  '261029-0030': [['fashion-5', 285]],
+};
+const obsThumbs = (no) => {
+  const pics = OBS_ROW_PICS[no] || [];
+  const shown = pics.slice(0, 3);
+  const more = pics.length - shown.length;
+  return `<span class="obs-ths n${shown.length}" aria-hidden="true">${shown.map(([n, h], i) => `<img src="sample-photos/builder/${n}.jpg" alt="" style="z-index:${3 - i};${h ? `filter:hue-rotate(${h}deg)` : ''}">`).join('')}${more > 0 ? `<span class="obs-more num">+${more}</span>` : ''}</span>`;
+};
 function obsList(o) {
   o = o || {};
   const rows = O29.filter((r) => (o.only ? OBS_SHORT[r.no] : o.select ? true : r.status === 'pending' || OBS_SHORT[r.no]));
   const row = (r) => {
     const n = OBS_SHORT[r.no];
     let h = o29Row(r, { sel: o.sel === r.no, select: o.select, on: (o.picked || []).includes(r.no) });
+    h = h.replace('<span class="body">', obsThumbs(r.no) + '<span class="body">');
+    if (r.no === '261031-0044') h = h.replace(t('items', { n: 3 }), t('items', { n: 5 }));
     if (!n) return h;
     const why = o.select ? `<span class="obs-warn obs-why2">${L('স্টক না এলে লেবেল প্রিন্ট হবে না', 'No label until the stock is in')}</span>` : '';
     h = h.replace('</span></span><span class="trail">', ` · <span class="obs-warn">${obsShortWords(n)}</span>${why}</span></span><span class="trail">`);
@@ -10690,6 +10712,13 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 .obs-goes{display:flex;flex-direction:column;gap:2px;margin-top:6px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
 .obs-goes .kv{padding:6px 0}
 .checkbox.obs-nopick{opacity:.35}
+.obs-ths{position:relative;flex:none;width:46px;height:46px;margin-right:2px}
+.obs-ths.n2{width:54px}
+.obs-ths.n3{width:62px}
+.obs-ths img{position:absolute;top:0;width:46px;height:46px;border-radius:8px;object-fit:cover;border:2px solid var(--surface);box-sizing:border-box;background:var(--n100)}
+.obs-ths img:nth-child(2){left:8px}
+.obs-ths img:nth-child(3){left:16px}
+.obs-more{position:absolute;right:-4px;bottom:-4px;z-index:5;background:var(--ink);color:#fff;font-size:11px;font-weight:700;border-radius:99px;padding:1px 6px;border:2px solid var(--surface)}
 .obs-why2{display:block;font-weight:500;margin-top:2px}
 </style>`);
 /* ---------- end of orders beyond stock (proposal) ---------- */
