@@ -1927,7 +1927,9 @@ one sketch PR now and one build PR after 7.4). Drawn from what the server on mai
   (`p37-bounced-bell`); the Account page's email marked not arriving, with how it starts again and Change email
   (`p37-bounced-account`, `p37-bounced-fixed`).
 - **A new version** (NTF-07, D7-44): "A new version of Lytro is ready" with Update, kept until tapped, above the tab bar
-  or bottom right (`p37-update`).
+  or bottom right (`p37-update`). *Amended 2026-11-25 (the owner: "can't we do it automatically", "Next page change"):
+  no prompt; the new version takes over by itself just after the next in-app page change, or at once on a fresh start.
+  `p37-update` is no longer built.*
 - **Notices** (`/notices`, `p37-notices`, GET `/notices`): the unread count, the lead, search, category chips (All, Rate
   change, Maintenance, New feature, Policy, Security, General), pinned first then newest; each row with its severity
   edge (urgent red, important marigold), Pinned, its category, Urgent or Important, "Updated <date>", "Press 'I
