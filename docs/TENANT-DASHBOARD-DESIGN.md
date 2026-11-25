@@ -786,8 +786,8 @@ product shows no sheet.
 
 **As built** (the build PR): a new product counted in batches or by serial (a pharmacy's or an electronics shop's
 defaults, or either switched on in আরও সেটিংস) opens today's full form with everything typed, since its opening stock
-needs a batch or serials the one box can't hold. "অপশন যোগ করুন", "আলাদা দাম, SKU" and the add-ons open today's options
-and add-ons cards under আরও সেটিংস.
+needs a batch or serials the one box can't hold. "অপশন যোগ করুন", "আলাদা দাম, SKU", the add-ons and the colour link open
+today's full form, with the stock typed carried over (one variant's as its own, several's as one shared stock).
 
 **Unchanged:** editing an existing product (`/products/:id`) keeps today's editor (open question 7), as do the combo
 flow, the server and the storefront.

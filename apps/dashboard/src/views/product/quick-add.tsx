@@ -931,6 +931,7 @@ export function QuickMore({
   presetName: string;
   tax: {
     classes: { id: string; name: string }[];
+    defaultId: string | null;
     value: string | null;
     onChange: (id: string | null) => void;
   } | null;
@@ -1139,8 +1140,15 @@ export function QuickMore({
                 label={t('taxClass')}
                 value={tax.value ?? ''}
                 disabled={readOnly}
+                help={t('taxClassHelp')}
                 options={[
-                  ...tax.classes.map((each) => ({ value: each.id, label: each.name })),
+                  ...tax.classes.map((each) => ({
+                    value: each.id,
+                    label:
+                      each.id === tax.defaultId
+                        ? t('taxClassDefault', { name: each.name })
+                        : each.name,
+                  })),
                   { value: '', label: t('taxClassNone') },
                 ]}
                 onChange={(event) => {

@@ -425,11 +425,16 @@ function ProductPage({
   // Quick add (TENANT-DASHBOARD-DESIGN §7.4b, the owner 2026-11-25): a new product, not a combo and not counted in
   // batches or by serial, is one card; everything else keeps the full editor. One state, two layouts: turning batches
   // or serials on in আরও সেটিংস opens the full form with everything typed.
+  // The options, the variant table and the add-ons (আরও সেটিংস → দাম আর অপশন) open the full form too.
+  const [optionsOpen, setOptionsOpen] = useState(false);
   const quickAdd =
-    product === null && !isCombo && !form.settings.batchTracked && !form.settings.serialTracked;
+    product === null &&
+    !isCombo &&
+    !optionsOpen &&
+    !form.settings.batchTracked &&
+    !form.settings.serialTracked;
   const [quickSplit, setQuickSplit] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
-  const [optionsOpen, setOptionsOpen] = useState(false);
   const [zeroOk, setZeroOk] = useState(false);
   const [sizesOpen, setSizesOpen] = useState(false);
   const [menuPhoto, setMenuPhoto] = useState<string | null>(null);
@@ -1025,6 +1030,7 @@ function ProductPage({
                 taxes.data && taxes.data.classes.length > 0
                   ? {
                       classes: taxes.data.classes,
+                      defaultId: taxes.data.defaultId,
                       value: form.taxClassId === undefined ? taxes.data.defaultId : form.taxClassId,
                       onChange: (taxClassId) => {
                         update({ taxClassId });
@@ -1037,6 +1043,7 @@ function ProductPage({
               colourLink={
                 photos.length <= 1
                   ? () => {
+                      update(quickBody(form, quickMode));
                       setOptionsOpen(true);
                     }
                   : null
@@ -1055,48 +1062,14 @@ function ProductPage({
                 setChartOpen(true);
               }}
               onOptions={() => {
+                update(quickBody(form, quickMode));
                 setOptionsOpen(true);
               }}
               onAddOns={() => {
+                update(quickBody(form, quickMode));
                 setOptionsOpen(true);
               }}
             />
-            {optionsOpen ? (
-              <>
-                <VariantsCard
-                  form={form}
-                  saved={saved}
-                  product={product}
-                  kind={kind}
-                  suggestedIds={defaults.data?.suggestedAttributeIds ?? []}
-                  stock={stock.data}
-                  readOnly={!mayManage}
-                  problems={tableProblems}
-                  onChange={update}
-                  designs={
-                    designAttributeId === null
-                      ? null
-                      : {
-                          attributeId: designAttributeId,
-                          coverOf: (key) =>
-                            media.items.get(photosOf(form, key)[0] ?? '')?.thumbnail,
-                          onPhotos: () => {
-                            setMediaOpen(true);
-                          },
-                        }
-                  }
-                  onHeldSerials={null}
-                  quick={null}
-                />
-                <AddOnsCard
-                  groups={form.addOns}
-                  readOnly={!mayManage}
-                  onChange={(addOns) => {
-                    update({ addOns });
-                  }}
-                />
-              </>
-            ) : null}
             {mayManage ? (
               <ComboLink
                 onOpen={() => {
