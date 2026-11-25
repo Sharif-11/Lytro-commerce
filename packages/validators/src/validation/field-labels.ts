@@ -151,6 +151,8 @@ export const FIELD_LABELS: Readonly<Record<string, Translation | null>> = {
   darkLogoId: { en: 'Logo on dark', bn: 'গাঢ় ব্যাকগ্রাউন্ডের লোগো' },
   dataType: { en: 'Attribute type', bn: 'অ্যাট্রিবিউট টাইপ' },
   counted: { en: 'Counted', bn: 'কাউন্ট' },
+  // §7.4b: a shared stock split later, each design and size its own count (POST /products/:id/stock-split).
+  counts: { en: 'Stock of each design and size', bn: 'প্রতিটি ডিজাইন ও সাইজের স্টক' },
   dateFrom: { en: 'Start date', bn: 'শুরুর তারিখ' },
   dateTo: { en: 'End date', bn: 'শেষ তারিখ' },
   defaultAdvanceAmount: { en: 'Default advance amount', bn: 'ডিফল্ট অ্যাডভান্স' },
