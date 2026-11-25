@@ -269,6 +269,7 @@ test.describe("every page in the theme's header, footer and card (SB-8, SB-17, S
     const nothing = { products: 0, bestDiscount: 0 };
     const shop = await openShop(page, (language) => {
       const made = builderShop(StorefrontThemeKey.Bold, shops.bold, language);
+      if (!made.info) throw new Error('the builder shop has no info');
       return { ...made, info: { ...made.info, sale: nothing } };
     });
     const offers = (where: string) => page.locator(`${where} a[href="/offers"]`);
