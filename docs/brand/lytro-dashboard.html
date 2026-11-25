@@ -423,6 +423,7 @@ svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.75;str
       <optgroup label="Order items, clear (sketch)"><option value="oi-items">Order · items: design + SKU, quantity in its unit, each option by name</option><option value="oi-items-kg">· weighed and packed items (kg, litre, a pack's total)</option><option value="oi-photo">· a design's photo, large</option></optgroup>
       <optgroup label="Pathao pickup store, added from Lytro (sketch)"><option value="sh-ps-store">Pickup store · the list, and Add a store</option><option value="sh-ps-new">· a new store: name, contact, place, address</option><option value="sh-ps-new-bad">· what Pathao needs, checked before sending</option><option value="ps-added">· added and chosen</option><option value="sh-ps-waiting">· added, Pathao has not switched it on yet</option><option value="sh-ps-none">· the Pathao account has no store yet</option></optgroup>
       <optgroup label="Developers · the API docs (sketch)"><option value="dev-keys">API keys · Developer docs, under the lead</option><option value="dev-keys-none">· no key of your own yet</option><option value="dev-docs">Developer API · getting started (a phone folds the list)</option><option value="dev-docs-nokey">· no key yet: step 1 makes one</option><option value="dev-toc">· on a phone: On this page, open</option><option value="dev-auth">· authentication and headers</option><option value="dev-limits">· limits: this plan, this cycle</option><option value="dev-used-up">· this cycle’s requests used up</option><option value="dev-errors">· errors: the envelope and every code</option><option value="dev-products">· a route: GET /v1/catalogue/products, curl</option><option value="dev-products-js">· the same, JavaScript</option><option value="dev-copied">· a sample copied</option><option value="dev-order">· POST /v1/orders: body, Idempotency-Key</option><option value="dev-track">· GET /v1/track/{trackingId}</option><option value="dev-shopper">· shopper accounts: the token</option></optgroup>
+      <optgroup label="New product · quick add (proposal 2026-11-25)"><option value="pq-empty">Empty: photos, name, price, stock, sizes</option><option value="pq-filled">· one photo, 10 in hand</option><option value="pq-stock-one">· three designs, ONE shared stock box (default)</option><option value="pq-nostock">· Save with no stock: the warning</option><option value="pq-made">· made to order: no stock</option><option value="pq-size-add">Sheet · সাইজ যোগ করুন: S–XXL, free size, 28–44, typed</option><option value="pq-size-added">· sizes S M L under the stock, still one shared box</option><option value="pq-stock-split-designs">· split: a box under each design</option><option value="pq-stock-split-grid">· split: designs x sizes grid, one row empty</option><option value="pq-stock-grouped">· split: 4 photos, one grouped, one plain</option><option value="pq-photo-menu">Sheet · this photo: own design, same design, not a design</option><option value="pq-colour">· one photo, colours and sizes</option><option value="pq-more-open">· more settings open: size chart as a picture</option><option value="pq-other">· a shop that is not clothing: no size button, options in more settings</option><option value="pq-fee">· fee on top: balance short</option><option value="pq-fee-ok">· fee on top: enough balance</option><option value="pq-wide">· the split grid on a computer (switch to Computer)</option></optgroup>
       <optgroup label="Later phases (design only)"><option value="storefront">Storefront settings · slides as a carousel (Slice 12)</option><option value="storefront-tiles">· one banner and two tiles (Slice 12)</option><option value="storefront-empty">· no slides yet (Slice 12)</option><option value="sh-slide">· slide editor with the focal point (Slice 12)</option><option value="sh-slide-new">· new slide (Slice 12)</option><option value="sh-slide-preview">· both crops (Slice 12)</option><option value="sh-slide-delete">· remove slide (Slice 12)</option><option value="storefront-saved">· slide saved (Slice 12)</option></optgroup>
     </select>
   </label>
@@ -10574,6 +10575,226 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 .dv-entry > svg.i:last-child{color:var(--n700)}
 </style>`);
 /* ---------- end of the developers' API docs (sketch) ---------- */
+/* ---------- New product · quick add (proposal, 2026-11-25). The owner: "evaluate our product adding input form. is it
+   too lengthy or hard for new sellers?", then "sketch your proposed design first"; "we don't need old price for now";
+   "we don't need the last presentational container এই শপের ধরন যা ঠিক করে দেয়"; "here uploading multiple image is
+   multiple design by default, how do you consider stock input?"; "What if we consider single stock input shared by
+   each design by default."; "here seller have confusion between size chart and variant. for cloth shop we need one
+   quick variant option সাইজ যোগ করুন"; "size chart is image only". TENANT-DASHBOARD-DESIGN §7.4a.
+   It starts from the built editor (pf-*): one card holds what a first product needs (photos, name, price, how many are
+   in hand, for a clothing shop সাইজ যোগ করুন, an optional category, a folded description); everything else sits in
+   আরও সেটিংস with today's defaults, the size chart there as a picture only; combo is a link; a fee sits on top.
+   On today's model: each photo is a design (ATR-19), the picked sizes are the values of the attribute that splits the
+   product, each design x size a variant. By default the variants share ONE stock (INV-24 shared_stock, pack amount 1
+   each), so one box counts everything; "আলাদা স্টক দিন" opens the split, a box per design or a design x size grid. ---------- */
+const PQ_IMG = (n) => `sample-photos/builder/${n}.jpg`;
+/* Three designs of one casual shirt, real Pexels photos (sample-photos/builder/CREDITS.txt). */
+const PQ_D = [
+  { img: 'fashion-3', n: 1 },
+  { img: 'fashion-7', n: 2 },
+  { img: 'fashion-1', n: 3 },
+];
+const PQ_NAME = () => L('ক্যাজুয়াল শার্ট, হাফ হাতা', 'Casual shirt, half sleeve');
+const pqDesignName = (n) => L(`ডিজাইন ${n}`, `Design ${n}`);
+const pqBox = (val, o) => { o = o || {}; return `<span class="pq-box ${o.bad ? 'bad' : ''} ${o.wide ? 'wide' : ''}">${val === undefined || val === null || val === '' ? '' : val}</span>`; };
+/* A photo of the strip: its picture, its ⋮ menu (pq-photo-menu), what it is, and under it its own stock box when the stock is split by design. */
+const pqTile = (img, o) => {
+  o = o || {};
+  const cap = o.plain ? L('সাধারণ ছবি', 'Plain photo') : o.of ? L(`ডিজাইন ${o.of}-এর ছবি`, `Photo of design ${o.of}`) : o.design ? pqDesignName(o.design) : L('প্রথম ছবি', 'First photo');
+  return `<div class="pq-ph"><span class="pq-pimg"><img src="${PQ_IMG(img)}" alt=""><button class="pq-dots" aria-label="${L('এই ছবিটি', 'This photo')}" onclick="go('pq-photo-menu')">${ic('more', 16)}</button></span><span class="pq-cap ${o.plain || o.of ? 'sub' : ''}">${cap}</span>${o.box !== undefined ? pqBox(o.box, { bad: o.bad }) : ''}</div>`;
+};
+const pqAddTiles = () => `<button class="pq-add-ph" onclick="go('pq-stock-one')">${ic('camera')}<span>${t('addPhoto')}</span></button><button class="pq-add-ph">${ic('image')}<span>${L('ভিডিও দিন', 'Add video')}</span></button>`;
+const pqDesigns = (o) => (o.photos || []).filter((p) => p.design).length;
+const pqPhotos = (o) => {
+  const tiles = (o.photos || []).map((p) => pqTile(p.img, p)).join('');
+  const designs = pqDesigns(o);
+  const label = `${L('ছবি ও ভিডিও', 'Photos and video')}${designs > 1 ? ` · <span class="pq-dn">${L(`${designs}টি ডিজাইন`, `${designs} designs`)}</span>` : ''}`;
+  const hint = designs > 1 ? `<div class="help">${L('প্রতিটি ছবি একটি ডিজাইন, কাস্টমার ছবি দেখে বাছবেন। একই ডিজাইনের আরেকটা ছবি হলে ⋮ চাপুন।', 'Each photo is a design the shopper picks by its photo. Another photo of the same design? Tap ⋮.')}</div>` : '';
+  const same = o.split === 'designs' ? pqSame(o.sameVal) : '';
+  return `<div class="field"><label>${label}</label><div class="hscroll pq-strip">${tiles}${pqAddTiles()}</div>${same}${hint}</div>`;
+};
+const pqSame = (val) => `<div class="pq-same"><span>${L('সবগুলোতে একই', 'Same for all')}</span>${pqBox(val, { wide: true })}<button class="btn o xs">${L('বসান', 'Fill')}</button></div>`;
+/* A clothing shop's sizes, right under the stock: one button, or the picked sizes as removable chips (pq-size-add picks them). */
+const pqSizeUi = (o) => {
+  if (o.shop === 'other') return '';
+  const colour = !o.colours && pqDesigns(o) <= 1 && (o.photos || []).length === 1 ? `<button class="lnk pq-lnk sub" onclick="go('pq-colour')">${L('একই ছবিতে কয়েকটা রঙ? রঙ যোগ করুন', 'Several colours in one photo? Add colours')}</button>` : '';
+  const colours = o.colours ? `<div class="pq-szrow"><span class="k">${L('রঙ', 'Colour')}</span>${o.colours.map((c) => `<span class="pq-v">${sw(c[0])}${L(c[1], c[2])}${ic('x', 14)}</span>`).join('')}<span class="pq-v add">${ic('plus', 14)}</span></div>` : '';
+  if (!o.sizes) return `${colours}<button class="btn o pq-sizebtn" onclick="go('pq-size-add')">${ic('plus', 18)} ${L('সাইজ যোগ করুন', 'Add sizes')}</button>${colour}`;
+  return `${colours}<div class="pq-szrow"><span class="k">${L('সাইজ', 'Size')}</span>${o.sizes.map((s) => `<span class="pq-v">${s}${ic('x', 14)}</span>`).join('')}<button class="pq-v add" onclick="go('pq-size-add')">${ic('plus', 14)} ${L('আরও', 'More')}</button></div>`;
+};
+/* The stock: হাতে আছে or অর্ডার পেলে বানাই; by default one shared box, with the split one tap away. */
+const pqStock = (o) => {
+  const seg = `<div class="seg3 pq-seg"><span class="${o.made ? '' : 'on'}" onclick="go('pq-stock-one')">${L('হাতে আছে', 'In hand')}</span><span class="${o.made ? 'on' : ''}" onclick="go('pq-made')">${L('অর্ডার পেলে বানাই', 'Made to order')}</span></div>`;
+  const head = `<div class="field"><label>${L('স্টক', 'Stock')}</label>${seg}</div>`;
+  const sizes = pqSizeUi(o);
+  if (o.made) return `${head}<div class="pq-note">${ic('info', 16)}<span>${L('অর্ডার এলে বানাবেন, তাই স্টক গুনতে হবে না। দোকানে সবসময় অর্ডার নেওয়া যাবে।', 'You make it when an order comes, so there is no stock to count. The shop always takes orders.')}</span></div>${sizes}`;
+  const designs = pqDesigns(o);
+  const parts = designs > 1 || o.sizes || o.colours;
+  const what = designs > 1 && o.sizes ? L('ডিজাইন ও সাইজ', 'design and size') : designs > 1 ? L('ডিজাইন', 'design') : o.colours && o.sizes ? L('রঙ ও সাইজ', 'colour and size') : o.colours ? L('রঙ', 'colour') : L('সাইজ', 'size');
+  const unit = `<span class="pq-unit">${L('পিস', 'pcs')}</span>`;
+  const back = (goTo) => `<button class="lnk pq-lnk" onclick="go('${goTo}')">${L('এক স্টকে ফিরে যান', 'Back to one stock')}</button>`;
+  if (o.split === 'designs') return `${head}<div class="pq-note">${ic('info', 16)}<span>${L('প্রতিটি ডিজাইনের স্টক ছবির নিচে লিখুন।', 'Write each design’s stock under its photo.')}</span></div>${back('pq-stock-one')}${sizes}`;
+  if (o.split === 'grid') return `${head}${sizes}${pqGrid(o)}${back('pq-size-added')}`;
+  const label = parts ? L(`সব ${what} মিলিয়ে কতগুলো আছে?`, `How many, all ${what}s together?`) : L('কতগুলো আছে?', 'How many do you have?');
+  const err = o.noStock ? L('কতগুলো আছে লিখুন। ০ থাকলে দোকানে “স্টক নেই” দেখাবে, কেউ অর্ডার করতে পারবে না।', 'Write how many you have. At 0 the shop shows “Out of stock” and nobody can order.') : null;
+  const box = field(label, o.qty, { ph: L('যেমন 10', 'e.g. 10'), trail: unit, bad: o.noStock, err });
+  const fix = o.noStock ? `<div class="pq-fix"><button class="btn o xs" onclick="go('pq-made')">${L('অর্ডার পেলে বানাই', 'Made to order')}</button><button class="lnk">${L('০ রেখেই সেভ করুন', 'Save with 0')}</button></div>` : '';
+  const split = parts ? `<button class="lnk pq-lnk" onclick="go('${designs > 1 && !o.sizes ? 'pq-stock-split-designs' : 'pq-stock-split-grid'}')">${L(`${what} অনুযায়ী আলাদা স্টক দিন`, `Give each ${what} its own stock`)} ${ic('right', 16)}</button>` : '';
+  return `${head}${box}${fix}${sizes}${split}`;
+};
+/* The split by design x size: a row per design (its photo), a column per size; empty cells are warned at Save. */
+const pqGrid = (o) => {
+  const rows = o.gridRows;
+  const cols = o.sizes;
+  const total = rows.reduce((s, r) => s + r.cells.reduce((a, c) => a + (Number(c) || 0), 0), 0);
+  const head = `<tr><th></th>${cols.map((c) => `<th>${c}</th>`).join('')}</tr>`;
+  const body = rows.map((r) => `<tr class="${r.bad ? 'bad' : ''}"><th class="rl">${r.img ? `<img src="${PQ_IMG(r.img)}" alt="">` : sw(r.hex)}<span>${r.label}</span></th>${r.cells.map((c) => `<td>${pqBox(c, { bad: r.bad && (c === '' || c === undefined) })}</td>`).join('')}</tr>`).join('');
+  const empty = rows.filter((r) => r.bad).map((r) => r.label);
+  return `${pqSame(o.sameVal)}<div class="pq-grid"><table>${head}${body}</table></div><div class="pq-total">${L(`মোট ${total} পিস`, `${total} pcs in all`)}</div>${empty.length ? `<div class="err">${L(`${empty.join(', ')}-এর ঘর খালি। সংখ্যা লিখুন, না থাকলে ০।`, `${empty.join(', ')} is empty. Write a number, or 0 if there are none.`)}</div>` : ''}`;
+};
+const pqCategory = (o) => field(`${t('category')} <span class="pq-opt">${L('(ঐচ্ছিক)', '(optional)')}</span>`, o.cat ? L(o.cat[0], o.cat[1]) : null, { ph: L('বেছে নিন', 'Choose'), trail: ic('down') });
+const pqDesc = (o) => o.descOpen ? field(L('বিবরণ', 'Description'), L('100% কটন, আরামদায়ক।', '100% cotton, comfortable.'), { ta: true }) : `<button class="pq-row-lnk">${ic('plus', 16)} ${L('বিবরণ লিখুন', 'Add a description')} <span class="pq-opt">${L('(ঐচ্ছিক)', '(optional)')}</span></button>`;
+/* আরও সেটিংস: every control the card leaves out, with today's defaults, grouped in plain words. The size chart lives here,
+   by its purpose and as a picture only, never beside the sizes; a shop that is not clothing adds any option here. */
+const pqMore = (o) => {
+  const grp = (h, body) => `<div class="pq-grp"><h4>${h}</h4>${body}</div>`;
+  const other = o.shop === 'other';
+  const lnk = (text) => `<button class="pq-row-lnk">${text} ${ic('right', 16)}</button>`;
+  const chart = other ? '' : grp(L('সাইজ চার্ট — কাস্টমারকে মাপ দেখাতে (ছবি)', 'Size chart — to show the shopper the measurements (a picture)'), `<div class="pq-chart"><button class="pq-add-ph">${ic('image')}<span>${L('ছবি দিন', 'Add a picture')}</span></button><div class="pq-chart-t"><span>${L('দেওয়া না থাকলে “শার্ট” ক্যাটাগরির চার্টের ছবি দেখায়।', 'Without one, the Shirts category’s chart picture shows.')}</span><span>${L('এটি শুধু মাপ দেখায়; বাছাইয়ের সাইজ তৈরি করে না। সাইজ দিতে ওপরে “সাইজ যোগ করুন”।', 'It only shows measurements; it does not make sizes to choose. For sizes, use “Add sizes” above.')}</span></div></div>`);
+  const inner = [
+    grp(L('স্টক', 'Stock'), `<div class="grid2">${field(L('কীসে গোনেন', 'Counted in'), L('পিস', 'piece'), { trail: ic('down') })}${field(L('কম স্টকে জানান', 'Warn when stock is low at'), '5')}</div>${pfSw(false, L('ব্যাচে স্টক, মেয়াদসহ', 'Stock in batches, with expiry'), null)}${pfSw(false, L('প্রতিটি পিসের সিরিয়াল নম্বর', 'A serial number for each piece'), null)}`),
+    grp(L('ডেলিভারি', 'Delivery'), `<div class="grid2">${field(t('weightKg'), null, { ph: '0.00' })}${field(t('deliveryCharge'), null, { ph: t('followsZone'), pre: '৳' })}</div>${field(t('deliversTo'), t('everywhere'), { trail: ic('down') })}`),
+    grp(L('টাকা নেওয়া', 'Payment'), field(L('কীভাবে টাকা নেবেন', 'How you take payment'), L('শপের নিয়ম · ক্যাশ অন ডেলিভারি', 'Shop’s rule · Cash on delivery'), { trail: ic('down') })),
+    chart,
+    grp(L('দাম আর অপশন', 'Prices and options'), `${lnk(other ? L('অপশন যোগ করুন — যেমন রঙ বা প্যাক সাইজ', 'Add an option — like a colour or pack size') : L('অপশন যোগ করুন — যেমন কাপড় বা লেখা', 'Add an option — like fabric or a message'))}${lnk(L('ডিজাইন বা সাইজভেদে আলাদা দাম, SKU', 'A different price or SKU per design or size'))}${lnk(L('অর্ডারে বাড়তি জিনিস, যেমন গিফট র‍্যাপ', 'Extras at order, like gift wrap'))}`),
+    grp(L('অন্যান্য', 'Other'), `${field(L('অবস্থা', 'Condition'), L('নতুন', 'New'), { trail: ic('down') })}${field(L('শুরুর নিয়ম', 'Starting defaults'), other ? L('বিউটি ও কসমেটিকস', 'Beauty and cosmetics') : L('পোশাক', 'Clothing'), { trail: `<span class="lnk" style="font-size:14px">${L('বদলান', 'Change')}</span>`, help: L('বদলালে স্টক আর অপশনের শুরুর মানগুলো বদলায়।', 'Changing it changes the stock and option defaults.') })}${pfSw(true, L('দোকানে দেখাবে', 'Shown in the shop'), null)}`),
+  ].filter(Boolean);
+  return `<details class="card pq-more" ${o.moreOpen ? 'open' : ''}><summary onclick="event.preventDefault();go('${o.moreOpen ? 'pq-stock-one' : 'pq-more-open'}')"><span><b>${t('moreSettings')}</b><span class="pq-sum">${other ? L('অপশন, ডেলিভারি, টাকা নেওয়া, কম স্টকের সতর্কতা', 'Options, delivery, payment, low-stock warning') : L('সাইজ চার্ট, ডেলিভারি, টাকা নেওয়া, কম স্টকের সতর্কতা', 'Size chart, delivery, payment, low-stock warning')}</span></span>${ic('down')}</summary><div class="pq-more-in">${inner.join('')}</div></details>`;
+};
+const pqCombo = () => `<button class="card pq-combo">${ic('layers')}<span>${L('কম্বো প্যাক বানাতে চান?', 'Making a combo pack?')}</span>${ic('right', 16)}</button>`;
+/* A fee on top, before any typing: PAYG's new-product fee from the balance (the balance-gates pattern), short or enough. */
+const pqFee = (kind) => kind === 'short'
+  ? `<div class="banner warn">${ic('banknote')}<span class="b"><b>${L('নতুন প্রোডাক্টে ৳10 লাগে।', 'A new product costs ৳10.')}</b> ${L('ব্যালেন্সে আছে ৳0.50, তাই আগে টপ-আপ করুন, না হলে সেভ হবে না।', 'The balance holds ৳0.50, so top up first or it cannot be saved.')}</span><a href="#" onclick="go('topup');return false">${L('টপ-আপ', 'Top up')}</a></div>`
+  : `<div class="banner info">${ic('banknote')}<span class="b">${L('এটি সেভ করলে ব্যালেন্স থেকে ৳10 কাটা হবে। ব্যালেন্সে আছে ৳120।', 'Saving it takes ৳10 from the balance. The balance holds ৳120.')}</span></div>`;
+const pqForm = (o) => {
+  o = o || {};
+  const card = `<div class="card pq-card">${pqPhotos(o)}${field(t('nameL'), o.name ? (o.nameText || PQ_NAME()) : null, { ph: L('যেমন: ক্যাজুয়াল শার্ট', 'e.g. Casual shirt') })}${field(t('price'), o.price || null, { pre: '৳', ph: '0' })}${pqStock(o)}${pqCategory(o)}${pqDesc(o)}</div>`;
+  const save = o.fee === 'short'
+    ? `<div class="actionbar bg-bar">${bgNote(10, ['প্রোডাক্ট যোগ করতে', 'Adding a product'])}<button class="btn p" disabled aria-disabled="true">${t('save')}</button></div>`
+    : actionbar(btn('p', t('save')));
+  return `<div class="ttl"><h1>${L('নতুন প্রোডাক্ট', 'New product')}</h1></div>${o.fee ? pqFee(o.fee) : ''}<div class="two"><div class="pq-col">${card}</div><div class="pq-col">${pqMore(o)}${pqCombo()}</div></div>${save}`;
+};
+/* The title is a getter on each screen itself: a spread would read it once, as a phone. */
+const pqScreen = (id, o) => { SCREENS[id] = { ...SCREENS.product, base: 'products', path: '/products/new', get title() { return ST.device === 'desktop' ? 'pf_new' : 'secProducts'; }, render: () => pqForm(typeof o === 'function' ? o() : o) }; };
+const pqThree = (o) => PQ_D.map((d, i) => ({ img: d.img, design: d.n, ...(o ? o(i) : {}) }));
+const pqFilled = { name: true, price: '1,250', cat: ['শার্ট', 'Shirts'] };
+const PQ_GRID = () => [
+  { img: 'fashion-3', label: pqDesignName(1), cells: ['4', '6', '3'] },
+  { img: 'fashion-7', label: pqDesignName(2), cells: ['2', '5', '0'] },
+  { img: 'fashion-1', label: pqDesignName(3), cells: ['', '', ''], bad: true },
+];
+
+pqScreen('pq-empty', {});
+pqScreen('pq-filled', { ...pqFilled, photos: [{ img: 'fashion-3' }], qty: '10' });
+pqScreen('pq-stock-one', () => ({ ...pqFilled, photos: pqThree(), qty: '25' }));
+pqScreen('pq-nostock', () => ({ ...pqFilled, photos: pqThree(), noStock: true }));
+pqScreen('pq-made', () => ({ ...pqFilled, photos: pqThree(), made: true }));
+pqScreen('pq-size-added', () => ({ ...pqFilled, photos: pqThree(), sizes: ['S', 'M', 'L'], qty: '40' }));
+pqScreen('pq-stock-split-designs', () => ({ ...pqFilled, photos: pqThree((i) => ({ box: ['8', '10', '7'][i] })), split: 'designs' }));
+pqScreen('pq-stock-split-grid', () => ({ ...pqFilled, photos: pqThree(), sizes: ['S', 'M', 'L'], split: 'grid', gridRows: PQ_GRID() }));
+pqScreen('pq-stock-grouped', () => ({ ...pqFilled, split: 'designs',
+  photos: [{ img: 'fashion-3', design: 1, box: '8' }, { img: 'fashion-3-tall', of: 1 }, { img: 'fashion-7', design: 2, box: '10' }, { img: 'fashion-2', plain: true }] }));
+pqScreen('pq-colour', () => ({ ...pqFilled, nameText: L('পোলো শার্ট', 'Polo shirt'), photos: [{ img: 'fashion-1' }], colours: [['#c62828', 'লাল', 'Red'], ['#1f2f5c', 'নেভি', 'Navy'], ['#ffffff', 'সাদা', 'White']], sizes: ['M', 'L', 'XL'], qty: '30' }));
+pqScreen('pq-more-open', () => ({ ...pqFilled, photos: pqThree(), qty: '25', moreOpen: true }));
+pqScreen('pq-other', () => ({ shop: 'other', name: true, nameText: L('নাইট ক্রিম, 50 গ্রাম', 'Night cream, 50 g'), price: '650', cat: ['স্কিন কেয়ার', 'Skin care'], photos: [{ img: 'beauty-4' }], qty: '12', moreOpen: true }));
+pqScreen('pq-fee', { fee: 'short' });
+pqScreen('pq-fee-ok', { fee: 'ok' });
+pqScreen('pq-wide', () => ({ ...pqFilled, photos: pqThree(), sizes: ['S', 'M', 'L'], split: 'grid', gridRows: PQ_GRID() }));
+/* The photo's menu, worded as the built media sheet words it (pdWhatIs, pdOwn, pdSame, pdNot): grouping or plaining a photo takes its stock box away. */
+SCREENS['pq-photo-menu'] = { ...SCREENS['pq-stock-grouped'], base: 'pq-stock-grouped', sheet: () => sheet(L('এই ছবিটি', 'This photo'), `<div class="pq-menu-ph"><img src="${PQ_IMG('fashion-3-tall')}" alt=""><span>${L('ছবি 2', 'Photo 2')}</span></div>
+  <div class="pq-choice"><span class="radio"></span><span><b>${L('আলাদা ডিজাইন', 'Its own design')}</b><span>${L('কাস্টমার এটিকে আলাদা করে বাছতে পারবেন। আলাদা স্টক দিলে এর নিজের ঘর থাকবে।', 'The shopper can pick it on its own. With split stock it gets its own box.')}</span></span></div>
+  <div class="pq-choice on"><span class="radio on"></span><span><b>${L('একই ডিজাইনের আরেকটি ছবি', 'Another photo of a design')}</b><span>${L('কোন ডিজাইনের? এর আলাদা স্টক ঘর থাকবে না।', 'Of which design? It has no stock box of its own.')}</span><span class="pq-which"><span class="on"><img src="${PQ_IMG('fashion-3')}" alt="">${pqDesignName(1)}</span><span><img src="${PQ_IMG('fashion-7')}" alt="">${pqDesignName(2)}</span></span></span></div>
+  <div class="pq-choice"><span class="radio"></span><span><b>${L('এটি ডিজাইন নয়', 'Not a design')}</b><span>${L('কাস্টমার ছবিটি দেখবেন, বাছবেন না। স্টক ঘর থাকবে না।', 'The shopper sees it but does not pick it. No stock box.')}</span></span></div>`, btn('p', L('ঠিক আছে', 'OK'), "onclick=\"go('pq-stock-grouped')\"")) };
+/* সাইজ যোগ করুন: letter sizes, free size, a number set 28-44 for pants and blouses, or a typed size. */
+SCREENS['pq-size-add'] = { ...SCREENS['pq-stock-one'], base: 'pq-stock-one', sheet: () => sheet(L('সাইজ যোগ করুন', 'Add sizes'), `<p class="hint">${L('যে সাইজগুলো আছে সেগুলো বাছুন। কাস্টমার এগুলো থেকে বাছবেন।', 'Pick the sizes you have. The shopper chooses from them.')}</p>
+  <div class="pq-sizes">${['S', 'M', 'L', 'XL', 'XXL'].map((s) => `<span class="pq-sz ${['S', 'M', 'L'].includes(s) ? 'on' : ''}">${s}</span>`).join('')}<span class="pq-sz wide">${L('ফ্রি সাইজ', 'Free size')}</span></div>
+  <div class="pq-szh">${L('নম্বরে (প্যান্ট, ব্লাউজ)', 'In numbers (pants, blouses)')}</div>
+  <div class="pq-sizes">${[28, 30, 32, 34, 36, 38, 40, 42, 44].map((s) => `<span class="pq-sz">${s}</span>`).join('')}</div>
+  ${field(L('অন্য সাইজ', 'Another size'), null, { ph: L('যেমন 3XL বা 46', 'e.g. 3XL or 46'), trail: btn('o xs', L('যোগ', 'Add')) })}`, btn('p', L('3টি সাইজ যোগ করুন', 'Add 3 sizes'), "onclick=\"go('pq-size-added')\"")) };
+document.head.insertAdjacentHTML('beforeend', `<style>
+.pq-col{display:flex;flex-direction:column;gap:16px}
+.pq-card{display:flex;flex-direction:column;gap:14px}
+.pq-strip{gap:10px;align-items:flex-start}
+.pq-ph{flex:none;width:84px;display:flex;flex-direction:column;gap:6px;align-items:stretch}
+.pq-pimg{position:relative;width:84px;height:84px;border-radius:10px;overflow:hidden;background:var(--n100)}
+.pq-pimg img{width:100%;height:100%;object-fit:cover;display:block}
+.pq-dots{position:absolute;top:4px;right:4px;width:28px;height:28px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;display:grid;place-items:center}
+.pq-cap{font-size:12px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pq-cap.sub{font-weight:500;color:var(--n700)}
+.pq-add-ph{flex:none;width:84px;height:84px;border-radius:10px;border:1px dashed var(--line-strong);background:#fff;color:var(--primary);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:12px;font-weight:500}
+.pq-dn{color:var(--primary);font-weight:600}
+.pq-box{display:flex;align-items:center;justify-content:center;width:84px;height:40px;border:1px solid var(--line-strong);border-radius:8px;background:#fff;font-size:15px;font-weight:600;color:var(--ink)}
+.pq-box.bad{border-color:var(--danger);background:var(--danger-soft)}
+.pq-box.wide{width:72px}
+.pq-same{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--n700);margin-top:10px}
+.pq-unit{color:var(--n700);font-weight:500;font-size:15px}
+.pq-opt{font-weight:400;color:var(--n700)}
+.pq-sizebtn{align-self:stretch;justify-content:center;gap:6px;height:44px;border-style:dashed;border-color:var(--primary);color:var(--primary)}
+.pq-szrow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:var(--n50);border:1px solid var(--line);border-radius:var(--r-control);padding:10px 12px}
+.pq-szrow .k{font-size:14px;font-weight:600;min-width:36px}
+.pq-v{height:32px;padding:0 10px;border-radius:999px;background:#fff;border:1px solid var(--line-strong);display:inline-flex;align-items:center;gap:4px;font-size:14px;font-weight:600}
+.pq-v svg.i{color:var(--n700)}
+.pq-v.add{color:var(--primary);border-style:dashed;border-color:var(--primary)}
+.pq-v.add svg.i{color:var(--primary)}
+.pq-seg span{cursor:pointer}
+.pq-note{display:flex;gap:8px;align-items:flex-start;font-size:14px;color:var(--n700);background:var(--n50);border-radius:var(--r-control);padding:10px 12px}
+.pq-note svg.i{flex:none;margin-top:2px;color:var(--primary)}
+.pq-fix{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:-4px}
+.pq-fix .lnk{font-size:14px;color:var(--n700);text-decoration:underline}
+.pq-lnk{align-self:flex-start;display:inline-flex;align-items:center;gap:4px;font-size:14px;font-weight:600;color:var(--primary);margin-top:-4px;text-align:left}
+.pq-lnk.sub{font-weight:500;color:var(--n700);text-decoration:underline}
+.pq-grid{overflow-x:auto;margin-top:6px}
+.pq-grid table{border-collapse:separate;border-spacing:6px 6px;margin:0 -6px}
+.pq-grid th{font-size:13px;font-weight:600;color:var(--n700);text-align:center}
+.pq-grid th.rl{text-align:left;display:flex;align-items:center;gap:8px;min-width:104px;font-size:13px;color:var(--ink)}
+.pq-grid th.rl img{width:36px;height:36px;border-radius:6px;object-fit:cover;flex:none}
+.pq-grid th.rl .sw{width:22px;height:22px}
+.pq-grid .pq-box{width:56px;height:40px}
+.pq-grid tr.bad th.rl span{color:var(--danger)}
+.pq-total{font-size:14px;font-weight:600;color:var(--ink)}
+.pq-card .err{font-size:13px;color:var(--danger);font-weight:500}
+.pq-row-lnk{display:flex;align-items:center;gap:6px;width:100%;min-height:40px;font-size:15px;font-weight:500;color:var(--primary);text-align:left}
+.pq-row-lnk svg.i:last-child{margin-left:auto;color:var(--n700)}
+.pq-more summary{cursor:pointer;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;list-style:none}
+.pq-more summary::-webkit-details-marker{display:none}
+.pq-more summary > span{display:flex;flex-direction:column;gap:2px}
+.pq-sum{font-size:13px;color:var(--n700);font-weight:400}
+.pq-more-in{display:flex;flex-direction:column;gap:14px;margin-top:12px}
+.pq-grp{display:flex;flex-direction:column;gap:10px;padding-top:12px;border-top:1px solid var(--n100)}
+.pq-grp h4{font-size:14px;font-weight:700;color:var(--ink)}
+.pq-chart{display:flex;gap:12px;align-items:flex-start}
+.pq-chart-t{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--n700)}
+.pq-combo{display:flex;align-items:center;gap:10px;width:100%;text-align:left;font-size:15px;font-weight:500;color:var(--ink);padding:14px 16px}
+.pq-combo svg.i:first-child{color:var(--primary)}
+.pq-combo svg.i:last-child{margin-left:auto;color:var(--n700)}
+.pq-menu-ph{display:flex;align-items:center;gap:10px;margin-bottom:4px}
+.pq-menu-ph img{width:56px;height:56px;border-radius:8px;object-fit:cover}
+.pq-menu-ph span{font-weight:600}
+.pq-choice{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--n100)}
+.pq-choice:last-child{border-bottom:0}
+.pq-choice > span:last-child{display:flex;flex-direction:column;gap:4px;font-size:14px;color:var(--n700)}
+.pq-choice b{font-size:15px;color:var(--ink);font-weight:600}
+.pq-which{display:flex;gap:8px;margin-top:6px}
+.pq-which span{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12px;padding:4px;border-radius:10px;border:2px solid transparent}
+.pq-which span.on{border-color:var(--primary);color:var(--ink);font-weight:600}
+.pq-which img{width:52px;height:52px;border-radius:8px;object-fit:cover}
+.pq-szh{font-size:13px;font-weight:600;color:var(--n700);margin-top:4px}
+.pq-sizes{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 12px}
+.pq-sz{min-width:52px;height:44px;padding:0 12px;border-radius:10px;border:1px solid var(--line-strong);display:inline-flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;background:#fff}
+.pq-sz.on{background:var(--primary);border-color:var(--primary);color:#fff}
+.pq-sz.wide{padding:0 16px}
+</style>`);
+/* ---------- end of New product · quick add (proposal) ---------- */
 </script>
 </body>
 </html>
