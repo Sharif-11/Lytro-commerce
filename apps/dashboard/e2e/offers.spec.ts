@@ -143,7 +143,7 @@ test('the product editor names the offer holding it and locks its price; the lis
   ];
   await open(page, '/products', { products });
   await expect(page.getByRole('main').getByText('Eid offer')).toBeVisible();
-  await page.goto(`/${SLUG}/products/${first.id}`);
+  await page.goto(`/${SLUG}/products/${first.id}/edit`);
   const main = page.getByRole('main');
   await expect(main.getByText('This product is in the offer.')).toBeVisible();
   await expect(main.getByRole('link', { name: 'Open offer' })).toHaveAttribute(

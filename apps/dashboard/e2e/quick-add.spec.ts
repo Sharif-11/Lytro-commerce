@@ -417,7 +417,7 @@ test('pq-saved-paused: a storefront waiting for its top-up still gets the link, 
 });
 
 test('editing a saved product shows no share sheet', async ({ page }) => {
-  await open(page, '/products/p-1');
+  await open(page, '/products/p-1/edit');
   await main(page).getByLabel('Price', { exact: true }).fill('470');
   await save(page).click();
   await expect(page.getByRole('status').filter({ hasText: /./ })).toHaveText(
