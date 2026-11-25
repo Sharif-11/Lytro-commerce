@@ -80,6 +80,8 @@ test('Storefront has the Design line, which opens the design page with its theme
     /Just in\s*Auto: the 6 newest · carousel/,
     /Offer banners\s*3 banners · big \+ two/,
     /Best sellers\s*Auto: top 4 · grid/,
+    // SB-32 as amended (`de-sections`): locked after the last row of products.
+    /All products\s*Always last: every other product is here/,
     /Testimonials\s*3 quotes/,
     /Trust strip\s*Auto: cash on delivery, fees, payment/,
     /About the shop\s*Off/,

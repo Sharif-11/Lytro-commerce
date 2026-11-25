@@ -3,8 +3,11 @@ import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import {
   STOREFRONT_THEMES,
+  StorefrontSectionKind,
   monogramLetter,
+  type PreviewLayout,
   type StorefrontDesign,
+  type StorefrontSection,
   type StorefrontThemeKey,
 } from '@lytronix/validators';
 import { useOffers } from '@/api/offers';
@@ -32,6 +35,25 @@ export function NoteLine({ children }: { children: ReactNode }) {
       <Icon name="info" className="mt-px size-[18px] flex-none text-primary" />
       <span>{children}</span>
     </p>
+  );
+}
+
+/**
+ * SB-32 as amended (sketch `de-row-hidden`, `de-banner-hidden`, `de-wide-empty`): why the live shop leaves this out
+ * now, atop its sheet. It shows only while that is so, and goes by itself when it changes.
+ */
+export function WarnLine({ head, children }: { head: string; children: ReactNode }) {
+  return (
+    <div
+      role="status"
+      className="flex items-start gap-2 rounded-[10px] bg-warning-soft px-[11px] py-[9px] text-[12.5px] text-fg"
+    >
+      <Icon name="info" className="mt-px size-[18px] flex-none text-warning" />
+      <span>
+        <b className="mb-0.5 block">{head}</b>
+        {children}
+      </span>
+    </div>
   );
 }
 
@@ -254,16 +276,20 @@ const FIXED: Readonly<
 export function SectionsCard({
   editor,
   design,
+  left,
   disabled,
   drag,
   onMove,
   onToggle,
   onOpen,
   onFixed,
+  onAll,
   addButton,
 }: {
   editor: Pick<StorefrontEditor, 'categories' | 'broken'>;
   design: StorefrontDesign;
+  /** SB-32 as amended: what the draft's home leaves out now; null until the storefront has said. */
+  left: PreviewLayout | null;
   disabled: boolean;
   /** BL-1: each section's handle, held and dragged or moved with the arrow keys. */
   drag: DragOrder;
@@ -271,6 +297,8 @@ export function SectionsCard({
   onToggle: (id: string) => void;
   onOpen: (id: string) => void;
   onFixed: (key: 'header' | 'footer') => void;
+  /** SB-32 as amended (`de-all-info`): "সব প্রোডাক্ট" tapped. */
+  onAll: () => void;
   addButton: ReactNode;
 }) {
   const { t } = useTranslation('menu');
@@ -279,12 +307,57 @@ export function SectionsCard({
   const offerNames = new Map((offers.data?.offers ?? []).map((each) => [each.id, each.name]));
   const rows = sectionRows(design);
   const last = design.sections.length - 1;
+  // SB-32 as amended (`de-list-hidden`): what the live draft leaves out, said under its row.
+  const notShowing = (section: StorefrontSection): string | null => {
+    if (!left) return null;
+    if (left.rows.some((row) => row.sectionId === section.id)) return t('sdNotShowing');
+    const items = left.items.filter((item) => item.sectionId === section.id).length;
+    if (items === 0) return null;
+    return section.kind === StorefrontSectionKind.WideBanner
+      ? t('sdNotShowing')
+      : t('sdNotShowingN', { count: items });
+  };
   return (
     <Card>
       <h2 className="text-[15.5px] font-bold">{t('sdSections')}</h2>
       <p className="mt-[3px] mb-3 text-[13px] text-fg-muted">{t('sdSectionsSub')}</p>
       <ul>
         {rows.map((row) => {
+          if (row.kind === 'all') {
+            const name = t('sdAll');
+            return (
+              <li key="all" className={ROW} data-testid="sd-all">
+                {/* "সব প্রোডাক্ট" never moves, hides or goes: no handle, no arrows, a lock for its switch. */}
+                <span className="w-7 flex-none" />
+                <span className="w-6 flex-none" />
+                <RowIcon name="grid" dim={false} plain />
+                <button
+                  type="button"
+                  className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
+                  aria-label={t('sdOpen', { name })}
+                  onClick={onAll}
+                >
+                  <RowWords name={name} line={t('sdAllSum')} dim={false} />
+                </button>
+                <span
+                  role="img"
+                  aria-label={t('sdAllLocked')}
+                  className="grid size-[30px] flex-none place-items-center rounded-[8px] bg-neutral-100 text-fg-muted"
+                >
+                  <Icon name="lock" size={16} />
+                </span>
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  aria-hidden="true"
+                  className="flex-none"
+                  onClick={onAll}
+                >
+                  <Chevron />
+                </button>
+              </li>
+            );
+          }
           if (row.kind === 'fixed') {
             const fixed = FIXED[row.key];
             return (
@@ -362,7 +435,13 @@ export function SectionsCard({
                   onOpen(section.id);
                 }}
               >
-                <RowWords name={name} line={line} dim={!section.visible} warn={broken} />
+                <RowWords
+                  name={name}
+                  line={line}
+                  dim={!section.visible}
+                  warn={broken}
+                  hidden={section.visible ? notShowing(section) : null}
+                />
               </button>
               <Switch
                 checked={section.visible}
@@ -398,10 +477,19 @@ const ROW =
 const LIFTED =
   'relative z-[2] -rotate-[1.2deg] rounded-[12px] border-t-transparent bg-surface shadow-[0_14px_30px_rgba(0,0,0,0.22)] outline-2 outline-primary';
 
-function RowIcon({ name, dim }: { name: EditorIconName; dim: boolean }) {
+function RowIcon({
+  name,
+  dim,
+  plain = false,
+}: {
+  name: EditorIconName;
+  dim: boolean;
+  /** SB-32 as amended: "সব প্রোডাক্ট"'s grey, a section of the shop's own rather than the seller's. */
+  plain?: boolean;
+}) {
   return (
     <span
-      className={`grid size-[38px] flex-none place-items-center rounded-[10px] bg-primary-soft text-primary ${dim ? 'opacity-45' : ''}`}
+      className={`grid size-[38px] flex-none place-items-center rounded-[10px] ${plain ? 'bg-neutral-100 text-fg-muted' : 'bg-primary-soft text-primary'} ${dim ? 'opacity-45' : ''}`}
     >
       <EditorIcon name={name} size={20} />
     </span>
@@ -413,11 +501,14 @@ function RowWords({
   line,
   dim,
   warn = false,
+  hidden = null,
 }: {
   name: string;
   line: string;
   dim: boolean;
   warn?: boolean;
+  /** SB-32 as amended (`de-list-hidden`): "এখন দেখাচ্ছে না" under the line, while the live draft leaves it out. */
+  hidden?: string | null;
 }) {
   return (
     <span className={`min-w-0 flex-1 ${dim ? 'opacity-45' : ''}`}>
@@ -427,6 +518,13 @@ function RowWords({
       >
         {line}
       </span>
+      {hidden !== null ? (
+        <span className="mt-1 inline-block">
+          <StatusTag tone="bad" small>
+            {hidden}
+          </StatusTag>
+        </span>
+      ) : null}
     </span>
   );
 }
