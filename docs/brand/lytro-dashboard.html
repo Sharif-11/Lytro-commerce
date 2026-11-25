@@ -424,7 +424,7 @@ svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.75;str
       <optgroup label="Pathao pickup store, added from Lytro (sketch)"><option value="sh-ps-store">Pickup store · the list, and Add a store</option><option value="sh-ps-new">· a new store: name, contact, place, address</option><option value="sh-ps-new-bad">· what Pathao needs, checked before sending</option><option value="ps-added">· added and chosen</option><option value="sh-ps-waiting">· added, Pathao has not switched it on yet</option><option value="sh-ps-none">· the Pathao account has no store yet</option></optgroup>
       <optgroup label="Developers · the API docs (sketch)"><option value="dev-keys">API keys · Developer docs, under the lead</option><option value="dev-keys-none">· no key of your own yet</option><option value="dev-docs">Developer API · getting started (a phone folds the list)</option><option value="dev-docs-nokey">· no key yet: step 1 makes one</option><option value="dev-toc">· on a phone: On this page, open</option><option value="dev-auth">· authentication and headers</option><option value="dev-limits">· limits: this plan, this cycle</option><option value="dev-used-up">· this cycle’s requests used up</option><option value="dev-limits-payg">· limits on pay-as-you-go, fair use on (2026-11-25)</option><option value="dev-used-up-payg">· pay-as-you-go: the month’s API limit reached</option><option value="dev-errors">· errors: the envelope and every code</option><option value="dev-products">· a route: GET /v1/catalogue/products, curl</option><option value="dev-products-js">· the same, JavaScript</option><option value="dev-copied">· a sample copied</option><option value="dev-order">· POST /v1/orders: body, Idempotency-Key</option><option value="dev-track">· GET /v1/track/{trackingId}</option><option value="dev-shopper">· shopper accounts: the token</option></optgroup>
       <optgroup label="New product · quick add (proposal 2026-11-25)"><option value="pq-empty">Empty: photos, name, price, stock, sizes, description</option><option value="pq-filled">· one photo, 10 in hand</option><option value="pq-stock-one">· three designs, ONE shared stock box (default)</option><option value="pq-nostock">· Save with no stock: the warning</option><option value="pq-made">· made to order switched on in more settings: no stock box</option><option value="pq-size-add">Sheet · সাইজ যোগ করুন: S–XXL, free size, 28–44, typed</option><option value="pq-size-added">· sizes S M L under the stock, one shared box, a video after the 3 designs</option><option value="pq-stock-split-designs">· split: a box under each design</option><option value="pq-stock-split-grid">· split: designs x sizes grid, one row empty</option><option value="pq-stock-grouped">· split: 4 photos, one grouped, one plain</option><option value="pq-photo-menu">Sheet · this photo: own design, same design, not a design</option><option value="pq-colour">· one photo, colours (added from more settings) and sizes</option><option value="pq-more-open">· more settings open: made to order on, category, size chart as a picture</option><option value="pq-other">· a shop that is not clothing: no size button, options in more settings</option><option value="pq-fee">· fee on top: balance short</option><option value="pq-fee-ok">· fee on top: enough balance</option><option value="pq-wide">· the split grid on a computer (switch to Computer)</option></optgroup>
-      <optgroup label="Orders beyond stock (proposal 2026-11-25)"><option value="obs-list">Orders · a short order marked, the স্টক কম chip</option><option value="obs-list-short">· the স্টক কম chip on: only short orders</option><option value="obs-order">Order · short: the banner, the short line, Book waits</option><option value="obs-book-blocked">· Book tapped while short (sheet)</option><option value="obs-add-stock">· Add stock from the order, where it goes (sheet)</option><option value="obs-filled">· stock added: covered, Book live (toast)</option><option value="obs-print">Orders · printing labels: a short order can not be picked</option><option value="obs-alert">The bell · a new order arrived short; stock given</option></optgroup>
+      <optgroup label="Orders beyond stock (proposal 2026-11-25)"><option value="obs-list">Orders · photo, name, phone, address, total, status; the স্টক কম chip</option><option value="obs-list-short">· the স্টক কম chip on: only short orders</option><option value="obs-list-payg">· a pay-as-you-go shop: a locked order masked as today</option><option value="obs-order">Order · short: the banner, the short line, Book waits</option><option value="obs-book-blocked">· Book tapped while short (sheet)</option><option value="obs-add-stock">· Add stock from the order, where it goes (sheet)</option><option value="obs-filled">· stock added: covered, Book live (toast)</option><option value="obs-print">Orders · printing labels: a short order can not be picked</option><option value="obs-alert">The bell · a new order arrived short; stock given</option></optgroup>
       <optgroup label="Later phases (design only)"><option value="storefront">Storefront settings · slides as a carousel (Slice 12)</option><option value="storefront-tiles">· one banner and two tiles (Slice 12)</option><option value="storefront-empty">· no slides yet (Slice 12)</option><option value="sh-slide">· slide editor with the focal point (Slice 12)</option><option value="sh-slide-new">· new slide (Slice 12)</option><option value="sh-slide-preview">· both crops (Slice 12)</option><option value="sh-slide-delete">· remove slide (Slice 12)</option><option value="storefront-saved">· slide saved (Slice 12)</option></optgroup>
     </select>
   </label>
@@ -10898,20 +10898,40 @@ const obsThumbs = (no) => {
   const more = pics.length - shown.length;
   return `<span class="obs-ths n${shown.length}" aria-hidden="true">${shown.map(([n, h], i) => `<img src="sample-photos/builder/${n}.jpg" alt="" style="z-index:${3 - i};${h ? `filter:hue-rotate(${h}deg)` : ''}">`).join('')}${more > 0 ? `<span class="obs-more num">+${more}</span>` : ''}</span>`;
 };
+/* OB-20 as the owner refined it, 2026-11-25: "in order list just customer phone number, his address and order total and the
+   image is ok", keeping the status, the স্টক কম chip and the customer's name. No order number (search finds it; the order
+   shows it) and no item count. The address is the delivery line, thana and district, cut to fit. A locked pay-as-you-go
+   order shows what the list masks today (PF-7, PF-21): the name's first letter, the phone's ends, the district only. */
+const OBS_CUST = {
+  '261031-0047': ['01711 234 567', ['বাসা 5, রোড 10, মিরপুর 11 · মিরপুর, ঢাকা', 'House 5, Road 10, Mirpur 11 · Mirpur, Dhaka']],
+  '261031-0046': ['01819 456 210', ['সেক্টর 7, রোড 3, বাসা 14 · উত্তরা, ঢাকা', 'Sector 7, Road 3, House 14 · Uttara, Dhaka']],
+  '261031-0045': ['01922 778 104', null],
+  '261031-0044': ['01556 902 331', ['মেহেদীবাগ, বাসা 12 · পাঁচলাইশ, চট্টগ্রাম', 'Mehedibag, House 12 · Panchlaish, Chattogram']],
+  '261031-0043': ['01671 330 905', ['রোড 27, বাসা 9/বি · ধানমন্ডি, ঢাকা', 'Road 27, House 9/B · Dhanmondi, Dhaka']],
+  '261030-0039': ['01733 118 642', ['ব্যাংক টাউন, রোড 4 · সাভার, ঢাকা', 'Bank Town, Road 4 · Savar, Dhaka']],
+  '261030-0038': ['01911 250 377', ['শিববাড়ি মোড় · সোনাডাঙ্গা, খুলনা', 'Shibbari Mor · Sonadanga, Khulna']],
+  '261029-0031': ['01811 112 222', ['শেওড়াপাড়া · মিরপুর, ঢাকা', 'Shewrapara · Mirpur, Dhaka']],
+  '261029-0030': ['01722 640 118', ['মধ্য বাড্ডা · বাড্ডা, ঢাকা', 'Middle Badda · Badda, Dhaka']],
+};
+const OBS_LOCKED = () => ({ no: '261031-0048', name: ['স•••', 'S•••'], area: ['ঢাকা', 'Dhaka'], items: 1, total: 1650, status: 'pending', time: ['দুপুর 12:20', '12:20 pm'], day: 'today', locked: true });
+OBS_ROW_PICS['261031-0048'] = [['fashion-6', 0]];
+function obsRow(r, o) {
+  const n = (o.covered || []).includes(r.no) ? 0 : OBS_SHORT[r.no];
+  const h = o29Row(r, { sel: o.sel === r.no, select: o.select, on: (o.picked || []).includes(r.no) });
+  const [phone, addr] = OBS_CUST[r.no] || [];
+  const where = r.locked ? L(...r.area) : addr ? L(...addr) : `<span class="st neu">${t('o29Takeaway')}</span>`;
+  const short = n ? `<span class="obs-l3"><span class="obs-tag">${ic('alert', 12)}${obsShortWords(n)}</span>${o.select ? `<span class="obs-why2">${L('স্টক না এলে লেবেল প্রিন্ট হবে না', 'No label until the stock is in')}</span>` : ''}</span>` : '';
+  const body = `<span class="body"><span class="l1 obs-name">${r.locked ? `${ic('lock', 14)} ` : ''}${L(...r.name)}</span><span class="l2 num">${r.locked ? '017•• ••• 842' : phone}</span><span class="l2 obs-addr">${where}</span>${short}</span>`;
+  const from = h.indexOf('<span class="body">');
+  const to = h.indexOf('</span></span><span class="trail">', from);
+  if (from < 0 || to < 0) throw new Error('Orders beyond stock: the row body not found');
+  const out = h.slice(0, from) + obsThumbs(r.no) + body + h.slice(to + '</span></span>'.length);
+  return n && o.select ? out.replace('<span class="checkbox ', '<span class="checkbox obs-nopick ') : out;
+}
 function obsList(o) {
   o = o || {};
-  const rows = O29.filter((r) => (o.only ? OBS_SHORT[r.no] : o.select ? true : r.status === 'pending' || OBS_SHORT[r.no]));
-  const row = (r) => {
-    const n = (o.covered || []).includes(r.no) ? 0 : OBS_SHORT[r.no];
-    let h = o29Row(r, { sel: o.sel === r.no, select: o.select, on: (o.picked || []).includes(r.no) });
-    h = h.replace('<span class="body">', obsThumbs(r.no) + '<span class="body">');
-    if (r.no === '261031-0044') h = h.replace(t('items', { n: 3 }), t('items', { n: 5 }));
-    if (!n) return h;
-    const why = o.select ? `<span class="obs-why2">${L('স্টক না এলে লেবেল প্রিন্ট হবে না', 'No label until the stock is in')}</span>` : '';
-    h = h.replace('</span></span><span class="trail">', `</span><span class="obs-l3"><span class="obs-tag">${ic('alert', 12)}${obsShortWords(n)}</span>${why}</span></span><span class="trail">`);
-    return o.select ? h.replace('<span class="checkbox ', '<span class="checkbox obs-nopick ') : h;
-  };
-
+  const rows = [...(o.payg ? [OBS_LOCKED()] : []), ...O29.filter((r) => (o.only ? OBS_SHORT[r.no] : o.select ? true : r.status === 'pending' || OBS_SHORT[r.no]))];
+  const row = (r) => obsRow(r, o);
   const shortChip = `<button class="chip obs-chip ${o.only ? 'on' : ''}" onclick="go('obs-list-short')">${ic('alert', 14)} ${L('স্টক কম', 'Short')}<span class="c">2</span></button>`;
   let tabs = chips([...O29_TABS.slice(0, 3).map(([k, l, c]) => ({ l: t(l), c, on: !o.only && !o.select && k === 'pending', go: 'obs-list' })), { l: t('more') + ' ▾', go: 'o29-more' }]);
   tabs = obsSwap(tabs, '<div class="chips ">', '<div class="chips ">' + shortChip, 'the chips row');
@@ -10925,6 +10945,7 @@ const OBS_PAGE = { ...O29_PAGE };
 const obsPage = (list, detail) => `${title('hubOrders', btn('p sm', ic('plus') + ' ' + t('newOrder')))}${secChips('orders', 'orders')}<div class="split"><div class="list-col">${list}</div><div class="detail">${detail}</div></div>`;
 SCREENS['obs-list'] = { ...OBS_PAGE, render: () => obsPage(obsList({ sel: '261031-0047' }), obsOrder(true)) };
 SCREENS['obs-list-short'] = { ...OBS_PAGE, render: () => obsPage(obsList({ only: true, sel: '261031-0047' }), obsOrder(true)) };
+SCREENS['obs-list-payg'] = { ...OBS_PAGE, render: () => obsPage(obsList({ payg: true, sel: '261031-0047' }), obsOrder(true)) };
 SCREENS['obs-order'] = { ...O29_ORDER, render: () => `<div class="split detail-only"><div class="list-col">${title('hubOrders')}${secChips('orders', 'orders')}${obsList({ sel: '261031-0047' })}</div><div class="detail">${obsOrder(true)}</div></div>` };
 /* Book tapped on a short order: the reason, never the courier's fields; the server refuses it too (OrderShortOfStock). */
 SCREENS['obs-book-blocked'] = { ...SCREENS['obs-order'], base: 'obs-order', sheet: () => sheet(t('c36BookT'), `<div class="obs-block">${ic('lock', 28)}<b>${L('এখনো বুক করা যাবে না', 'Not yet')}</b><p>${L('এই অর্ডারের 2টা পণ্য স্টকে নেই। স্টক ছাড়া কুরিয়ার এলে পার্সেল দেওয়া যাবে না, তাই আগে স্টক যোগ করুন, অথবা কাস্টমারকে জানিয়ে অর্ডারটা ক্যানসেল করুন।', 'Two items of this order are not in stock. A courier that comes for it would leave empty-handed, so add the stock first, or tell the customer and cancel the order.')}</p></div>
@@ -10986,6 +11007,9 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 .obs-l3{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin-top:4px}
 .obs-tag{display:inline-flex;align-items:center;gap:4px;background:var(--warning-soft);color:var(--warning);font-size:12.5px;font-weight:700;border-radius:99px;padding:2px 8px}
 .obs-tag svg.i{width:12px;height:12px}
+.obs-name{display:flex;align-items:center;gap:4px}
+.obs-name svg.i{width:14px;height:14px;color:var(--n700);flex:none}
+.obs-addr{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 </style>`);
 /* ---------- end of orders beyond stock (proposal) ---------- */
 </script>

@@ -34,7 +34,7 @@ oldest first. While a line is short, the order can't leave the shop.
 | OB-3 | **Restock fills short orders oldest first, automatically.** Stock left over after the waiting orders is free stock. |
 | OB-4 | **While any line of an order is short, the order can't leave the shop:** booking a courier, handing over, printing its label and marking it shipped are refused, each with the reason and an inline **"স্টক যোগ করুন"**. Confirming, the call, editing and cancelling still work. |
 | OB-5 | **An advance payment works as usual.** If the seller rejects the order, the existing refund flow (PAY refunds) handles it. |
-| OB-20 | **Every order row in the dashboard's order list shows the photos its lines were ordered with** (the owner on #443, 2026-11-25: "order listing should show the selected design"). The row leads with the first line's photo: a design's cover (the one pinned on the order line, ATR-20), else the product's first photo. With several lines, up to 3 small thumbnails stacked, then "+N" for the rest. Every row, not only short ones. A short order's "2টা কম" sits on a small line of its own under the row's text, so it is never cut off. The photos are 44 px, rounded like the other thumbnails, each next one 14 px further right so its design shows as a strip. **What it costs:** an ordinary row keeps its height; a short row grows about 20 px; the stack takes 44 to 72 px of width, so long names end a little sooner. |
+| OB-20 | **Each order row in the dashboard's order list shows only what the seller acts on** (the owner on #443, 2026-11-25: "order listing should show the selected design", then "in order list just customer phone number, his address and order total and the image is ok", keeping the status, the "স্টক কম" chip and the customer's name): <ul><li>**the photos its lines were ordered with:** the first line's photo (a design's cover, the one pinned on the order line, ATR-20; else the product's first photo), and with several lines up to 3 stacked, each 14 px further right so its design shows, then "+N";</li><li>**the customer's name;**</li><li>**the phone;**</li><li>**the address:** the delivery line, thana and district, cut to fit one line (a counter order shows its takeaway chip);</li><li>**the order total** and **the status** (নতুন, কনফার্মড…);</li><li>**"2টা কম"** on a short order, on a small line of its own.</li></ul> **Gone from the row:** the order number (search still finds it, and the order shows it) and the item count. **Pay-as-you-go fair use (PF-7, PF-21):** a locked order's row masks as the list does today: the name's first letter (`স•••`), the phone's ends (`017•• ••• 842`) and the district only. **Size:** 44 px photos; a row has three lines of text (four when short); the stack takes 44 to 72 px of width. |
 
 ## 2. My calls (for approval)
 
@@ -62,6 +62,9 @@ leads with its lines' design photos (OB-20): several designs of one kurti, so th
 order of 5 lines showing 3 and "+2":**
 - `obs-list`: the orders list with the "স্টক কম" chip first in the row (with its count), and short rows marked "2টা কম".
 - `obs-list-short`: that chip on, only short orders listed.
+- `obs-list-payg`: a pay-as-you-go shop's list, one locked order on top, masked as the list masks today (OB-20).
+- Every list row follows OB-20: photos, name, phone, address, total, status, and "2টা কম" when short; no order number or
+  item count. `obs-list-desktop` shows the list beside an order on a computer.
 - `obs-order`: a short order with the banner "২টা পণ্যের স্টক নেই · কুরিয়ার বুক বা শিপ করার আগে স্টক যোগ করুন", the
   short line ("চিকনকারি কুর্তি · গোলাপি · M · 2টা কম", and why it waits), the shipping card's blocked step, and the
   action bar's greyed "কুরিয়ার বুক করুন" beside "স্টক যোগ করুন". Also `obs-order-desktop`.
@@ -99,8 +102,12 @@ product: the same page as an in-stock one, with no stock wording and the order f
   (question 5)."
 - **INV-06 / INV-07:** what happens when a count falls below what is held (question 3).
 - **ORD-13 (the order list), amended (OB-20):** "…paginate at [20] per page, and sort newest first. Each row shall show
-  the photos its first [3] lines were ordered with (the line's pinned photo, ATR-20), and how many more lines there are."
-  Acceptance: "An order of 5 lines of three designs lists with those designs' 3 photos and +2."
+  the photos its first [3] lines were ordered with (the line's pinned photo, ATR-20) and how many more lines there are,
+  the customer's name and phone, the delivery address (line, thana and district) cut to fit, the order total, its status,
+  and its shortfall when it has one (INV-25); not the order number or the item count. An order still locked on
+  pay-as-you-go shows its name, phone and address masked as PYG-22 says." Acceptance: "An order of 5 lines of three
+  designs lists with those designs' 3 photos and +2, the name, phone, address, total and status, and no order number;
+  a locked order lists as স•••, 017•• ••• 842 and its district."
 - **ORD (new, the order list):** "Orders with a shortfall shall be findable by a 'short' filter with its count, and an
   order shall show each short line and why its next step waits."
 - **NTF:** the new-order alert carries the shortfall, and a fill notice names the orders it completed.
@@ -119,7 +126,8 @@ product: the same page as an in-stock one, with no stock wording and the order f
     `InventoryLedger.apply` for every positive change and from `letGo` (the release path);
   - `consume` gets its guard; order edits follow OB-13; combos follow OB-14;
   - order views carry `short` per line and `shortTotal`, plus a `short=true` list filter and a count;
-  - the order list read gains `thumbs: string[]` (up to 3, the first lines' `order_lines.thumbnail_url` in line order, the
+  - the order list read gains the customer's phone and delivery address line for each row (masked for a locked order,
+    as today), and `thumbs: string[]` (up to 3, the first lines' `order_lines.thumbnail_url` in line order, the
     product's first photo where a line has none) and `lineCount: number`, read with one `LEFT JOIN LATERAL` per page
     (no N+1; served from `order_lines` by its order index);
   - notifications for OB-10; the developer-api content and samples test for OB-17; the isolation registry for any new
