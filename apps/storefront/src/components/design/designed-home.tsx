@@ -16,6 +16,7 @@ import { ProductListBatch } from '@/lib/api/product-list-batch';
 import { type DesignedHomeReads, fallbackReads, homeReadPlan } from '@/lib/design/home-reads';
 import type { Words } from '@/lib/i18n/words';
 import { type OpenShopPage, type PageFrame, storefrontApi } from '@/lib/storefront';
+import { EmptyHome } from '../catalogue/empty-state';
 import { Hero } from './hero';
 import {
   About,
@@ -168,14 +169,21 @@ export function DesignedHome({
   frame,
   reads,
   words,
+  bare = false,
 }: {
   info: PublicShop;
   design: PublicStorefrontDesign;
   frame: PageFrame;
   reads: DesignedHomeReads;
   words: Words;
+  /** SB-33 (em-home-empty): no product yet -- "coming soon" in the hero's place, the ways to reach the shop, the trust
+      strip; no section that would draw nothing. */
+  bare?: boolean;
 }) {
   const look = designLook(design, info.brand);
+  const sections = bare
+    ? design.sections.filter((section) => section.kind === StorefrontSectionKind.Trust)
+    : design.sections;
   const now = Date.now();
   return (
     <div className="sfb" style={look.variables} data-theme={design.theme}>
@@ -185,7 +193,8 @@ export function DesignedHome({
           <link rel="stylesheet" href={look.fontsUrl} precedence="default" />
         </>
       ) : null}
-      {design.sections.map((section) => (
+      {bare ? <EmptyHome shop={info} words={words} /> : null}
+      {sections.map((section) => (
         <DesignedSection
           key={section.id}
           section={section}

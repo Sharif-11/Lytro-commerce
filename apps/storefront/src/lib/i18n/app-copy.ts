@@ -314,4 +314,42 @@ export const APP_COPY = {
   pp_payment: ['পেমেন্ট', 'Payment'],
   pp_more_shop: ['এই দোকানের আরও পণ্য', 'More from this shop'],
   pp_all: ['সব প্রোডাক্ট দেখুন', 'See every product'],
+  // STOREFRONT-BUILDER-PLAN SB-33 (the owner, 2026-11-26): what a page with no products says, and where it leads. Nothing
+  // technical and no blame.
+  em_soon: ['নতুন কালেকশন শিগগিরই আসছে', 'New collection coming soon'],
+  em_ask_h: ['কিছু খুঁজছেন?', 'Looking for something?'],
+  em_ask_p: [
+    'মেসেজ করুন, কী আছে আর কী আসছে জানিয়ে দেব।',
+    "Message us and we'll tell you what we have and what's coming.",
+  ],
+  em_ask_fb: [
+    'নতুন কালেকশনের খবর পাবেন আমাদের ফেসবুক পেজে।',
+    "You'll find news of the new collection on our Facebook page.",
+  ],
+  em_later_h: ['শিগগিরই আবার আসুন', 'Come back soon'],
+  em_later_p: [
+    'আমরা শপ সাজাচ্ছি। কিছুদিন পর নতুন প্রোডাক্ট দেখতে পাবেন।',
+    "We're getting the shop ready. New products will be here in a few days.",
+  ],
+  em_list_p: [
+    'আমরা শপ সাজাচ্ছি। কী আসছে জানতে মেসেজ করুন।',
+    "We're getting the shop ready. Message us to hear what's coming.",
+  ],
+  em_wa: ['WhatsApp-এ মেসেজ করুন', 'Message on WhatsApp'],
+  em_call: ['কল করুন', 'Call'],
+  em_fb: ['ফেসবুক পেজে দেখুন', 'See our Facebook page'],
+  em_cat_h: [
+    'এই ক্যাটাগরিতে নতুন প্রোডাক্ট শিগগিরই আসছে',
+    'New products for this category are coming soon',
+  ],
+  em_cat_p: ['ততক্ষণ শপের অন্য প্রোডাক্টগুলো দেখুন।', 'Meanwhile, see what else the shop has.'],
+  em_more_shop: ['এই শপের আরও প্রোডাক্ট', 'More from this shop'],
+  em_search_h: ['“{q}” পাওয়া যায়নি', 'Nothing found for “{q}”'],
+  em_search_p: ['অন্য বানানে বা ছোট শব্দে খুঁজুন।', 'Try another spelling or a shorter word.'],
+  em_popular: ['জনপ্রিয় প্রোডাক্ট', 'Popular products'],
+  em_offers_h: ['এখন কোনো অফার চলছে না', 'No offers running right now'],
+  em_offers_p: ['নতুন অফার এলে এখানেই দেখাবে।', 'New offers will show here.'],
+  em_stock_h: ['স্টকে থাকা কোনো প্রোডাক্ট নেই', 'Nothing in stock right now'],
+  em_stock_all: ['সবগুলো দেখুন', 'See them all'],
+  em_gone_p: ['শপের অন্য প্রোডাক্টগুলো দেখুন।', 'See what else the shop has.'],
 } as const satisfies Record<string, readonly [string, string]>;

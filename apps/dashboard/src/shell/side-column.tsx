@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
+import { ShopSiteArrow, ShopSiteLink } from '@/components/shop-site-link';
 import { ShopMark } from '@/components/ui/shop-mark';
 import { appConfig } from '@/lib/app-config';
 import { allows, hubOf, MENU_MONEY_SECTIONS, sectionOf, visibleSections } from './hubs';
@@ -27,10 +28,13 @@ export function SideColumn(): React.JSX.Element | null {
       aria-label={t('sectionNav')}
       className="hidden w-56 flex-none flex-col border-r border-line bg-surface px-3 py-4 xl:flex"
     >
-      <div className="mb-3 flex items-center gap-2.5 border-b border-line px-2 pt-1 pb-4">
+      <ShopSiteLink className="mb-3 flex items-center gap-2.5 border-b border-line px-2 pt-1 pb-4">
         <ShopMark shopName={tenant.shopName} slug={slug} logo={tenant.logo} size={40} />
         <div className="min-w-0">
-          <div className="text-[15px] leading-[1.3] font-semibold">{tenant.shopName}</div>
+          <div className="text-[15px] leading-[1.3] font-semibold">
+            {tenant.shopName}
+            <ShopSiteArrow />
+          </div>
           {/* A long address stays on one line, cut, and shows whole on hover (found with real data, Slice 11.4b). */}
           <div
             title={appConfig.shopHost(slug)}
@@ -39,7 +43,7 @@ export function SideColumn(): React.JSX.Element | null {
             {appConfig.shopHost(slug)}
           </div>
         </div>
-      </div>
+      </ShopSiteLink>
       <div className="px-2 pt-2 pb-1 text-[12px] font-semibold tracking-[0.06em] text-fg-subtle uppercase [html[lang=bn]_&]:text-[13px] [html[lang=bn]_&]:tracking-normal [html[lang=bn]_&]:normal-case">
         {t(hub.label)}
       </div>
