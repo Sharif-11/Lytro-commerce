@@ -2,6 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { mockApi, SLUG, type ApiLog, type ShopState } from './support/mock-api';
 import { drawnProducts } from './support/products';
+import { closeSaved } from './support/quick-add';
 
 // TENANT-DASHBOARD-DESIGN §7.23, Slice 11.7a: a product's photos and video -- uploads with their progress joining the
 // photos, the media sheet with the cover, reordering by keyboard, removing (deleted when nothing else shows it, agreed
@@ -206,10 +207,13 @@ test('a new product with its photo is saved in one request, the photo its design
 }) => {
   const log = await open(page, 'new');
   await stripInput(page, 'image').setInputFiles(file('a.png', 'image/png'));
-  await expect(main(page).getByRole('button', { name: 'Photo 1' })).toBeVisible();
+  // The tile, not its ⋮ menu ("Photo 1: what it is", quick add §7.4b).
+  await expect(main(page).getByRole('button', { name: 'Photo 1', exact: true })).toBeVisible();
   await main(page).getByLabel('Name', { exact: true }).fill('Kurta');
   await main(page).getByLabel('Price', { exact: true }).fill('900');
+  await main(page).getByLabel('Stock', { exact: true }).fill('5');
   await save(page).click();
+  await closeSaved(page);
   await expect(page).toHaveURL(`/${SLUG}/products`);
   const [sent] = sentBodies(log, 'POST', '/products') as {
     imageIds?: string[];
