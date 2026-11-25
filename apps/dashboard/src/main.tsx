@@ -35,6 +35,11 @@ tenantSession.whenSignedOutElsewhere(() => {
 
 // NTF-02, NTF-07: offline starts, pushes and the update prompt; vite-plugin-pwa makes the worker in a built app only.
 if (import.meta.env.PROD) serviceWorker.register();
+// NTF-07 (amended 2026-11-25): a new version takes over just after an in-app page change, never before or during one,
+// so a navigation an unsaved-changes guard holds back is respected and nothing typed is lost.
+router.subscribe('onResolved', () => {
+  serviceWorker.pageChanged();
+});
 
 const root = document.getElementById('root');
 if (!root) {

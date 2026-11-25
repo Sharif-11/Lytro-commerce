@@ -33,7 +33,7 @@ import { Splash } from './splash';
 import { useShopManifest } from './use-shop-manifest';
 import { NotificationAlerts } from '@/views/notifications/notification-alerts';
 import { Unavailable } from '@/views/unavailable';
-import { ImportantPrompt, NoticeBands, UpdatePrompt } from '@/views/notices/notice-bands';
+import { ImportantPrompt, NoticeBands } from '@/views/notices/notice-bands';
 
 interface AppShellProps {
   slug: string;
@@ -292,7 +292,6 @@ function ShellFrame({ slug, me, tenant, children }: ShellFrameProps): React.JSX.
         {notices.data && notices.data.prompts.length > 0 ? (
           <ImportantPrompt prompts={notices.data.prompts} />
         ) : null}
-        <UpdatePrompt />
         <ToastStack toasts={toast.toasts} onDismiss={toast.dismiss} />
       </div>
     </ShellContext.Provider>

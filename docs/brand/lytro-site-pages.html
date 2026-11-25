@@ -920,6 +920,7 @@ const DEVAPI = (() => {
       data: {
         name: 'Megh Fashion',
         slug: 'megh',
+        paused: false,
         metaPixelId: null,
         brand: null,
         logo: LOGO,
@@ -1128,6 +1129,7 @@ const DEVAPI = (() => {
         courierMessage: null,
         courierReturning: false,
         payment: null,
+        shopPhone: null,
       },
       errs: [
         [404, 'not_found', 'OrderNotFound', 'অর্ডারটি পাওয়া যায়নি।', 'That order was not found.'],
@@ -1323,8 +1325,10 @@ const DEVAPI = (() => {
     [401, 'unauthenticated', 'ApiKeyExpired', 'এই API কী-র মেয়াদ শেষ হয়ে গেছে। ড্যাশবোর্ড থেকে নতুন একটি তৈরি করুন।', 'This API key has expired. Make a new one in the dashboard.'],
     [403, 'forbidden', 'WebsiteNotRegistered', 'এই ওয়েবসাইট এই API কী-র ওয়েবসাইট তালিকায় নেই। ড্যাশবোর্ডে কী-টিতে এটি যোগ করুন।', "This website is not one of this API key's website addresses. Add it to the key in the dashboard."],
     [403, 'tenant_offline', 'ShopUnavailable', 'এই শপটি এখন উপলব্ধ নয়।', 'This shop is not available right now.'],
+    [403, 'tenant_offline', 'StorefrontPaused', 'শপটি শিগগিরই আবার চালু হচ্ছে।', 'This shop is coming back soon.'],
     [429, 'rate_limited', 'TooManyRequests', 'অনেক বেশি রিকোয়েস্ট এসেছে। একটু অপেক্ষা করে আবার ট্রাই করুন।', 'Too many requests. Please wait a moment and try again.'],
     [429, 'quota_exceeded', 'RequestsUsedUp', 'এই শপ এই বিলিং পিরিয়ডের সব API রিকোয়েস্ট ব্যবহার করে ফেলেছে। পরের পিরিয়ডে আবার শুরু হবে।', 'This shop has used all its API requests for this billing period. They start again with the next one.'],
+    [429, 'quota_exceeded', 'ApiCapReached', 'এই শপের এ মাসের API খরচের লিমিট শেষ।', "This shop's API spending limit for the month is reached."],
     [503, 'service_unavailable', 'ServerBusy', 'সার্ভার এই মুহূর্তে খুব ব্যস্ত। একটু পরে আবার চেষ্টা করুন।', 'The server is very busy right now. Please try again in a moment.'],
     [500, 'internal_error', 'SomethingWentWrong', 'কিছু একটা সমস্যা হয়েছে। অনুগ্রহ করে আবার ট্রাই করুন।', 'Something went wrong. Please try again.'],
   ];
@@ -1335,12 +1339,12 @@ const DEVAPI = (() => {
     [400, 'idempotency_key_required', ['POST /v1/orders-এ Idempotency-Key নেই।', 'POST /v1/orders without an Idempotency-Key.']],
     [401, 'unauthenticated', ['কী নেই, ভুল, ক্যানসেলড বা মেয়াদ শেষ; কাস্টমার রুটে লগইন নেই।', 'The key is missing, wrong, revoked or expired; on shopper routes, no sign-in.']],
     [403, 'forbidden', ['রিকোয়েস্টটা কী-টির কোনো ওয়েবসাইট থেকে আসেনি।', "The request didn't come from one of the key's websites."]],
-    [403, 'tenant_offline', ['শপ বন্ধ বা সাসপেন্ডেড।', 'The shop is closed or suspended.']],
+    [403, 'tenant_offline', ['শপ বন্ধ বা সাসপেন্ডেড, অথবা পে-অ্যাজ-ইউ-গো শপ প্রথম টপ-আপের অপেক্ষায়।', 'The shop is closed or suspended, or a pay-as-you-go shop waits for its first top-up.']],
     [404, 'not_found', ['প্রোডাক্ট, অফার, অর্ডার বা অ্যাড্রেস নেই।', 'No such product, offer, order or address.']],
     [409, 'conflict', ['এখন করা যায় না, যেমন এই থানায় ডেলিভারি নেই।', "Can't be done now, such as no delivery to this thana."]],
     [422, 'idempotency_conflict', ['একই Idempotency-Key, কিন্তু ভিন্ন ডেটা।', 'The same Idempotency-Key with different data.']],
     [429, 'rate_limited', ['এক মিনিটে অনেক বেশি; Retry-After সেকেন্ড পরে আবার।', 'Too many in a minute; try again after Retry-After seconds.']],
-    [429, 'quota_exceeded', ['এই বিলিং সাইকেলের রিকোয়েস্ট শেষ।', "This billing cycle's requests are used up."]],
+    [429, 'quota_exceeded', ['এই বিলিং সাইকেলের রিকোয়েস্ট শেষ; পে-অ্যাজ-ইউ-গো শপে মাসের API খরচের লিমিট শেষ বা ব্যালেন্স খালি।', "This billing cycle's requests are used up; on pay-as-you-go, the month's API spending limit is reached or the balance is empty."]],
     [500, 'internal_error', ['আমাদের দিকে সমস্যা; X-Request-Id সহ সাপোর্টে জানান।', 'A fault on our side; tell support the X-Request-Id.']],
     [503, 'service_unavailable', ['সার্ভার ব্যস্ত; Retry-After সেকেন্ড পরে আবার।', 'The server is busy; try again after Retry-After seconds.']],
   ];
@@ -1523,10 +1527,12 @@ const DEVAPI = (() => {
   var limits = '<section class="dv-sec" id="dv-limits">' + tx('h2', '', SECS[2][1]) +
     tx('p', 'dv-p1', ['দুই রকম লিমিট: প্রতি মিনিটে, যাতে একজন ভিজিটর পুরো শপ আটকে দিতে না পারে; আর প্রতি বিলিং সাইকেলে, প্ল্যান অনুযায়ী। মিনিটের লিমিট পার হলে 429 আর Retry-After আসে।', 'Two kinds: a minute, so one visitor can never hold up the whole shop; and a billing cycle, by plan. Past a minute limit you get 429 with Retry-After.']) +
     '<div class="dv-lim">' + minute + '</div>' + tx('h3', '', ['প্রতি বিলিং সাইকেলে রিকোয়েস্ট, প্ল্যান অনুযায়ী', 'Requests a billing cycle, by plan']) +
-    '<div class="dv-plans">' + D.plans.map(function (p) { return '<div class="dv-pl">' + tx('span', '', p[0]) + '<b class="num">' + p[1].toLocaleString('en-US') + '</b></div>'; }).join('') + '</div>' +
+    /* Amended 2026-11-25 (PF-14, the owner's "a fix in sketch"): with fair use on, pay-as-you-go's row is its charge. */
+    '<div class="dv-plans">' + D.plans.map(function (p) { return '<div class="dv-pl">' + tx('span', '', p[0]) + (p[0][1] === 'Pay-as-you-go' ? tx('b', 'num', ['10,000 ফ্রি, তারপর ৳1 / 1,000', '10,000 free, then ৳1 / 1,000']) : '<b class="num">' + p[1].toLocaleString('en-US') + '</b>') + '</div>'; }).join('') + '</div>' +
     '<ul class="dv-ul">' + tx('li', '', ['50%, 80% আর 95%-এ শপের মালিককে জানানো হয়।', 'The shop owner is told at 50%, 80% and 95%.']) +
     tx('li', '', ['লিমিট শেষ হলে বাকি রুটগুলো 429 RequestsUsedUp দেয়, কিন্তু অর্ডারের তিনটি রুট (/locations, /delivery-estimate, /orders) চলতেই থাকে: লিমিটের জন্য কোনো বিক্রি আটকায় না।', 'Past it, the other routes answer 429 RequestsUsedUp, but the three an order needs (/locations, /delivery-estimate, /orders) keep working: a limit never turns a sale away.']) +
     tx('li', '', ['ড্যাশবোর্ডের Add-ons থেকে API রিকোয়েস্ট প্যাক কিনে লিমিট বাড়ানো যায়।', "An API request pack from the dashboard's Add-ons raises it."]) +
+    tx('li', '', ['পে-অ্যাজ-ইউ-গো: প্রতি সাইকেলে 10,000 সফল রিকোয়েস্ট (2xx আর 304) ফ্রি, তারপর প্রতি 1,000-এ ৳1, প্রতি রাতে কাটা হয়, শপের নিজের ঠিক করা মাসের লিমিট পর্যন্ত (৳0 থেকে ৳5,000)। রিকোয়েস্ট প্যাক নেই। লিমিট শেষ হলে বা ব্যালেন্স খালি হলে অর্ডারের তিনটি রুট ছাড়া বাকিগুলো 429 ApiCapReached দেয়।', "Pay-as-you-go: 10,000 successful requests (2xx and 304) free a cycle, then ৳1 per 1,000, charged each night, up to the month's limit the shop sets (৳0 to ৳5,000). No request packs. At the limit, or with an empty balance, every route but the three an order needs answers 429 ApiCapReached."]) +
     tx('li', '', ['শপের নিজের Lytro স্টোরফ্রন্টের রিকোয়েস্ট গোনা হয় না; ব্রাউজারে রেখে দেওয়া উত্তরও না।', "The shop's own Lytro storefront is not counted, nor is an answer a browser reuses from its cache."]) + '</ul></section>';
   var errors = '<section class="dv-sec" id="dv-errors">' + tx('h2', '', SECS[3][1]) +
     tx('p', 'dv-p1', ['রিফিউজ হলে success: false, আর errors.code বলে কী ধরনের সমস্যা। আপনার কোড statusCode আর errors.code দেখে সিদ্ধান্ত নেবে; message মানুষের পড়ার জন্য, আর Accept-Language অনুযায়ী ভাষা বদলায়।', 'A refusal has success: false, and errors.code names the kind. Let your code decide by statusCode and errors.code; message is for people, and its language follows Accept-Language.']) +

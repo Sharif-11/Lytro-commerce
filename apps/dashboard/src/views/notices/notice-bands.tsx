@@ -1,11 +1,10 @@
-import { useState, useSyncExternalStore } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { useDismissNotice } from '@/api/notices';
 import { Icon } from '@/components/icon';
 import { Button } from '@/components/ui/button';
 import { formatTime } from '@/lib/dates';
-import { serviceWorker } from '@/lib/service-worker';
 import { useShell } from '@/shell/shell-context';
 import type { NoticeBrief, NoticeCountdown, NoticeSummary } from '@/types/notices';
 import { CATEGORY_WORD, useMinuteClock, useUntil, useWindowWords } from './notice-words';
@@ -201,33 +200,6 @@ export function ImportantPrompt({ prompts }: { prompts: NoticeBrief[] }): React.
           </Button>
         </div>
       </div>
-    </div>
-  );
-}
-
-/** The update prompt (Part 37's `p37-update`, NTF-07, D7-44): kept until tapped, above the tab bar or bottom right. */
-export function UpdatePrompt(): React.JSX.Element | null {
-  const { t } = useTranslation('shell');
-  const ready = useSyncExternalStore(serviceWorker.subscribe, serviceWorker.updateReady);
-  if (!ready) return null;
-  return (
-    <div
-      role="status"
-      className="fixed right-3 bottom-[76px] left-3 z-30 flex items-center gap-3 rounded-[12px] bg-ink py-2.5 pr-2.5 pl-4 text-white shadow-[0_12px_32px_-8px_rgba(16,32,31,0.5)] lg:right-8 lg:bottom-8 lg:left-auto lg:w-[400px]"
-    >
-      <span className="min-w-0 flex-1 text-[14px] leading-[1.4]">
-        {t('p37UpdateB')}
-        <small className="block text-[13px] text-neutral-200">{t('p37UpdateForm')}</small>
-      </span>
-      <Button
-        size="sm"
-        className="flex-none !bg-brand-300 !text-ink"
-        onClick={() => {
-          serviceWorker.update();
-        }}
-      >
-        {t('p37UpdateBtn')}
-      </Button>
     </div>
   );
 }

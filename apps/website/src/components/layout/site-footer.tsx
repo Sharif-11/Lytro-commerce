@@ -30,6 +30,7 @@ const text = {
   terms: { bn: 'টার্মস', en: 'Terms' },
   privacy: { bn: 'প্রাইভেসি', en: 'Privacy' },
   listener: { bn: 'লিসেনার অ্যাপ', en: 'Listener app' },
+  developers: { bn: 'ডেভেলপার', en: 'Developers' },
   made: {
     bn: 'ঢাকায় তৈরি, সারা বাংলাদেশের সেলারদের জন্য',
     en: 'Made in Dhaka, for sellers across Bangladesh',
@@ -62,6 +63,7 @@ export async function SiteFooter({ language }: { language: Language }) {
     { href: '/#faq', label: copy.of(text.faq) },
     { href: '/contact', label: copy.of(text.setupHelp) },
     { href: '/listener', label: copy.of(text.listener) },
+    { href: '/developers', label: copy.of(text.developers) },
     ...(whatsapp !== null
       ? [{ href: whatsappHref(whatsapp), label: copy.of(text.whatsapp), external: true }]
       : []),

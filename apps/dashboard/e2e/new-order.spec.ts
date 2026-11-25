@@ -53,6 +53,16 @@ async function addItem(page: Page, product: string, variant?: string): Promise<v
 const figure = (page: Page, label: string | RegExp) =>
   main(page).locator('.kv').filter({ hasText: label }).locator('span').last();
 
+// The owner, 2026-11-25: the customer's phone is typed from 0, as people write it; no fixed +880 before the box.
+test('a customer phone typed from 0 is read: the known customer is found', async ({ page }) => {
+  await open(page, '/orders/new');
+  const field = main(page).getByLabel('Phone number');
+  await expect(field).toHaveAttribute('placeholder', '01XXXXXXXXX');
+  await field.fill('01711234567');
+  await expect(main(page)).toContainText('Known customer: 4 orders, last at Mirpur');
+  await expect(main(page).getByLabel('Name', { exact: true })).toHaveValue('Nusrat Jahan');
+});
+
 test('a known phone fills the name and its last address; items are added; the totals are the server’s; Create makes it', async ({
   page,
 }) => {
@@ -286,7 +296,7 @@ test('Edit order from the menu: as the order is, a quantity changed, and only wh
     .getByRole('button', { name: /^Edit the order/ })
     .click();
   await expect(page).toHaveURL(`/${SLUG}/orders/o-47/edit`);
-  await expect(main(page).getByLabel('Phone number')).toHaveValue('1711 234 567');
+  await expect(main(page).getByLabel('Phone number')).toHaveValue('01711234567');
   await expect(main(page).getByLabel('Name', { exact: true })).toHaveValue('Nusrat Jahan');
   await expect(main(page)).toContainText('L · Black · ৳450');
   await expect(main(page).getByText('The customer already paid something')).toHaveCount(0);

@@ -422,7 +422,7 @@ svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.75;str
       <optgroup label="The balance in the bars, and a quick sign-out (sketch)"><option value="bb-home">Home · the balance in the top bar</option><option value="bb-shown">· tapped: the balance shows for 5 seconds</option><option value="bb-home-low">· low, in amber</option><option value="bb-shown-low">· low, tapped</option><option value="bb-home-zero">· used up, in red</option><option value="bb-account">· a computer: the initial opens your menu, Sign out in it</option><option value="bb-menu">· a phone: Menu's first card, the shop and you, with Sign out</option><option value="bb-staff">· staff who may not see the balance: no balance shown</option></optgroup>
       <optgroup label="Order items, clear (sketch)"><option value="oi-items">Order · items: design + SKU, quantity in its unit, each option by name</option><option value="oi-items-kg">· weighed and packed items (kg, litre, a pack's total)</option><option value="oi-photo">· a design's photo, large</option></optgroup>
       <optgroup label="Pathao pickup store, added from Lytro (sketch)"><option value="sh-ps-store">Pickup store · the list, and Add a store</option><option value="sh-ps-new">· a new store: name, contact, place, address</option><option value="sh-ps-new-bad">· what Pathao needs, checked before sending</option><option value="ps-added">· added and chosen</option><option value="sh-ps-waiting">· added, Pathao has not switched it on yet</option><option value="sh-ps-none">· the Pathao account has no store yet</option></optgroup>
-      <optgroup label="Developers · the API docs (sketch)"><option value="dev-keys">API keys · Developer docs, under the lead</option><option value="dev-keys-none">· no key of your own yet</option><option value="dev-docs">Developer API · getting started (a phone folds the list)</option><option value="dev-docs-nokey">· no key yet: step 1 makes one</option><option value="dev-toc">· on a phone: On this page, open</option><option value="dev-auth">· authentication and headers</option><option value="dev-limits">· limits: this plan, this cycle</option><option value="dev-used-up">· this cycle’s requests used up</option><option value="dev-errors">· errors: the envelope and every code</option><option value="dev-products">· a route: GET /v1/catalogue/products, curl</option><option value="dev-products-js">· the same, JavaScript</option><option value="dev-copied">· a sample copied</option><option value="dev-order">· POST /v1/orders: body, Idempotency-Key</option><option value="dev-track">· GET /v1/track/{trackingId}</option><option value="dev-shopper">· shopper accounts: the token</option></optgroup>
+      <optgroup label="Developers · the API docs (sketch)"><option value="dev-keys">API keys · Developer docs, under the lead</option><option value="dev-keys-none">· no key of your own yet</option><option value="dev-docs">Developer API · getting started (a phone folds the list)</option><option value="dev-docs-nokey">· no key yet: step 1 makes one</option><option value="dev-toc">· on a phone: On this page, open</option><option value="dev-auth">· authentication and headers</option><option value="dev-limits">· limits: this plan, this cycle</option><option value="dev-used-up">· this cycle’s requests used up</option><option value="dev-limits-payg">· limits on pay-as-you-go, fair use on (2026-11-25)</option><option value="dev-used-up-payg">· pay-as-you-go: the month’s API limit reached</option><option value="dev-errors">· errors: the envelope and every code</option><option value="dev-products">· a route: GET /v1/catalogue/products, curl</option><option value="dev-products-js">· the same, JavaScript</option><option value="dev-copied">· a sample copied</option><option value="dev-order">· POST /v1/orders: body, Idempotency-Key</option><option value="dev-track">· GET /v1/track/{trackingId}</option><option value="dev-shopper">· shopper accounts: the token</option></optgroup>
       <optgroup label="New product · quick add (proposal 2026-11-25)"><option value="pq-empty">Empty: photos, name, price, stock, sizes, description</option><option value="pq-filled">· one photo, 10 in hand</option><option value="pq-stock-one">· three designs, ONE shared stock box (default)</option><option value="pq-nostock">· Save with no stock: the warning</option><option value="pq-made">· made to order switched on in more settings: no stock box</option><option value="pq-size-add">Sheet · সাইজ যোগ করুন: S–XXL, free size, 28–44, typed</option><option value="pq-size-added">· sizes S M L under the stock, one shared box, a video after the 3 designs</option><option value="pq-stock-split-designs">· split: a box under each design</option><option value="pq-stock-split-grid">· split: designs x sizes grid, one row empty</option><option value="pq-stock-grouped">· split: 4 photos, one grouped, one plain</option><option value="pq-photo-menu">Sheet · this photo: own design, same design, not a design</option><option value="pq-colour">· one photo, colours (added from more settings) and sizes</option><option value="pq-more-open">· more settings open: made to order on, category, size chart as a picture</option><option value="pq-other">· a shop that is not clothing: no size button, options in more settings</option><option value="pq-fee">· fee on top: balance short</option><option value="pq-fee-ok">· fee on top: enough balance</option><option value="pq-wide">· the split grid on a computer (switch to Computer)</option></optgroup>
       <optgroup label="Later phases (design only)"><option value="storefront">Storefront settings · slides as a carousel (Slice 12)</option><option value="storefront-tiles">· one banner and two tiles (Slice 12)</option><option value="storefront-empty">· no slides yet (Slice 12)</option><option value="sh-slide">· slide editor with the focal point (Slice 12)</option><option value="sh-slide-new">· new slide (Slice 12)</option><option value="sh-slide-preview">· both crops (Slice 12)</option><option value="sh-slide-delete">· remove slide (Slice 12)</option><option value="storefront-saved">· slide saved (Slice 12)</option></optgroup>
     </select>
@@ -9774,6 +9774,7 @@ const DEVAPI = (() => {
       data: {
         name: 'Megh Fashion',
         slug: 'megh',
+        paused: false,
         metaPixelId: null,
         brand: null,
         logo: LOGO,
@@ -9982,6 +9983,7 @@ const DEVAPI = (() => {
         courierMessage: null,
         courierReturning: false,
         payment: null,
+        shopPhone: null,
       },
       errs: [
         [404, 'not_found', 'OrderNotFound', 'অর্ডারটি পাওয়া যায়নি।', 'That order was not found.'],
@@ -10144,6 +10146,7 @@ const DEVAPI = (() => {
       errs: [
         [404, 'not_found', 'PageNotFound', 'পেজটি খুঁজে পাওয়া যায়নি।', 'Page not found.'],
         [429, 'quota_exceeded', 'RequestsUsedUp', 'এই শপ এই বিলিং পিরিয়ডের সব API রিকোয়েস্ট ব্যবহার করে ফেলেছে। পরের পিরিয়ডে আবার শুরু হবে।', 'This shop has used all its API requests for this billing period. They start again with the next one.'],
+    [429, 'quota_exceeded', 'ApiCapReached', 'এই শপের এ মাসের API খরচের লিমিট শেষ।', "This shop's API spending limit for the month is reached."],
       ],
       note: ['এই রুটে API কী লাগে না: ঠিকানার token-ই চাবি, তাই ঠিকানাটা কাউকে দেবেন না। প্রতিটি ফিড পড়া একটি রিকোয়েস্ট হিসেবে গোনা হয়।', 'No API key here: the token in the address is the key, so keep the address private. Each fetch counts as one request.'],
     },
@@ -10177,6 +10180,7 @@ const DEVAPI = (() => {
     [401, 'unauthenticated', 'ApiKeyExpired', 'এই API কী-র মেয়াদ শেষ হয়ে গেছে। ড্যাশবোর্ড থেকে নতুন একটি তৈরি করুন।', 'This API key has expired. Make a new one in the dashboard.'],
     [403, 'forbidden', 'WebsiteNotRegistered', 'এই ওয়েবসাইট এই API কী-র ওয়েবসাইট তালিকায় নেই। ড্যাশবোর্ডে কী-টিতে এটি যোগ করুন।', "This website is not one of this API key's website addresses. Add it to the key in the dashboard."],
     [403, 'tenant_offline', 'ShopUnavailable', 'এই শপটি এখন উপলব্ধ নয়।', 'This shop is not available right now.'],
+    [403, 'tenant_offline', 'StorefrontPaused', 'শপটি শিগগিরই আবার চালু হচ্ছে।', 'This shop is coming back soon.'],
     [429, 'rate_limited', 'TooManyRequests', 'অনেক বেশি রিকোয়েস্ট এসেছে। একটু অপেক্ষা করে আবার ট্রাই করুন।', 'Too many requests. Please wait a moment and try again.'],
     [429, 'quota_exceeded', 'RequestsUsedUp', 'এই শপ এই বিলিং পিরিয়ডের সব API রিকোয়েস্ট ব্যবহার করে ফেলেছে। পরের পিরিয়ডে আবার শুরু হবে।', 'This shop has used all its API requests for this billing period. They start again with the next one.'],
     [503, 'service_unavailable', 'ServerBusy', 'সার্ভার এই মুহূর্তে খুব ব্যস্ত। একটু পরে আবার চেষ্টা করুন।', 'The server is very busy right now. Please try again in a moment.'],
@@ -10189,12 +10193,12 @@ const DEVAPI = (() => {
     [400, 'idempotency_key_required', ['POST /v1/orders-এ Idempotency-Key নেই।', 'POST /v1/orders without an Idempotency-Key.']],
     [401, 'unauthenticated', ['কী নেই, ভুল, ক্যানসেলড বা মেয়াদ শেষ; কাস্টমার রুটে লগইন নেই।', 'The key is missing, wrong, revoked or expired; on shopper routes, no sign-in.']],
     [403, 'forbidden', ['রিকোয়েস্টটা কী-টির কোনো ওয়েবসাইট থেকে আসেনি।', "The request didn't come from one of the key's websites."]],
-    [403, 'tenant_offline', ['শপ বন্ধ বা সাসপেন্ডেড।', 'The shop is closed or suspended.']],
+    [403, 'tenant_offline', ['শপ বন্ধ বা সাসপেন্ডেড, অথবা পে-অ্যাজ-ইউ-গো শপ প্রথম টপ-আপের অপেক্ষায়।', 'The shop is closed or suspended, or a pay-as-you-go shop waits for its first top-up.']],
     [404, 'not_found', ['প্রোডাক্ট, অফার, অর্ডার বা অ্যাড্রেস নেই।', 'No such product, offer, order or address.']],
     [409, 'conflict', ['এখন করা যায় না, যেমন এই থানায় ডেলিভারি নেই।', "Can't be done now, such as no delivery to this thana."]],
     [422, 'idempotency_conflict', ['একই Idempotency-Key, কিন্তু ভিন্ন ডেটা।', 'The same Idempotency-Key with different data.']],
     [429, 'rate_limited', ['এক মিনিটে অনেক বেশি; Retry-After সেকেন্ড পরে আবার।', 'Too many in a minute; try again after Retry-After seconds.']],
-    [429, 'quota_exceeded', ['এই বিলিং সাইকেলের রিকোয়েস্ট শেষ।', "This billing cycle's requests are used up."]],
+    [429, 'quota_exceeded', ['এই বিলিং সাইকেলের রিকোয়েস্ট শেষ; পে-অ্যাজ-ইউ-গো শপে মাসের API খরচের লিমিট শেষ বা ব্যালেন্স খালি।', "This billing cycle's requests are used up; on pay-as-you-go, the month's API spending limit is reached or the balance is empty."]],
     [500, 'internal_error', ['আমাদের দিকে সমস্যা; X-Request-Id সহ সাপোর্টে জানান।', 'A fault on our side; tell support the X-Request-Id.']],
     [503, 'service_unavailable', ['সার্ভার ব্যস্ত; Retry-After সেকেন্ড পরে আবার।', 'The server is busy; try again after Retry-After seconds.']],
   ];
@@ -10350,20 +10354,41 @@ const dvLimits = (o) => {
     ['60', ['ট্র্যাকিং প্রতি মিনিটে, প্রতিটি ভিজিটর', 'tracking reads a minute, each visitor']],
     ['5 · 10', ['সাইন আপ কোড · লগইন চেষ্টা প্রতি মিনিটে, প্রতিটি ভিজিটর', 'sign-up codes · sign-in tries a minute, each visitor']],
   ].map(([n, d]) => `<div class="dv-lc"><b class="num">${n}</b><span>${dvT(d)}</span></div>`).join('');
-  const plans = DEVAPI.plans.map(([name, n]) => `<div class="dv-pl ${name[1] === 'Starter' ? 'on' : ''}"><span>${dvT(name)}${name[1] === 'Starter' ? ` <span class="st info">${L('আপনার প্ল্যান', 'Your plan')}</span>` : ''}</span><b class="num">${n.toLocaleString('en-US')}</b></div>`).join('');
-  return `<section class="dv-sec" id="dv-limits"><h2>${L('লিমিট', 'Limits')}</h2>
-  <p class="dv-p1">${L('দুই রকম লিমিট: প্রতি মিনিটে, যাতে একজন ভিজিটর পুরো শপ আটকে দিতে না পারে; আর প্রতি বিলিং সাইকেলে, প্ল্যান অনুযায়ী। মিনিটের লিমিট পার হলে 429 আর Retry-After আসে।', 'Two kinds: a minute, so one visitor can never hold up the whole shop; and a billing cycle, by plan. Past a minute limit you get 429 with Retry-After.')}</p>
-  <div class="dv-lim">${minute}</div>
-  <h3>${L('প্রতি বিলিং সাইকেলে রিকোয়েস্ট', 'Requests a billing cycle')}</h3>
-  <div class="card dv-use"><div class="kv" style="padding:0"><span class="k">Starter · ${L('এই সাইকেলে', 'this cycle')}</span><span class="v num">${used.toLocaleString('en-US')} / 200,000</span></div><div class="bar"><i class="${o.usedUp ? 'bad' : ''}" style="width:${o.usedUp ? 100 : 24}%"></i></div>
-  <div class="actions">${btn('o xs', L('ইউজেজ দেখুন', 'See usage'), "onclick=\"go('usage')\"")}${isRO() ? '' : btn('o xs', L('রিকোয়েস্ট প্যাক কিনুন', 'Buy a request pack'), "onclick=\"go('addons')\"")}</div></div>
-  <div class="dv-plans">${plans}</div>
-  <ul class="dv-ul">
+  /* Amended 2026-11-25 (PF-14, PF-36, the owner's "a fix in sketch"): with fair use on, pay-as-you-go pays per 1,000 past
+     its free requests, up to a limit the seller sets, so its row and its card say so; the build reads both figures live. */
+  const plans = DEVAPI.plans.map(([name, n]) => {
+    const payg = name[1] === 'Pay-as-you-go';
+    const own = o.payg ? payg : name[1] === 'Starter';
+    const figure = o.payg && payg ? L('10,000 ফ্রি, তারপর ৳1 / 1,000', '10,000 free, then ৳1 / 1,000') : n.toLocaleString('en-US');
+    return `<div class="dv-pl ${own ? 'on' : ''}"><span>${dvT(name)}${own ? ` <span class="st info">${L('আপনার প্ল্যান', 'Your plan')}</span>` : ''}</span><b class="num">${figure}</b></div>`;
+  }).join('');
+  const card = o.payg
+    ? `<div class="card dv-use"><div class="kv" style="padding:0"><span class="k">${L('পে-অ্যাজ-ইউ-গো · এ মাসের API খরচ', "Pay-as-you-go · this month's API charge")}</span><span class="v num">${o.capped ? '৳200.00' : '৳2.00'} / ৳200.00</span></div><div class="bar"><i class="${o.capped ? 'bad' : ''}" style="width:${o.capped ? 100 : 1}%"></i></div>
+  <p class="dv-cap">${L('12,400 রিকোয়েস্ট: 10,000 ফ্রি, তারপর প্রতি 1,000-এ ৳1, প্রতি রাতে কাটা হয়।', '12,400 requests: 10,000 free, then ৳1 per 1,000, charged each night.')}</p>
+  <div class="actions">${btn('o xs', L('API খরচ ও লিমিট', 'API charge and limit'), "onclick=\"go('api-keys')\"")}</div></div>`
+    : `<div class="card dv-use"><div class="kv" style="padding:0"><span class="k">Starter · ${L('এই সাইকেলে', 'this cycle')}</span><span class="v num">${used.toLocaleString('en-US')} / 200,000</span></div><div class="bar"><i class="${o.usedUp ? 'bad' : ''}" style="width:${o.usedUp ? 100 : 24}%"></i></div>
+  <div class="actions">${btn('o xs', L('ইউজেজ দেখুন', 'See usage'), "onclick=\"go('usage')\"")}${isRO() ? '' : btn('o xs', L('রিকোয়েস্ট প্যাক কিনুন', 'Buy a request pack'), "onclick=\"go('addons')\"")}</div></div>`;
+  const list = o.payg
+    ? `<ul class="dv-ul">
+    <li>${L('শুধু সফল উত্তর (2xx আর 304) গোনা হয়; রিফিউজ বা এরর ফ্রি।', 'Only successful answers (2xx and 304) count; a refusal or an error is free.')}</li>
+    <li>${L('এ মাসের API খরচের লিমিট আপনি ঠিক করেন, ৳0 থেকে ৳5,000 (শুরুতে ৳200); ৳0 মানে ফ্রি রিকোয়েস্টের পরে থামবে। 80%-এ অ্যাপে, পুশে আর ইমেইলে জানানো হয়।', "You set the month's API spending limit, ৳0 to ৳5,000 (৳200 to begin with); ৳0 stops at the free requests. You are told at 80%, in the app, by push and by email.")}</li>
+    <li>${L('লিমিট শেষ হলে বা ব্যালেন্স খালি হলে বাকি রুটগুলো 429 ApiCapReached দেয়, কিন্তু অর্ডারের তিনটি রুট (/locations, /delivery-estimate, /orders) চলতেই থাকে।', 'At the limit, or with an empty balance, the other routes answer 429 ApiCapReached, but the three an order needs (/locations, /delivery-estimate, /orders) keep working.')}</li>
+    <li>${L('পে-অ্যাজ-ইউ-গোতে রিকোয়েস্ট প্যাক নেই।', 'Pay-as-you-go has no request packs.')}</li>
+    <li>${L('আপনার Lytro স্টোরফ্রন্টের (megh.lytro.app) রিকোয়েস্ট গোনা হয় না; ব্রাউজারে রেখে দেওয়া উত্তরও না।', 'Your Lytro storefront (megh.lytro.app) is not counted, nor is an answer a browser reuses from its cache.')}</li>
+  </ul>`
+    : `<ul class="dv-ul">
     <li>${L('50%, 80% আর 95%-এ আপনাকে জানানো হয়।', 'You are told at 50%, 80% and 95%.')}</li>
     <li>${L('লিমিট শেষ হলে বাকি রুটগুলো 429 RequestsUsedUp দেয়, কিন্তু অর্ডারের তিনটি রুট (/locations, /delivery-estimate, /orders) চলতেই থাকে: লিমিটের জন্য কোনো বিক্রি আটকায় না।', 'Past it, the other routes answer 429 RequestsUsedUp, but the three an order needs (/locations, /delivery-estimate, /orders) keep working: a limit never turns a sale away.')}</li>
     <li>${L('Add-ons থেকে API রিকোয়েস্ট প্যাক কিনে লিমিট বাড়ানো যায়।', 'An API request pack from Add-ons raises it.')}</li>
     <li>${L('আপনার Lytro স্টোরফ্রন্টের (megh.lytro.app) রিকোয়েস্ট গোনা হয় না; ব্রাউজারে রেখে দেওয়া উত্তরও না।', 'Your Lytro storefront (megh.lytro.app) is not counted, nor is an answer a browser reuses from its cache.')}</li>
-  </ul></section>`;
+  </ul>`;
+  return `<section class="dv-sec" id="dv-limits"><h2>${L('লিমিট', 'Limits')}</h2>
+  <p class="dv-p1">${L('দুই রকম লিমিট: প্রতি মিনিটে, যাতে একজন ভিজিটর পুরো শপ আটকে দিতে না পারে; আর প্রতি বিলিং সাইকেলে, প্ল্যান অনুযায়ী। মিনিটের লিমিট পার হলে 429 আর Retry-After আসে।', 'Two kinds: a minute, so one visitor can never hold up the whole shop; and a billing cycle, by plan. Past a minute limit you get 429 with Retry-After.')}</p>
+  <div class="dv-lim">${minute}</div>
+  <h3>${L('প্রতি বিলিং সাইকেলে রিকোয়েস্ট', 'Requests a billing cycle')}</h3>
+  ${card}
+  <div class="dv-plans">${plans}</div>
+  ${list}</section>`;
 };
 const dvErrors = () => `<section class="dv-sec" id="dv-errors"><h2>${L('এরর', 'Errors')}</h2>
   <p class="dv-p1">${L('রিফিউজ হলে success: false, আর errors.code বলে কী ধরনের সমস্যা। আপনার কোড statusCode আর errors.code দেখে সিদ্ধান্ত নেবে; message মানুষের পড়ার জন্য, আর Accept-Language অনুযায়ী ভাষা বদলায়।', 'A refusal has success: false, and errors.code names the kind. Let your code decide by statusCode and errors.code; message is for people, and its language follows Accept-Language.')}</p>
@@ -10376,7 +10401,7 @@ const dvErrors = () => `<section class="dv-sec" id="dv-errors"><h2>${L('এর�
 function dvPage(o = {}) {
   const at = o.at || 'start';
   const head = `${title('dvTitle')}<p class="dv-lead">${L('আপনার নিজের ওয়েবসাইট বা অ্যাপের জন্য Lytro API: প্রতিটি রুটের রিকোয়েস্ট আর রেসপন্সের নমুনা, curl আর JavaScript-এ।', 'The Lytro API for your own website or app: every route with a sample request and response, in curl and JavaScript.')}</p>
-  <div class="dv-base"><span>${L('বেস URL', 'Base URL')}</span><code>${DEVAPI.BASE}</code><span class="dv-ver">v1</span>${dvCopyBtn(false)}</div>${o.usedUp ? banner('bad', L('এই সাইকেলের 200,000 রিকোয়েস্ট শেষ। অর্ডারের রুটগুলো চলছে; বাকিগুলো 429 দিচ্ছে, পরের সাইকেলে আবার চালু হবে।', "This cycle's 200,000 requests are used up. The order routes still work; the rest answer 429 until the next cycle."), isRO() ? null : L('রিকোয়েস্ট প্যাক কিনুন', 'Buy a request pack'), 'addons') : ''}`;
+  <div class="dv-base"><span>${L('বেস URL', 'Base URL')}</span><code>${DEVAPI.BASE}</code><span class="dv-ver">v1</span>${dvCopyBtn(false)}</div>${o.usedUp ? banner('bad', L('এই সাইকেলের 200,000 রিকোয়েস্ট শেষ। অর্ডারের রুটগুলো চলছে; বাকিগুলো 429 দিচ্ছে, পরের সাইকেলে আবার চালু হবে।', "This cycle's 200,000 requests are used up. The order routes still work; the rest answer 429 until the next cycle."), isRO() ? null : L('রিকোয়েস্ট প্যাক কিনুন', 'Buy a request pack'), 'addons') : o.capped ? banner('bad', L('এ মাসের API খরচের লিমিট ৳200 শেষ। অর্ডারের রুটগুলো চলছে; বাকিগুলো 429 দিচ্ছে, লিমিট বাড়ালে বা পরের মাসে আবার চালু হবে।', "This month's API spending limit of ৳200 is reached. The order routes still work; the rest answer 429 until you raise the limit or the month turns."), isRO() ? null : L('লিমিট বাড়ান', 'Raise the limit'), 'api-keys') : ''}`;
   const body = [dvStart(o), dvAuth(), dvLimits(o), dvErrors(), ...DEVAPI.groups.map((g) => dvGroup(g, o))].join('');
   if (ST.device === 'desktop') return `${head}<div class="dv"><aside class="dv-side">${dvNav(at)}</aside><div class="dv-main">${body}</div></div>`;
   return `${head}<details class="dv-toc" ${o.toc ? 'open' : ''}><summary>${ic('list', 18)}<span>${L('এই পেজে', 'On this page')}</span><small>${L('4টি অংশ · 24টি রুট', '4 parts · 24 routes')}</small>${ic('down', 18)}</summary>${dvNav(at)}</details><div class="dv-main">${body}</div>`;
@@ -10439,6 +10464,8 @@ dvScreen('dev-toc', { toc: true });
 dvScreen('dev-auth', { at: 'auth' });
 dvScreen('dev-limits', { at: 'limits' });
 dvScreen('dev-used-up', { usedUp: true });
+dvScreen('dev-limits-payg', { at: 'limits', payg: true });
+dvScreen('dev-used-up-payg', { at: 'limits', payg: true, capped: true });
 dvScreen('dev-errors', { at: 'errors' });
 dvScreen('dev-products', { at: 'products', tab: 'curl' });
 dvScreen('dev-products-js', { at: 'products-req', tab: 'js' });
@@ -10566,6 +10593,7 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 .dv-pl{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;border-bottom:1px solid var(--n100);font-size:14px}
 .dv-pl:last-child{border-bottom:0}
 .dv-pl.on{font-weight:600}
+.dv-cap{margin:8px 0 0;font-size:13px;color:var(--n700)}
 .dv-ul{display:flex;flex-direction:column;gap:6px;padding-left:20px;font-size:14px;color:var(--n700)}
 .dv-entry{display:flex;align-items:center;gap:12px;text-align:left;width:100%;color:var(--ink)}
 .dv-ei{width:40px;height:40px;border-radius:10px;background:var(--ink);color:var(--teal-300);display:grid;place-items:center;flex:none}

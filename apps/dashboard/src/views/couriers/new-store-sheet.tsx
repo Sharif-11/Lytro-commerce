@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ApiClientError } from '@lytronix/api-client';
 import {
-  bdMobileNumber,
   PICKUP_STORE_ADDRESS_MAX,
   PICKUP_STORE_ADDRESS_MIN,
   PICKUP_STORE_NAME_MAX,
@@ -10,6 +9,7 @@ import {
   type CourierKey,
 } from '@lytronix/validators';
 import { useAddPickupStore, useStorePlaces } from '@/api/couriers';
+import { bangladeshiPhone } from '@/lib/phone';
 import { ErrorBanner } from '@/components/error-banner';
 import { Button } from '@/components/ui/button';
 import { CheckRow } from '@/components/ui/check-row';
@@ -17,14 +17,6 @@ import { AreaField, Field, SelectField } from '@/components/ui/field';
 import { Sheet } from '@/components/ui/sheet';
 import { useShell } from '@/shell/shell-context';
 import type { PickupStoreAdded } from '@/types/couriers';
-
-/** The mobile typed after +880, its 0 left off or not, in its local form (01XXXXXXXXX); null when it isn't one. */
-function mobileOf(typed: string): string | null {
-  const compact = typed.replace(/[\s-]/g, '');
-  return (
-    bdMobileNumber(compact) ?? (compact.startsWith('1') ? bdMobileNumber(`0${compact}`) : null)
-  );
-}
 
 interface Draft {
   storeName: string;
@@ -84,7 +76,8 @@ export function NewStoreSheet({
       draft.storeName.trim().length < PICKUP_STORE_NAME_MIN ? t('crStoreNameErr') : undefined,
     contactName:
       draft.contactName.trim().length < PICKUP_STORE_NAME_MIN ? t('crStoreNameErr') : undefined,
-    contactNumber: mobileOf(draft.contactNumber) === null ? t('crStorePhoneErr') : undefined,
+    contactNumber:
+      bangladeshiPhone.localOf(draft.contactNumber) === null ? t('crStorePhoneErr') : undefined,
     cityId: draft.cityId === '' ? t('crStorePlaceErr') : undefined,
     zoneId: draft.zoneId === '' ? t('crStorePlaceErr') : undefined,
     areaId: draft.areaId === '' ? t('crStorePlaceErr') : undefined,
@@ -116,7 +109,7 @@ export function NewStoreSheet({
               {
                 storeName: draft.storeName.trim(),
                 contactName: draft.contactName.trim(),
-                contactNumber: mobileOf(draft.contactNumber) ?? draft.contactNumber,
+                contactNumber: bangladeshiPhone.localOf(draft.contactNumber) ?? draft.contactNumber,
                 storeAddress: draft.storeAddress.trim(),
                 cityId: draft.cityId,
                 zoneId: draft.zoneId,
@@ -156,10 +149,9 @@ export function NewStoreSheet({
         />
         <Field
           label={t('crStorePhone')}
-          prefix="+880"
           inputMode="tel"
+          placeholder="01XXXXXXXXX"
           autoComplete="tel-national"
-          placeholder="1711 234 567"
           value={draft.contactNumber}
           error={errorOf('contactNumber')}
           onChange={(event) => {

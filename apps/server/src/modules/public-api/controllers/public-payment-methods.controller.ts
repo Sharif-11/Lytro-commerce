@@ -14,7 +14,7 @@ import type { ShopperPaymentMethod } from '../../payment-methods/types/payment-m
 import type { PublicApiRequest } from '../guards/public-key.guard';
 import { PublicApi } from './public-shop.controller';
 
-class PublicPaymentMethodsDto extends createZodDto(
+export class PublicPaymentMethodsDto extends createZodDto(
   z.object({
     methods: z.array(
       z.object({

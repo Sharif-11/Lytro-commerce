@@ -205,6 +205,31 @@ test.describe('the chosen design after ordering (PD-6, PD-7)', () => {
   });
 });
 
+// The owner, 2026-11-25 (pp-page beside Bonik): on a phone the photo, its thumbnails and the product's name all show in
+// the first screen, above the order bar, and the photo shows whole.
+for (const [width, height] of [
+  [320, 616],
+  [360, 740],
+] as const) {
+  test(`on a ${String(width)} x ${String(height)} phone the photo, thumbnails and name show at once`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height });
+    const shop = await openShop(page, withDesigns());
+    await page.goto(shop.url('/l/irani-burka'));
+    const photo = await page.locator('.pp .gallery .main').boundingBox();
+    const thumbs = await page.locator('.pp .thumbs').boundingBox();
+    const name = await page.locator('.pp h1').boundingBox();
+    const bar = await page.locator('.buybar').boundingBox();
+    expect(photo && thumbs && name && bar).toBeTruthy();
+    if (!photo || !thumbs || !name || !bar) return;
+    expect(photo.height).toBeLessThanOrEqual(photo.width + 1);
+    expect(thumbs.y + thumbs.height).toBeLessThanOrEqual(bar.y);
+    expect(name.y + name.height).toBeLessThanOrEqual(bar.y);
+    await expect(page.locator('.pp .gallery .main img').first()).toHaveCSS('object-fit', 'contain');
+  });
+}
+
 test.describe('the landing page (PD-4, PD-6, PD-25)', () => {
   test('takes a design by its photo, shows its cover in the summary, and the highest charge until a thana', async ({
     page,
@@ -345,8 +370,11 @@ test.describe("the gallery's shape (PD-18, PD-28)", () => {
     await page.goto(shop.url('/p/irani-burka'));
     const frame = await page.locator('.gallery .main').boundingBox();
     if (!frame) throw new Error('the gallery is drawn');
-    expect(frame.width / frame.height).toBeCloseTo(2 / 3, 2);
-    if (test.info().project.name === 'desktop') {
+    const computer = test.info().project.name === 'desktop';
+    if (computer) expect(frame.width / frame.height).toBeCloseTo(2 / 3, 2);
+    // On a phone the frame is capped (2026-11-25): never taller than square, so the thumbnails and name show at once.
+    else expect(frame.height).toBeLessThanOrEqual(frame.width + 1);
+    if (computer) {
       const window = page.viewportSize();
       expect(frame.height).toBeCloseTo(Math.min((window?.height ?? 0) - 150, 800), 0);
       expect(frame.y + frame.height).toBeLessThanOrEqual(window?.height ?? 0);
@@ -354,6 +382,7 @@ test.describe("the gallery's shape (PD-18, PD-28)", () => {
     // A product whose photo sizes aren't known keeps the drawn 4:5.
     await page.goto(shop.url('/p/cotton-panjabi'));
     const plain = await page.locator('.gallery .main').boundingBox();
-    expect((plain?.width ?? 0) / (plain?.height ?? 1)).toBeCloseTo(0.8, 2);
+    if (computer) expect((plain?.width ?? 0) / (plain?.height ?? 1)).toBeCloseTo(0.8, 2);
+    else expect(plain?.height ?? 0).toBeLessThanOrEqual((plain?.width ?? 0) + 1);
   });
 });
