@@ -71,5 +71,12 @@
   "fairLastDayB": "Unless you top up {{amount}} today, your storefront and landing pages are off from tomorrow. The money stays in your balance and pays for your first orders.",
   "fairDaysT_one": "{{count}} day of your trial left.",
   "fairDaysT_other": "{{count}} days of your trial left.",
-  "fairDaysB": "After {{day}}, keeping your storefront on takes one {{amount}} top-up, or a plan. The money stays in your balance."
+  "fairDaysB": "After {{day}}, keeping your storefront on takes one {{amount}} top-up, or a plan. The money stays in your balance.",
+  "irTitle": "Install the app",
+  "irInstall": "Install",
+  "irOpenInChrome": "Open in Chrome",
+  "irIphone": "Share → Add to Home Screen",
+  "irIphoneInApp": "⋯ → Open in Safari → Share → Add to Home Screen",
+  "irMenu": "⋮ → Install app / Add to Home screen",
+  "irLater": "Not now"
 }

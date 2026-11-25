@@ -34,6 +34,7 @@ import { useAddStocks } from '@/api/stock';
 import { quickAdditions, quickTotal } from '@/lib/quick-stock';
 import { BalanceNote } from '@/components/balance-note';
 import { ErrorBanner } from '@/components/error-banner';
+import { InstallRow } from '@/components/install-row';
 import { ActionBar } from '@/components/ui/action-bar';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
@@ -205,7 +206,7 @@ function ProductPage({
   const fieldNames = useFieldNames();
   const errorText = useErrorText();
   const navigate = useNavigate();
-  const { slug, viewer, showToast } = useShell();
+  const { slug, tenant, viewer, showToast } = useShell();
   const mayManage = allows(viewer, [Permission.ProductsManage]);
   const { t: shell } = useTranslation('shell');
   // The owner, 2026-11-19 (`bg-products`): a new product, or a copy, costs pay-as-you-go's fee; a balance that can't
@@ -932,6 +933,8 @@ function ProductPage({
       {product ? <OfferCards product={product} /> : null}
       {/* A brand-new shop's first landing (`pq-first`): on quick add, or on the full form where the shop type keeps
           batches or serials (a pharmacy's, a grocery's, an electronics shop's). */}
+      {/* §7.1a: the app, offered the moment the shop is made, above the welcome. */}
+      {product === null && welcome ? <InstallRow shopName={tenant.shopName} slug={slug} /> : null}
       {product === null && welcome ? (
         <QuickWelcome
           onLater={() => {

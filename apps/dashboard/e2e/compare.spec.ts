@@ -13,7 +13,14 @@ import {
   type PaymentFixture,
 } from './support/payments';
 import { drawnActivity } from './support/activity';
-import { BILLING_STAFF, offerInstall, onAnIphone } from './support/menu';
+import {
+  BILLING_STAFF,
+  inFacebookOnAndroid,
+  inFacebookOnAnIphone,
+  offerInstall,
+  onAndroid,
+  onAnIphone,
+} from './support/menu';
 import { drawnIdentities } from './support/account';
 import { startComboKind, toFullFormIn } from './support/quick-add';
 import { drawnShopPayments, type ShopPaymentsFixture } from './support/shop-payments';
@@ -5161,6 +5168,17 @@ function menuPairs(): Pair[] {
     one('menu-staff', '/menu', { state: BILLING_STAFF }),
     one('menu-install', '/menu', { then: offerInstall }),
     one('menu-install-ios', '/menu', { before: onAnIphone }),
+    // TENANT-DASHBOARD-DESIGN §7.1a: the install row on the first landing and Home, as each browser shows it.
+    one('app-first', '/products/new?first=1', { shop: NEW_SHOP, then: offerInstall }),
+    one('app-first-fb', '/products/new?first=1', { shop: NEW_SHOP, before: inFacebookOnAndroid }),
+    one('app-first-ios', '/products/new?first=1', { shop: NEW_SHOP, before: onAnIphone }),
+    one('app-first-ios-fb', '/products/new?first=1', {
+      shop: NEW_SHOP,
+      before: inFacebookOnAnIphone,
+    }),
+    one('app-first-other', '/products/new?first=1', { shop: NEW_SHOP, before: onAndroid }),
+    one('app-home', '', { shop: NEW_SHOP, before: onAndroid, then: offerInstall }),
+    one('app-home-fb', '', { shop: NEW_SHOP, before: inFacebookOnAndroid }),
     one('activity', '/activity'),
     one('activity', '/activity', {}, 'desktop', 'en'),
     one('activity-empty', '/activity', { state: { activity: { entries: [], earlier: [] } } }),

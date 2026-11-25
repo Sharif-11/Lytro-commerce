@@ -71,5 +71,12 @@
   "fairLastDayB": "আজ {{amount}} টপ-আপ না করলে কাল থেকে স্টোরফ্রন্ট আর ল্যান্ডিং পেজ বন্ধ থাকবে। টাকাটা ব্যালেন্সেই থাকবে, প্রথম অর্ডার খুলতে খরচ হবে।",
   "fairDaysT_one": "ট্রায়ালের আর {{count}} দিন বাকি।",
   "fairDaysT_other": "ট্রায়ালের আর {{count}} দিন বাকি।",
-  "fairDaysB": "{{day}}-এর পর স্টোরফ্রন্ট চালু রাখতে একবার {{amount}} টপ-আপ লাগবে, অথবা একটা প্ল্যান নিন। টাকাটা ব্যালেন্সে থাকবে।"
+  "fairDaysB": "{{day}}-এর পর স্টোরফ্রন্ট চালু রাখতে একবার {{amount}} টপ-আপ লাগবে, অথবা একটা প্ল্যান নিন। টাকাটা ব্যালেন্সে থাকবে।",
+  "irTitle": "অ্যাপ ইনস্টল করুন",
+  "irInstall": "ইনস্টল",
+  "irOpenInChrome": "Chrome-এ খুলুন",
+  "irIphone": "Share → Add to Home Screen",
+  "irIphoneInApp": "⋯ → Safari-তে খুলুন → Share → Add to Home Screen",
+  "irMenu": "⋮ → Install app / Add to Home screen",
+  "irLater": "এখন না"
 }
