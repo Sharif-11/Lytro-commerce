@@ -130,6 +130,52 @@ photo's shape but is never taller than square, nor than the screen less the head
 name and the order bar; a photo the cap shortens shows whole (`object-fit: contain`) on the gallery's soft background.
 The computer's grid is unchanged.
 
+**SB-32: every product on the home page. The owner's ask, 2026-11-26** ("the main principal is, we need to populate
+products in home page also, both categorized and uncategorized. but how to do this nicely so that the website looks like
+a reputed page and busy shop"). **A proposal, not decided.** It is drawn as the builder sketch's `ha-*` screens:
+`ha-now` is the home as built, and `ha-mixed`, `ha-more`, `ha-no-categories`, `ha-small` and `ha-desktop` are the
+proposal.
+
+**Why it's needed.** Quick add (#446) puts the category in more settings, so most new products arrive without one.
+Every row on the home page reads on its own. In a 35-product shop with 23 uncategorised products (`ha-now`):
+- the home shows 15 products;
+- 18 of the 23 uncategorised products, and 2 categorised ones, appear nowhere on it;
+- 5 cards show twice;
+- the saree row holds 2 cards, which is half empty on a computer.
+
+| # | Decision | Proposed |
+|---|---|---|
+| SB-32 | **"সব পণ্য" on the home page.** | **The new section.** After the page's last row of products (where SB-30 puts its rows), a section "সব পণ্য · 35টি" with See all. It holds every active product the rows above did not show, categorised or not, in the shop's own order (§5), with sold-out products last. There's no "অন্যান্য" label or chip: an uncategorised product is just a product. On a phone it is 2 across, on a computer 4, 12 at a time. "আরও Nটি পণ্য দেখুন" adds the next 12 in place; the button goes once everything is in.<br>**Nothing shows twice.** The product rows read top to bottom, and each skips what a row above it showed.<br>**No row that cannot fill.** An automatic row (newest, on sale, best sellers, a category) shows only when it can fill itself: a grid needs 4 and a carousel 5, because a computer shows 5 at once. If it can't, its products come in "সব পণ্য".<br>**SB-30** takes the first three categories that can still fill a row.<br>**Cards** are unchanged: the built "নতুন" (PRODUCT_NEW_DAYS, 14 days), "সেরা বিক্রি" (SB-22), "N বার অর্ডার হয়েছে" (SB-23) and "মাত্র Nটি বাকি" (SB-24). There are no made-up signals: no invented sold counts and no "someone just ordered" pop-ups. |
+
+**The words.** I used "সব পণ্য", as the built header chip and footer say, rather than "সব প্রোডাক্ট". The count uses
+Latin digits ("35টি"), as the built cards do ("মাত্র 12টি বাকি"). The heading counts every product in the shop, which is
+what See all opens. The grid under it holds only those not already shown above.
+
+**Open questions, with my recommendations:**
+1. **Q1. Homes the seller has designed and published.** Does "সব পণ্য" also go on these? **Yes**, automatically, after
+   their last row of products. With no product row, it goes at the end, before the footer. A seller can't remove it,
+   since a home that hides products is what this fixes.
+2. **Q2. Which rows the fill and no-repeat rules cover.** **Automatic rows only.** A row the seller picked by hand (SB-29)
+   or a running offer's row (OF-8) always shows as chosen, and only the automatic rows below it skip its products.
+3. **Q3. "নতুন".** This is already built, on every card, for 14 days (PRODUCT_NEW_DAYS). **Keep 14**; nothing to build. Seven
+   days would mean fewer badges, which is the opposite of a busy-looking shop.
+4. **Q4. A dashboard nudge, "Xটা প্রোডাক্টের ক্যাটাগরি নেই".** **Not now.** "সব পণ্য" already shows those products, so
+   nothing is lost without a category.
+5. **Q5. The cost.**
+   - Each home render makes one more catalogue read ("সব পণ্য", limit 12 plus the cards above, at most 60). Today a
+     starting page makes about 5 to 7 (hero, newest, on sale, up to 3 categories, the banners).
+   - The rows skip repeats by asking for their count plus what is above, which adds no reads.
+   - Choosing the categories that can fill reads each candidate category in turn, at most 6 instead of 3.
+   - The home page is page-cached, so these reads happen only when the cache refreshes.
+   - Each "আরও দেখুন" tap is one read from the shopper's browser, like paging a category.
+   - All of these count toward the shop's request allowance, as category pages do.
+6. **Q6. A category that loses cards to the rows above.** In `ha-mixed`, the panjabis have 4, but one is already in On
+   sale. **Drop the row**, so nothing repeats: its 3 come in "সব পণ্য", and its tile stays under "ক্যাটাগরি অনুযায়ী
+   কিনুন". The other choice is to keep the row and allow the repeat.
+
+**`ha-small`, 7 products.** Each product shows once and no row is half empty. "সব পণ্য" can end on one card, as a
+category page does. That is the end of a list, not an empty row.
+
 ---
 
 ## 3. Requirement changes (`SRS-detailed.md`)

@@ -1771,6 +1771,195 @@ Object.assign(EDITOR, {
 });
 /* ---------- end of orders beyond stock (proposal) ---------- */
 
+/* ---------- Every product on the home page (proposal 2026-11-26, docs/STOREFRONT-BUILDER-PLAN.md SB-32). The owner: "we
+   need to populate products in home page also, both categorized and uncategorized ... so that the website looks like a
+   reputed page and busy shop". ha-now is the home as built today: the Studio theme's starting page with SB-30's category
+   rows. The other ha-* screens are the proposal: "সব পণ্য" after the last row of products, no product shown twice, and
+   no automatic row that cannot fill itself. Cards are the built ThemeCard in the photo style (no heart, no cart button);
+   "নতুন" is the built PRODUCT_NEW_DAYS (14 days), "সেরা বিক্রি" SB-22, the notes SB-23 and SB-24. The orange marks and
+   the strips are Lytro's notes for the owner, not the shop. ---------- */
+document.head.insertAdjacentHTML('beforeend', `<style>
+.ha-n{font-size:13px;font-weight:600;color:var(--muted);font-style:normal;white-space:nowrap;margin-left:6px}
+.ha-btn{display:flex;align-items:center;justify-content:center;gap:8px;margin:18px auto 4px;height:46px;max-width:340px;border:1.5px solid var(--main);border-radius:var(--r-btn);color:var(--main);font-weight:700;font-size:14.5px}
+.ha-btn .ico{width:17px;height:17px}
+.ha-mark{position:absolute;right:6px;top:6px;z-index:3;background:#f2a516;color:#2a1a00;font:700 11px/1.4 'Inter','Noto Sans Bengali',sans-serif;border-radius:5px;padding:2px 7px}
+.card.ha-rep{outline:3px solid #f2a516;outline-offset:-3px}
+.capstrip.ha-warn{background:#8a4b00}
+</style>`);
+const HA_P = (id, bn, en, i, h, price, age, cat, more = {}) => ({ id, n: [bn, en], i, h, price, age, cat, ...more });
+// Megh Fashion with 35 products: 4 panjabis, 6 kurtis, 2 sarees, and 23 added without a category (quick add keeps the
+// category in more settings, so most new products arrive without one). `age` is days since it was added.
+const HA_ALL = [
+  HA_P('K1', 'চিকনকারি কুর্তি', 'Chikankari kurti', 'fashion-5-tall', 0, 1250, 1, 'kur', { best: true, sold: 37 }),
+  HA_P('U1', 'প্রিন্টেড শার্ট', 'Printed shirt', 'fashion-3-tall', 0, 1150, 2, null),
+  HA_P('U2', 'পাম প্রিন্ট শার্ট', 'Palm print shirt', 'fashion-7-tall', 0, 1050, 3, null, { was: 1300 }),
+  HA_P('U3', 'লাল ফরমাল শার্ট', 'Red formal shirt', 'fashion-1-tall', 0, 1090, 4, null, { best: true, sold: 29 }),
+  HA_P('U4', 'উলের সোয়েটার', 'Wool sweater', 'fashion-2-tall', 0, 1450, 5, null, { left: 3 }),
+  HA_P('K2', 'চিকনকারি কুর্তি, গোলাপি', 'Chikankari kurti, pink', 'fashion-5-tall', 300, 1250, 6, 'kur', { left: 2 }),
+  HA_P('U5', 'প্রিন্টেড শার্ট, নীল', 'Printed shirt, blue', 'fashion-3-tall', 190, 1150, 9, null),
+  HA_P('U6', 'পাম প্রিন্ট শার্ট, সবুজ', 'Palm print shirt, green', 'fashion-7-tall', 110, 1050, 12, null),
+  HA_P('P3', 'কটন পাঞ্জাবি', 'Cotton panjabi', 'fashion-4-tall', 200, 1290, 15, 'pan'),
+  HA_P('U7', 'ফরমাল শার্ট, নীল', 'Formal shirt, blue', 'fashion-1-tall', 200, 1090, 16, null),
+  HA_P('U8', 'ফরমাল শার্ট, সবুজ', 'Formal shirt, green', 'fashion-1-tall', 120, 1090, 18, null),
+  HA_P('U9', 'ক্যাজুয়াল সোয়েটার', 'Casual sweater', 'fashion-2-tall', 180, 1350, 20, null, { was: 1650 }),
+  HA_P('U10', 'ওভারসাইজ শার্ট', 'Oversized shirt', 'fashion-3-tall', 260, 1250, 22, null),
+  HA_P('U11', 'হাওয়াই শার্ট', 'Hawaiian shirt', 'fashion-7-tall', 200, 990, 25, null, { best: true, sold: 41 }),
+  HA_P('K3', 'লন কুর্তি', 'Lawn kurti', 'fashion-5-tall', 190, 1150, 26, 'kur'),
+  HA_P('U12', 'ফরমাল শার্ট, বেগুনি', 'Formal shirt, purple', 'fashion-1-tall', 270, 1090, 27, null),
+  HA_P('S1', 'সুতি শাড়ি', 'Cotton saree', 'fashion-6-tall', 0, 2200, 28, 'sar', { was: 2800, best: true, sold: 22 }),
+  HA_P('U13', 'উইন্টার সেট (৩টি)', 'Winter set (3)', 'fashion-2-tall', 300, 2450, 30, null),
+  HA_P('K4', 'ব্লক প্রিন্ট কুর্তি', 'Block print kurti', 'fashion-5-tall', 40, 1350, 32, 'kur', { was: 1600 }),
+  HA_P('U14', 'প্রিন্টেড শার্ট, হলুদ', 'Printed shirt, yellow', 'fashion-3-tall', 40, 1150, 33, null, { was: 1400 }),
+  HA_P('U15', 'হাওয়াই শার্ট, কমলা', 'Hawaiian shirt, orange', 'fashion-7-tall', 330, 990, 35, null),
+  HA_P('K5', 'সুতি কুর্তি', 'Cotton kurti', 'fashion-5-tall', 60, 990, 36, 'kur'),
+  HA_P('U16', 'ফরমাল শার্ট, গোলাপি', 'Formal shirt, pink', 'fashion-1-tall', 330, 1090, 38, null),
+  HA_P('P1', 'এমব্রয়ডারি পাঞ্জাবি', 'Embroidered panjabi', 'fashion-4-tall', 0, 1450, 40, 'pan', { was: 1900, best: true, sold: 58 }),
+  HA_P('U17', 'ক্যাজুয়াল সোয়েটার, নীল', 'Casual sweater, blue', 'fashion-2-tall', 220, 1350, 41, null),
+  HA_P('P2', 'লিনেন পাঞ্জাবি', 'Linen panjabi', 'fashion-4-tall', 330, 1690, 42, 'pan'),
+  HA_P('K6', 'এমব্রয়ডারি কুর্তি', 'Embroidered kurti', 'fashion-5-tall', 260, 1550, 44, 'kur'),
+  HA_P('U18', 'ওভারসাইজ শার্ট, সবুজ', 'Oversized shirt, green', 'fashion-3-tall', 120, 1250, 45, null),
+  HA_P('U19', 'হাওয়াই শার্ট, বেগুনি', 'Hawaiian shirt, purple', 'fashion-7-tall', 260, 990, 48, null),
+  HA_P('U20', 'ফরমাল শার্ট, কমলা', 'Formal shirt, orange', 'fashion-1-tall', 30, 1090, 50, null),
+  HA_P('U21', 'উলের সোয়েটার, বাদামি', 'Wool sweater, brown', 'fashion-2-tall', 20, 1450, 55, null),
+  HA_P('U22', 'প্রিন্টেড শার্ট, গোলাপি', 'Printed shirt, pink', 'fashion-3-tall', 320, 1150, 60, null),
+  HA_P('U23', 'হাওয়াই শার্ট, সবুজ', 'Hawaiian shirt, green', 'fashion-7-tall', 120, 990, 65, null),
+  HA_P('P4', 'ঈদ পাঞ্জাবি', 'Eid panjabi', 'fashion-4-tall', 120, 2450, 70, 'pan'),
+  HA_P('S2', 'জামদানি শাড়ি', 'Jamdani saree', 'fashion-6-tall', 160, 4500, 75, 'sar'),
+];
+const HA_CATS = { pan: ['পাঞ্জাবি', 'Panjabi', 'fashion-4-tall'], kur: ['কুর্তি', 'Kurti', 'fashion-5-tall'], sar: ['শাড়ি', 'Saree', 'fashion-6-tall'] };
+const haById = (ids) => ids.map((id) => HA_ALL.find((p) => p.id === id));
+const HA_SHOPS = {
+  mixed: { products: HA_ALL, cats: ['pan', 'kur', 'sar'], hero: 'K1' },
+  none: { products: HA_ALL.filter((p) => p.cat === null).slice(0, 18), cats: [], hero: 'U2' },
+  small: { products: haById(['K1', 'U1', 'U2', 'U3', 'K2', 'K3', 'S1']), cats: ['kur', 'sar'], hero: 'K1' },
+};
+// The page's sources, as the server orders them: newest first; on sale by the saving; a category newest first; "সব পণ্য"
+// in the shop's own order, which is newest first until the seller drags cards (§5).
+const haNewest = (ps) => [...ps].sort((a, b) => a.age - b.age);
+const haSale = (ps) => ps.filter((p) => p.was).sort((a, b) => pct(b) - pct(a));
+const haCat = (ps, cat) => haNewest(ps.filter((p) => p.cat === cat));
+const haShopData = (s) => ({ ...SHOPS.studio, products: s.products, cats: s.cats.map((c) => [...HA_CATS[c]]), banners: SHOPS.studio.banners });
+function haCard(p, again) {
+  const tags = [p.was ? `<span class="tag sale">−${pct(p)}%</span>` : '', p.age < 14 ? `<span class="tag new">${L('নতুন', 'New')}</span>` : '', p.best ? `<span class="tag best">${L('সেরা বিক্রি', 'Best seller')}</span>` : ''].join('');
+  const note = p.left ? `<span class="left">${L(`মাত্র ${p.left}টি বাকি`, `Only ${p.left} left`)}</span>` : p.sold ? `<span class="sold">${L(`${p.sold} বার অর্ডার হয়েছে`, `Ordered ${p.sold} times`)}</span>` : '';
+  return `<a class="card photo ${again ? 'ha-rep' : ''}"><div class="im">${ppImg(p.i, p.h)}<div class="tags">${tags}</div>${again ? `<span class="ha-mark">${L('আবার', 'Again')}</span>` : ''}</div><div class="bd"><span class="nm">${T(p.n)}</span><span class="pr">${money(p.price)}${p.was ? `<s>${money(p.was)}</s>` : ''}</span>${note}</div></a>`;
+}
+const haRow = (title, list, layout, name, seen) => `<section class="sec" data-sec="${name}"><div class="wrap">${head('studio', title)}<div class="${layout}">${list.map((p) => haCard(p, seen && seen.has(p.id))).join('')}</div></div></section>`;
+const haCap = (bn, en, warn) => `<div class="capstrip ${warn ? 'ha-warn' : ''}">${L(bn, en)}</div>`;
+// The auto hero as built: the newest product, its name, price and Buy now.
+function haHero(p) {
+  const wide = p.i.replace('-tall', '');
+  return `<section class="hero overlay" data-sec="${T(SEC_NAMES.hero)}"><div class="slide"><img class="narrow" src="${img(p.i)}" alt="" style="${p.h ? `filter:hue-rotate(${p.h}deg)` : ''}"><img class="wide" src="${img(wide + '-wide')}" alt="" onerror="this.onerror=null;this.src='${img(p.i)}'"><div class="shade"></div><div class="tx"><div class="kick">${L('নতুন কালেকশন', 'New collection')}</div><h1>${T(p.n)}</h1><p>${money(p.price)}</p><a class="btn">${L('এখনই কিনুন', 'Buy now')} ${ic('arrow')}</a></div></div><div class="dots"><i class="on"></i><i></i><i></i></div></section>`;
+}
+// The offer banners on auto, as built: two tiles, what is new and the best seller.
+function haBanners(shop) {
+  const hero = HA_ALL.find((p) => p.id === shop.hero);
+  const best = shop.products.filter((p) => p.best && p !== hero).sort((a, b) => b.sold - a.sold)[0] || shop.products[0];
+  const fresh = haNewest(shop.products).find((p) => p.i !== hero.i && p.i !== best.i) || shop.products[0];
+  const list = [{ i: fresh.i.replace('-tall', ''), k: ['নতুন এসেছে', 'Just in'], b: fresh.n, s: ['', ''], shade: SHOPS.studio.banners[0].shade }, { i: best.i.replace('-tall', ''), k: ['সবচেয়ে বেশি বিক্রি', 'Best seller'], b: best.n, s: ['', ''], shade: SHOPS.studio.banners[1].shade }];
+  return bannersHtml(list, 'side', L('অফার ব্যানার · অটো · ২টি', 'Offer banners · auto · 2'));
+}
+function haPage(shop, parts) {
+  const vars = Object.entries(THEMES.studio.v).map(([k, v]) => `--${k}:${v}`).join(';');
+  const data = haShopData(shop);
+  const top = SECTIONS.announce('studio', data) + SECTIONS.header('studio', data) + haHero(HA_ALL.find((p) => p.id === shop.hero)) + (shop.cats.length ? SECTIONS.cats('studio', data) : '');
+  return `<div class="shop ${STATE.outlined ? 'outlined' : ''}" style="${vars}">${top}${parts.join('')}${SECTIONS.trust()}${SECTIONS.footer('studio', data)}<span class="chatbtn">${ic('wa')}</span></div>`;
+}
+const HA_NAME_NEW = () => L('প্রোডাক্ট · অটো: নতুন · গ্রিড', 'Products · auto: newest · grid');
+const HA_NAME_SALE = () => L('প্রোডাক্ট · অটো: ছাড়ে · ক্যারোসেল', 'Products · auto: on sale · carousel');
+const HA_NAME_CAT = (c) => L(`প্রোডাক্ট · ক্যাটাগরি: ${HA_CATS[c][0]} · গ্রিড (SB-30)`, `Products · category: ${HA_CATS[c][1]} · grid (SB-30)`);
+
+// ha-now: the home as built. The Studio page (newest grid of 4, banners, on-sale carousel of 6) and SB-30's rows for the
+// first three categories, each a grid of 4 whatever it holds. Every row reads on its own, so a card can show twice.
+function haNow() {
+  const shop = HA_SHOPS.mixed;
+  const ps = shop.products;
+  const seen = new Set();
+  let again = 0;
+  const row = (title, list, layout, name, warn) => {
+    const html = haRow(title, list, layout, name, seen);
+    list.forEach((p) => { if (seen.has(p.id)) again += 1; seen.add(p.id); });
+    return warn ? `<div class="hl">${html}</div>` : html;
+  };
+  const parts = [
+    haCap('আজ যেমন (বিল্ট): স্টুডিও থিমের শুরুর পেজ, তার সাথে SB-30-এর ৩টি ক্যাটাগরি সারি। দোকানে ৩৫টি পণ্য: ১২টি ৩টি ক্যাটাগরিতে (৪, ৬, ২), ২৩টি ক্যাটাগরি ছাড়া।', 'As built today: the Studio starting page plus SB-30’s 3 category rows. The shop has 35 products: 12 in 3 categories (4, 6, 2) and 23 with no category.'),
+    row(L('নতুন এসেছে', 'Just in'), haNewest(ps).slice(0, 4), 'grid', HA_NAME_NEW()),
+    haBanners(shop),
+    row(L('অফার কালেকশন', 'On sale'), haSale(ps).slice(0, 6), 'rail', HA_NAME_SALE()),
+    ...shop.cats.map((c) => row(L(HA_CATS[c][0], HA_CATS[c][1]), haCat(ps, c).slice(0, 4), 'grid', HA_NAME_CAT(c), haCat(ps, c).length < 4)),
+  ];
+  const left = ps.filter((p) => !seen.has(p.id));
+  const leftBare = left.filter((p) => p.cat === null).length;
+  const bare = ps.filter((p) => p.cat === null).length;
+  parts.push(haCap(`শাড়ির সারিতে মাত্র ২টি: ফোনে পাতলা, কম্পিউটারে অর্ধেক খালি (দাগ দেওয়া সারি)।`, 'The saree row has just 2: thin on a phone, half empty on a computer (the outlined row).', true));
+  parts.push(haCap(`হোমে ৩৫টির মধ্যে ${bnNum(seen.size)}টি পণ্য আসে। ক্যাটাগরি ছাড়া ${bnNum(bare)}টির ${bnNum(leftBare)}টি আর ক্যাটাগরির ${bnNum(left.length - leftBare)}টি হোমে কোথাও নেই। ${bnNum(again)}টি কার্ড দুবার এসেছে (কমলা “আবার”)।`, `The home shows ${seen.size} of the 35. ${leftBare} of the ${bare} with no category, and ${left.length - leftBare} with one, appear nowhere on it. ${again} cards show twice (orange “Again”).`, true));
+  return haPage(shop, parts);
+}
+
+// The proposal: rows read top to bottom, each skipping what a row above showed; an automatic row shows only when it can
+// fill itself (a grid 4, a carousel 5, what a computer shows at once); SB-30 takes the first three categories that can;
+// then "সব পণ্য": everything not yet shown, in the shop's order, 12 at a time.
+function haProposal(shop, o = {}) {
+  const ps = shop.products;
+  const seen = new Set();
+  const fill = (list, count, need) => {
+    const rest = list.filter((p) => !seen.has(p.id));
+    if (rest.length < need) return null;
+    const take = rest.slice(0, count);
+    take.forEach((p) => seen.add(p.id));
+    return take;
+  };
+  const parts = [];
+  const caps = o.caps !== false;
+  const fresh = fill(haNewest(ps), 4, 4);
+  if (fresh) parts.push(haRow(L('নতুন এসেছে', 'Just in'), fresh, 'grid', HA_NAME_NEW()));
+  parts.push(haBanners(shop));
+  const saleAll = haSale(ps);
+  const sale = fill(saleAll, 6, 5);
+  if (sale) {
+    parts.push(haRow(L('অফার কালেকশন', 'On sale'), sale, 'rail', HA_NAME_SALE()));
+    const dropped = saleAll.length - sale.length;
+    if (caps && dropped > 0) parts.push(haCap(`অফার কালেকশন: উপরে দেখানো ${bnNum(dropped)}টি আর আসে না, তবু ${bnNum(sale.length)}টি দিয়ে ভরে।`, `On sale: the ${dropped} shown above don’t come again; ${sale.length} still fill it.`));
+  } else if (caps && saleAll.length > 0) {
+    parts.push(haCap(`অফারে মাত্র ${bnNum(saleAll.length)}টি, সারি ভরে না: সারিটা দেখায় না; উপরে না-আসাগুলো সব পণ্যে।`, `Only ${saleAll.length} on sale, not enough to fill a row: no row; any not shown above come in All products.`));
+  }
+  const skipped = [];
+  let rows = 0;
+  shop.cats.forEach((c) => {
+    if (rows >= STARTING_CATEGORY_ROWS_SKETCH) return;
+    const list = fill(haCat(ps, c), 4, 4);
+    if (list) {
+      rows += 1;
+      parts.push(haRow(L(HA_CATS[c][0], HA_CATS[c][1]), list, 'grid', HA_NAME_CAT(c)));
+    } else skipped.push(c);
+  });
+  if (caps && skipped.length) {
+    const what = skipped.map((c) => L(`${HA_CATS[c][0]}র বাকি ${bnNum(haCat(ps, c).filter((p) => !seen.has(p.id)).length)}টি`, `${haCat(ps, c).filter((p) => !seen.has(p.id)).length} more ${HA_CATS[c][1].toLowerCase()}`));
+    parts.push(haCap(`ক্যাটাগরির সারি শুধু যেখানে উপরে না-আসা ৪টি কার্ড আছে। ${what.join(', ')} সারি ভরায় না, তাই নিচে সব পণ্যে।`, `A category row only where 4 cards are still unshown. ${what.join(', ')} can’t fill one, so they come below in All products.`));
+  }
+  const rest = ps.filter((p) => !seen.has(p.id));
+  const shown = o.more ? rest : rest.slice(0, 12);
+  if (caps) parts.push(haCap(o.more ? `“আরও দেখুন” চাপার পর: বাকি ${bnNum(rest.length - 12)}টি এখানেই যোগ হল, পেজ বদলায় না। সব এসে গেলে বোতাম থাকে না।` : `নতুন · সব পণ্য: উপরে যা আসেনি তার সবগুলো, ক্যাটাগরি থাকুক বা না থাকুক (কোনো “অন্যান্য” লেবেল নেই)। ১২টি করে।`, o.more ? `After “See more”: the other ${rest.length - 12} join here, on the same page. Once all are in, the button goes.` : 'New · All products: everything not shown above, with or without a category (no “Other” label). 12 at a time.'));
+  if (rest.length) {
+    const title = `${L('সব পণ্য', 'All products')}<span class="ha-n">· ${L(`${ps.length}টি`, `${ps.length}`)}</span>`;
+    const more = rest.length > shown.length ? `<a class="ha-btn">${L(`আরও ${rest.length - shown.length}টি পণ্য দেখুন`, `See ${rest.length - shown.length} more`)} ${ic('down')}</a>` : '';
+    parts.push(`<section class="sec" data-sec="${L('প্রোডাক্ট · অটো: সব পণ্য · ১২টি করে (নতুন)', 'Products · auto: all products · 12 at a time (new)')}"><div class="wrap">${head('studio', title)}<div class="grid">${shown.map((p) => haCard(p)).join('')}</div>${more}</div></section>`);
+  }
+  if (caps && o.small) parts.push(haCap(`৭টি পণ্য, প্রতিটি একবার। সব পণ্যের শেষ লাইনে একটা কার্ড থাকতে পারে, যেমন ক্যাটাগরি পেজে; ওটা তালিকার শেষ, খালি সারি নয়।`, 'Seven products, each once. All products may end on a single card, as a category page does: the end of a list, not an empty row.'));
+  return haPage(shop, parts);
+}
+const STARTING_CATEGORY_ROWS_SKETCH = 3;
+
+Object.assign(EDITOR, {
+  'ha-now': { label: ['হোম: আজ যেমন', 'Home: as built'], note: ['বিল্ট হোম, ৩৫টি পণ্যের দোকানে (২৩টি ক্যাটাগরি ছাড়া)। প্রতিটি সারি আলাদা পড়ে: একই কার্ড বারবার, ২টি পণ্যের সারি, আর বেশিরভাগ পণ্য হোমে আসেই না।', 'The built home for a 35-product shop (23 with no category). Each row reads on its own: the same cards again, a row of 2, and most products never on the home page.'], render: () => haNow() },
+  'ha-mixed': { label: ['হোম: সব পণ্য (প্রস্তাব)', 'Home: all products (proposal)'], note: ['প্রস্তাব (২০২৬-১১-২৬): কোনো কার্ড দুবার নয়, যে সারি ভরে না সেটা নেই, আর শেষে “সব পণ্য”: বাকি সবগুলো, ক্যাটাগরি থাকুক বা না থাকুক, ১২টি করে।', 'Proposal (2026-11-26): no card twice, no row that cannot fill, and “All products” at the end: everything else, with or without a category, 12 at a time.'], render: () => haProposal(HA_SHOPS.mixed) },
+  'ha-more': { label: ['হোম: আরও দেখুনের পর', 'Home: after See more'], note: ['“আরও দেখুন” একবার চাপার পর: বাকি ১০টি একই জায়গায় যোগ হয়; সব এসে গেলে বোতাম থাকে না।', 'After one “See more”: the other 10 join in place; once all are in, the button goes.'], render: () => haProposal(HA_SHOPS.mixed, { more: true }) },
+  'ha-no-categories': { label: ['হোম: ক্যাটাগরি নেই', 'Home: no categories'], note: ['১৮টি পণ্য, কোনো ক্যাটাগরি নেই: ক্যাটাগরির সেকশন নেই, অফারের সারি ভরে না বলে নেই; নতুন ৪টি, তারপর সব পণ্য।', '18 products and no categories: no category section, no on-sale row (it cannot fill); the 4 newest, then All products.'], render: () => haProposal(HA_SHOPS.none) },
+  'ha-small': { label: ['হোম: ৭টি পণ্যের দোকান', 'Home: a 7-product shop'], note: ['৭টি পণ্য: প্রতিটি একবার, কোনো আধা-খালি সারি নেই।', 'Seven products: each once, no half-empty row.'], render: () => haProposal(HA_SHOPS.small, { small: true }) },
+  'ha-desktop': { label: ['হোম: সব পণ্য, কম্পিউটারে', 'Home: all products, computer'], note: ['ha-mixed, ১২৮০ পিক্সেলে: সব পণ্য ৪টি করে কলামে, ১২টি = ৩ লাইন।', 'ha-mixed at 1280 px: All products 4 across, 12 = 3 lines.'], render: () => haProposal(HA_SHOPS.mixed) },
+});
+/* ---------- end of every product on the home page (proposal) ---------- */
+
 function render() {
   const theme = THEMES[STATE.screen];
   const ed = EDITOR[STATE.screen];
