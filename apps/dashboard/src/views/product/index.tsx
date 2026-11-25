@@ -96,6 +96,7 @@ import {
   SplitChips,
 } from './quick-add';
 import { ZonesSheet } from './zones-sheet';
+import { SavedSheet } from './saved-sheet';
 import { LinkCard } from './link-card';
 import { OfferCards } from './offer-card';
 import { MediaSheet } from './media-sheet';
@@ -124,6 +125,8 @@ import { VariantsCard, type StockKind } from './variants-card';
 export function ProductEditor({ productId }: { productId: string | null }): React.JSX.Element {
   const { t } = useTranslation('shop');
   const product = useProduct(productId);
+  // A new product saved, then "আরেকটা প্রোডাক্ট যোগ করুন" (`pq-saved`): a fresh form, from the top.
+  const [round, setRound] = useState(0);
   if (productId !== null && product.isPending) {
     return (
       <ShellPage>
@@ -148,7 +151,15 @@ export function ProductEditor({ productId }: { productId: string | null }): Reac
     );
   }
   if (product.data?.archived) return <ArchivedProduct product={product.data} />;
-  return <ProductPage key={product.data?.id ?? 'new'} product={product.data ?? null} />;
+  return (
+    <ProductPage
+      key={product.data?.id ?? `new-${String(round)}`}
+      product={product.data ?? null}
+      onAnother={() => {
+        setRound((current) => current + 1);
+      }}
+    />
+  );
 }
 
 /** How long the price rests before the combo's figures follow it. */
@@ -159,7 +170,13 @@ type Stop =
   | { kind: 'limit'; refused: boolean }
   | { kind: 'parts'; parts: { part: string; message: string; error: unknown }[] };
 
-function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.Element {
+function ProductPage({
+  product,
+  onAnother,
+}: {
+  product: ProductDetail | null;
+  onAnother: () => void;
+}): React.JSX.Element {
   const { t, i18n } = useTranslation('shop');
   const fieldNames = useFieldNames();
   const errorText = useErrorText();
@@ -416,6 +433,8 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
   const [zeroOk, setZeroOk] = useState(false);
   const [sizesOpen, setSizesOpen] = useState(false);
   const [menuPhoto, setMenuPhoto] = useState<string | null>(null);
+  // The owner, 2026-11-25: after a new product's first save, its landing link to share (`pq-saved`).
+  const [justSaved, setJustSaved] = useState<ProductDetail | null>(null);
   const [quickZones, setQuickZones] = useState(false);
   const addOptions = useAddOptions();
   const delivery = useDeliverySettings();
@@ -653,10 +672,14 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
       create.mutate(createBody(quickAdd ? quickBody(form, quickMode) : form, designs.labels), {
         onSuccess: (made) => {
           forget([...made.images.map((image) => image.id), made.video?.id ?? null], []);
-          showToast(savedWords(made));
-          // A new combo opens with its link (`k31-combo-saved`); a new product goes back to the list.
+          // A new product says it is saved in its sheet; a combo, as before.
+          if (isCombo) showToast(savedWords(made));
+          // A new combo opens with its link (`k31-combo-saved`); a new product shows its link to share (`pq-saved`).
           if (isCombo) leaveTo('/$shop/products/$productId', made.id);
-          else leaveTo('/$shop/products');
+          else {
+            leaving.current = true;
+            setJustSaved(made);
+          }
         },
         onError: (error) => {
           if (error instanceof ApiClientError && error.code === 'plan_limit_reached') {
@@ -1382,6 +1405,16 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
           onSheet={setStockSheet}
         />
       ) : null}
+      <SavedSheet
+        product={justSaved}
+        onAnother={onAnother}
+        onProduct={() => {
+          if (justSaved) leaveTo('/$shop/products/$productId', justSaved.id);
+        }}
+        onClose={() => {
+          leaveTo('/$shop/products');
+        }}
+      />
       <SizeChartSheet
         open={chartOpen}
         chart={form.chart}

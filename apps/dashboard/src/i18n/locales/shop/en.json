@@ -1179,5 +1179,19 @@
   "qaShown": "Shown in the shop",
   "qaNamePh": "e.g. Casual shirt",
   "qaDescPh": "Fabric, fit, care: what the shopper wants to know",
-  "chartTableKept": "This chart is kept as a table and shows in the shop as it is. To change it, add a picture."
+  "chartTableKept": "This chart is kept as a table and shows in the shop as it is. To change it, add a picture.",
+  "qsTitle": "Product saved ✓",
+  "qsLead": "Share its link: shoppers can order right from it.",
+  "qsCopy": "Copy link",
+  "qsCopied": "Copied",
+  "qsCopiedToast": "Link copied",
+  "qsShare": "Share",
+  "qsView": "See the page",
+  "qsAnother": "Add another product",
+  "qsToProduct": "Go to the product",
+  "qsWhatsapp": "WhatsApp",
+  "qsFacebook": "Facebook",
+  "qsMessenger": "Messenger",
+  "qsPaused": "The link opens once a ৳{{amount}} top-up opens the shop.",
+  "qsActivate": "Top up"
 }

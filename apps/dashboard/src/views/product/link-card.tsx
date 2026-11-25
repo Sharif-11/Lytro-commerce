@@ -10,13 +10,9 @@ import { Field, SelectField } from '@/components/ui/field';
 import { Sheet } from '@/components/ui/sheet';
 import { useErrorText } from '@/hooks/use-error-text';
 import { useShopAddress } from '@/hooks/use-shop-address';
+import { linkOf } from '@/lib/product-link';
 import { useShell } from '@/shell/shell-context';
 import type { ProductDetail } from '@/types/product';
-
-/** LND-06: a product's landing link, and the same with a variant chosen, by the variant's id as the feed's links are. */
-function linkOf(host: string, product: ProductDetail, variantId: string | null): string {
-  return `${host}/l/${product.slug}${variantId ? `?v=${variantId}` : ''}`;
-}
 
 /** A variant by the options that name it ("M · Black"). */
 function variantName(product: ProductDetail, optionIds: readonly string[]): string {
