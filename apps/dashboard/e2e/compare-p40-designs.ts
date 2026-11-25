@@ -61,17 +61,17 @@ export function p40Pairs(): P40Pair[] {
     ...more,
   });
   return [
-    bn('pd-product', '/products/p-burka'),
+    bn('pd-product', '/products/p-burka/edit'),
     {
-      ...bn('pd-product', '/products/p-burka'),
+      ...bn('pd-product', '/products/p-burka/edit'),
       device: 'desktop',
       language: 'en',
       state: shop('en'),
       scroll: /^Options and variants$/,
     },
-    bn('pd-photos', '/products/p-burka', { then: tap('ছবি 1') }),
-    bn('pd-photo', '/products/p-burka', { then: inSheet('ছবি 3: স্ট্রাইপ') }),
-    bn('pd-photo-own', '/products/p-burka', {
+    bn('pd-photos', '/products/p-burka/edit', { then: tap('ছবি 1') }),
+    bn('pd-photo', '/products/p-burka/edit', { then: inSheet('ছবি 3: স্ট্রাইপ') }),
+    bn('pd-photo-own', '/products/p-burka/edit', {
       // Stripe's second photo made its own design, then its step opened again.
       then: async (page) => {
         await inSheet('ছবি 3: স্ট্রাইপ')(page);
@@ -81,20 +81,20 @@ export function p40Pairs(): P40Pair[] {
           .click();
       },
     }),
-    bn('pd-photos-ordered', '/products/p-1', { state: ordered(), then: orderedWithNewPhoto }),
-    bn('pd-photo-locked', '/products/p-1', {
+    bn('pd-photos-ordered', '/products/p-1/edit', { state: ordered(), then: orderedWithNewPhoto }),
+    bn('pd-photo-locked', '/products/p-1/edit', {
       state: ordered(),
       then: async (page) => {
         await orderedWithNewPhoto(page);
         await page.getByRole('dialog').getByRole('button', { name: 'ছবি 4: সাধারণ ছবি' }).click();
       },
     }),
-    bn('pd-photos-kept', '/products/p-burka', {
+    bn('pd-photos-kept', '/products/p-burka/edit', {
       state: { products: { ...withBurka(burka({}, 'bn')), pastOrders: { 'm-3': 12 } } },
       then: inSheet('ছবি 3 সরান'),
     }),
-    bn('dlg-pd-retire', '/products/p-burka', { then: inSheet('ছবি 1 সরান') }),
-    bn('pd-variant', '/products/p-burka', { then: tap(/স্ট্রাইপ · 54/) }),
+    bn('dlg-pd-retire', '/products/p-burka/edit', { then: inSheet('ছবি 1 সরান') }),
+    bn('pd-variant', '/products/p-burka/edit', { then: tap(/স্ট্রাইপ · 54/) }),
     bn('pd-add-variant', '/orders/new', {
       then: async (page) => {
         await page.getByRole('main').getByRole('button', { name: 'আইটেম যোগ করুন' }).click();

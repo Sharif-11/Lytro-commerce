@@ -25,27 +25,33 @@ export function StockTag({ state }: { state: StockState }): React.JSX.Element {
 /**
  * One product as every list shows it (the prototype's `prodRow`): its first photo or the drawn tile, the name with
  * Inactive when it is, "n variants · category", the price over its stock chip; an archived one's chip says Archived
- * (Part 13). A combo has its tag in place of its variants (`k31-products`). It opens the product.
+ * (Part 13). A combo has its tag in place of its variants (`k31-products`). It opens the product's page (§7.4c).
+ * With `onShare`, the share glyph sits right after the stock chip (the owner, 2026-11-25: "use share icon with no
+ * separate column"): an icon with a 44 px tap area of its own, beside the row's link rather than inside it; an inactive
+ * product's is greyed and says why; archived rows have none.
  */
 export function ProductRow({
   product,
   category,
   archived = false,
+  onShare,
 }: {
   product: ProductSummary;
   /** Its primary category's name, Uncategorized, or null while the categories load. */
   category: string | null;
   archived?: boolean;
+  onShare?: (productId: string) => void;
 }): React.JSX.Element {
   const { t } = useTranslation('shop');
-  const { slug } = useShell();
+  const { slug, showToast } = useShell();
   const [tone, label] = archived ? (['neutral', 'plArchived'] as const) : STOCK[product.stockState];
   const combo = product.kind === ProductKind.Combo;
-  return (
+  const sharing = onShare !== undefined && !archived;
+  const link = (
     <Link
       to="/$shop/products/$productId"
       params={{ shop: slug, productId: product.id }}
-      className={rowClass}
+      className={`${rowClass}${sharing ? ' pr-12' : ''}`}
     >
       <span className="flex size-12 flex-none items-center justify-center overflow-hidden rounded-button bg-linear-135 from-neutral-100 to-neutral-200 text-neutral-400">
         {product.image ? (
@@ -80,5 +86,25 @@ export function ProductRow({
         <StatusTag tone={tone}>{t(label)}</StatusTag>
       </RowTrail>
     </Link>
+  );
+  if (!sharing) return link;
+  return (
+    <div className="relative">
+      {link}
+      <button
+        type="button"
+        aria-label={product.active ? t('psShareRow', { name: product.name }) : t('psInactive')}
+        aria-disabled={!product.active}
+        onClick={() => {
+          if (product.active) onShare(product.id);
+          else showToast(t('psInactive'));
+        }}
+        className={`absolute right-2 bottom-1 grid size-11 place-items-center rounded-full ${
+          product.active ? 'text-neutral-700 hover:bg-neutral-100' : 'text-neutral-300'
+        }`}
+      >
+        <Icon name="share" size={18} />
+      </button>
+    </div>
   );
 }

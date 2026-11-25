@@ -40,7 +40,9 @@ export type ShopPath =
   // §7.48: Developer API returns to API keys.
   | '/$shop/settings/api-keys'
   // Phase 7 (Part 37): the bell's own page, and the board a notice returns to.
-  | '/$shop/notifications';
+  | '/$shop/notifications'
+  // §7.4c: the editor returns to its product's page (the app bar carries the product's id along).
+  | '/$shop/products/$productId';
 
 export interface Section {
   id: SectionId;

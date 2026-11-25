@@ -140,7 +140,7 @@ test('a new product starts with the default, sent only if changed; an edit sends
   await expect.poll(() => sent(log, 'POST', '/products').length).toBe(1);
   expect(sent(log, 'POST', '/products')[0]).not.toHaveProperty('taxClassId');
 
-  const edit = await open(page, '/products/p-1');
+  const edit = await open(page, '/products/p-1/edit');
   await openMore(page);
   await main(page).getByLabel('Tax class').selectOption('tx-15');
   await main(page).getByRole('button', { name: 'Save' }).first().click();
@@ -151,7 +151,7 @@ test('a new product starts with the default, sent only if changed; an edit sends
 test('add-ons: a group with a rule and options is saved with the product, read back as it was', async ({
   page,
 }) => {
-  const log = await open(page, '/products/p-1');
+  const log = await open(page, '/products/p-1/edit');
   await expect(main(page)).toContainText('Extras chosen when ordering');
   await main(page).getByRole('button', { name: 'Add a group' }).click();
   const adding = sheet(page, 'Add a group');
@@ -183,6 +183,9 @@ test('add-ons: a group with a rule and options is saved with the product, read b
       },
     ],
   });
+  // §7.4c: Save returns to the product's page; Edit opens the editor again.
+  await expect(page).toHaveURL(`/${SLUG}/products/p-1`);
+  await main(page).getByRole('link', { name: 'Edit' }).click();
   await page.reload();
   await expect(main(page).getByRole('button', { name: /^Alteration/ })).toContainText(
     'Optional, any number',
@@ -192,7 +195,7 @@ test('add-ons: a group with a rule and options is saved with the product, read b
 test('a group’s rules: Custom shows the numbers and checks them; one to pick keeps one default', async ({
   page,
 }) => {
-  await open(page, '/products/p-1');
+  await open(page, '/products/p-1/edit');
   await main(page).getByRole('button', { name: 'Add a group' }).click();
   const adding = sheet(page, 'Add a group');
   await adding.getByLabel('Group name').fill('Spice');
@@ -231,7 +234,7 @@ test('a group’s rules: Custom shows the numbers and checks them; one to pick k
 test('a saved tax class and add-on group are saved: a second Save sends nothing, leaving asks nothing', async ({
   page,
 }) => {
-  const log = await open(page, '/products/p-1');
+  const log = await open(page, '/products/p-1/edit');
   await openMore(page);
   await main(page).getByLabel('Tax class').selectOption('tx-15');
   await main(page).getByRole('button', { name: 'Add a group' }).click();
@@ -241,6 +244,9 @@ test('a saved tax class and add-on group are saved: a second Save sends nothing,
   await adding.getByRole('button', { name: 'Save' }).click();
   await main(page).getByRole('button', { name: 'Save' }).first().click();
   await expect.poll(() => sent(log, 'PATCH', '/products/p-1').length).toBe(1);
+  // §7.4c: Save returns to the product's page; Edit opens the editor again.
+  await expect(page).toHaveURL(`/${SLUG}/products/p-1`);
+  await main(page).getByRole('link', { name: 'Edit' }).click();
   await main(page).getByRole('button', { name: 'Save' }).first().click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   expect(sent(log, 'PATCH', '/products/p-1')).toHaveLength(1);
@@ -263,7 +269,7 @@ test('someone who may only look sees the add-ons and changes nothing', async ({ 
       },
     ];
   }
-  await open(page, '/products/p-1', {
+  await open(page, '/products/p-1/edit', {
     isOwner: false,
     permissions: ['products:read'],
     products,

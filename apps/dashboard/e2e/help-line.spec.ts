@@ -192,7 +192,7 @@ test.describe('the error ID on a server fault (API-27, D8-21)', () => {
   }) => {
     for (const status of [500, 503]) {
       await mockApi(page, { faults: [serverFault('PATCH', /^\/products\/p-1$/, 'bn', status)] });
-      await page.goto(`/${SLUG}/products/p-1`);
+      await page.goto(`/${SLUG}/products/p-1/edit`);
       await main(page).getByLabel('নাম', { exact: true }).fill('কটন টি-শার্ট নতুন');
       await page.getByRole('button', { name: 'সেভ করুন' }).first().click();
       const alert = main(page).getByRole('alert').first();
@@ -220,7 +220,7 @@ test.describe('the error ID on a server fault (API-27, D8-21)', () => {
         },
       ],
     });
-    await page.goto(`/${SLUG}/products/p-1`);
+    await page.goto(`/${SLUG}/products/p-1/edit`);
     await main(page).getByLabel('নাম', { exact: true }).fill('কটন টি-শার্ট নতুন');
     await page.getByRole('button', { name: 'সেভ করুন' }).first().click();
     await expect(main(page).getByRole('alert').first()).toContainText(

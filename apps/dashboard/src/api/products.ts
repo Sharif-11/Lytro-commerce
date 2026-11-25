@@ -168,16 +168,6 @@ export function useCheckSerials() {
   });
 }
 
-/** PUT /products/:id/slug: a deliberate link change; the old link keeps redirecting (LND-04). */
-export function useChangeSlug(id: string) {
-  const changed = useProductsChanged();
-  return useMutation({
-    mutationFn: (slug: string) =>
-      tenantSession.client.put<ProductDetail>(`/products/${id}/slug`, { slug }),
-    onSuccess: changed,
-  });
-}
-
 /** POST /products/:id/duplicate: an inactive copy with a new link (PRD-18). */
 export function useDuplicateProduct(id: string) {
   const changed = useProductsChanged();

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { useHome } from '@/api/home';
+import { InstallRow } from '@/components/install-row';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { useErrorText } from '@/hooks/use-error-text';
@@ -25,7 +26,7 @@ const LINK_CARD = 'shop-link';
 export function Home(): React.JSX.Element {
   const { t } = useTranslation('home');
   const errorText = useErrorText();
-  const { slug } = useShell();
+  const { slug, tenant, viewer } = useShell();
   const home = useHome();
   const [opened, setOpened] = useState(false);
   const data = home.data;
@@ -66,6 +67,8 @@ export function Home(): React.JSX.Element {
           {errorText(home.error)}
         </Banner>
       ) : null}
+      {/* §7.1a: the app, offered on a phone until installed or closed; the owner's, as the checklist is. */}
+      {viewer.isOwner ? <InstallRow shopName={tenant.shopName} slug={slug} /> : null}
       <div className="flex flex-col gap-section lg:grid lg:grid-cols-[1fr_340px] lg:items-start lg:gap-columns">
         <div className="flex min-w-0 flex-col gap-section">
           {checklist && (!complete || opened) ? (

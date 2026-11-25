@@ -155,7 +155,8 @@ test('a new combo saves its fields and parts, nothing of a product’s stock, an
   await addPart(page, /^Check lungi/, []);
   await main(page).getByRole('button', { name: 'Save' }).first().click();
   await expect(page.getByText('Eid combo saved')).toBeVisible();
-  await expect(page).toHaveURL(new RegExp(`/${SLUG}/products/p-new-`));
+  // §7.4c: it opens on its page, with its link.
+  await expect(page).toHaveURL(new RegExp(`/${SLUG}/products/p-new-\\d+$`));
   const [body] = sent(log, 'POST', '/products');
   expect(body).toMatchObject({
     name: 'Eid combo',
@@ -166,14 +167,14 @@ test('a new combo saves its fields and parts, nothing of a product’s stock, an
   for (const field of ['stockTracking', 'stockUnit', 'batchTracked', 'serialTracked', 'variants']) {
     expect(body).not.toHaveProperty(field);
   }
-  await expect(main(page)).toContainText('Combo');
-  await expect(main(page).getByRole('radio', { name: 'Combo pack' })).toHaveCount(0);
+  await expect(main(page).getByRole('heading', { name: 'Product link' })).toBeVisible();
+  await expect(main(page).getByRole('link', { name: 'Edit' }).first()).toBeAttached();
 });
 
 test('a saved combo opens as one; a part changes or goes; only the parts are sent, and nothing is left unsaved', async ({
   page,
 }) => {
-  const log = await open(page, '/products/p-eid');
+  const log = await open(page, '/products/p-eid/edit');
   await expect(main(page)).toContainText('Customer picks: S, M, L');
   await expect(main(page).getByRole('radio', { name: 'Combo pack' })).toHaveCount(0);
   await expect(main(page).getByText('Add-ons', { exact: true })).toHaveCount(0);
@@ -279,7 +280,7 @@ for (const [reason, words] of [
     lungi.gone = reason;
     const combo = products.products.find((each) => each.id === 'p-eid');
     if (combo) combo.stockState = 'out';
-    await open(page, '/products/p-eid', { products });
+    await open(page, '/products/p-eid/edit', { products });
     await expect(page.getByRole('alert').filter({ hasText: words })).toBeVisible();
     await expect(main(page)).toContainText('Can make now');
     await expectAccessible(page);
@@ -290,7 +291,7 @@ test('no choice left names the part and its fix', async ({ page }) => {
   const products = withEidCombo(drawnProducts());
   const panjabi = products.picker?.find((each) => each.id === 'p-panjabi');
   for (const variant of panjabi?.variants ?? []) variant.gone = 'part_off_sale';
-  await open(page, '/products/p-eid', { products });
+  await open(page, '/products/p-eid/edit', { products });
   await expect(
     page.getByRole('alert').filter({ hasText: 'No size of Cotton panjabi is on sale' }),
   ).toBeVisible();
@@ -303,7 +304,7 @@ test('a part whose variant has gone is named when the parts are saved again', as
     ?.variants.find((each) => each.id === 'v-pan-s');
   if (!small) throw new Error('v-pan-s');
   small.gone = 'part_retired';
-  await open(page, '/products/p-eid', { products });
+  await open(page, '/products/p-eid/edit', { products });
   await main(page).getByRole('button', { name: 'Change Check lungi' }).click();
   const sheet = page.getByRole('dialog', { name: 'Check lungi · which can go in?' });
   await sheet.getByRole('button', { name: 'How many in each combo +' }).click();
@@ -316,7 +317,7 @@ test('a part whose variant has gone is named when the parts are saved again', as
 test('someone who may only look: no changes and no quote; stock’s reader sees what it can make', async ({
   page,
 }) => {
-  const log = await open(page, '/products/p-eid', {
+  const log = await open(page, '/products/p-eid/edit', {
     isOwner: false,
     permissions: ['products:read'],
   });
@@ -335,7 +336,7 @@ test('someone who may only look: no changes and no quote; stock’s reader sees 
       issues: [],
     };
   }
-  await open(page, '/products/p-eid', {
+  await open(page, '/products/p-eid/edit', {
     isOwner: false,
     permissions: ['products:read', 'inventory:read'],
     products,
@@ -350,7 +351,7 @@ test('a product in a combo can’t be deleted for good: the dialog names it, wit
 }) => {
   const products = withEidCombo(drawnProducts());
   products.inCombos = { 'p-1': [{ id: 'p-eid', name: 'Eid combo' }] };
-  await open(page, '/products/p-1', { products });
+  await open(page, '/products/p-1/edit', { products });
   await main(page).getByText('More settings').click();
   await main(page).getByRole('button', { name: 'Delete for good' }).click();
   await page
@@ -375,7 +376,7 @@ test('in several combos it names them all, with a way into each; OK stays on the
       { id: 'p-winter', name: 'Winter combo' },
     ],
   };
-  await open(page, '/products/p-1', { products });
+  await open(page, '/products/p-1/edit', { products });
   await main(page).getByText('More settings').click();
   await main(page).getByRole('button', { name: 'Delete for good' }).click();
   await page
@@ -396,7 +397,7 @@ test('an archived product in a combo is refused the same way', async ({ page }) 
   const first = products.products.find((each) => each.id === 'p-1');
   if (first) first.archived = true;
   products.inCombos = { 'p-1': [{ id: 'p-eid', name: 'Eid combo' }] };
-  await open(page, '/products/p-1', { products });
+  await open(page, '/products/p-1/edit', { products });
   await main(page).getByRole('button', { name: 'Delete for good' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Delete for good' }).click();
   await expect(page.getByRole('dialog', { name: "Cotton T-shirt can't be deleted" })).toBeVisible();

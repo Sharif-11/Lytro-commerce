@@ -6,12 +6,13 @@ import { closeSaved } from './support/quick-add';
 
 // TENANT-DASHBOARD-DESIGN §7.4, Slice 11.7a: the product editor -- Basics with the category picker and New category,
 // one Save that sends only what changed, a new product in one request, the question before leaving unsaved, the
-// product link, Duplicate, Archive and Delete, an archived product's Restore, and the limit (Part 13). Each test runs on
+// link's card gone to the product's page (§7.4c) and its change gone with ID links, Duplicate, Archive and Delete, an archived product's Restore, and the limit (Part 13). Each test runs on
 // a phone and on a desktop (playwright.config.ts).
 
 async function open(page: Page, path: string, state: ShopState = {}): Promise<ApiLog> {
   const log = await mockApi(page, { language: 'en', ...state });
-  await page.goto(`/${SLUG}/products/${path}`);
+  // §7.4c: a product opens its page; the editor is at .../edit.
+  await page.goto(`/${SLUG}/products/${path === 'new' ? path : `${path}/edit`}`);
   await expect(page.getByRole('main').getByRole('heading').first()).toBeAttached();
   return log;
 }
@@ -66,8 +67,8 @@ test('opens a product with its Basics and link, and one Save sends only what cha
     '100% cotton, pre-shrunk. Keeps its size after washing.',
   );
   await expect(main(page).getByText('In stock')).toBeVisible();
-  // The card's own (its sheet, closed, carries the same link), by the product's ID (the owner, 2026-11-25).
-  await expect(main(page).getByText('megh.lytro.app/l/p-1').first()).toBeVisible();
+  // §7.4c: the link card moved to the product's page.
+  await expect(main(page).getByText('megh.lytro.app/l/p-1')).toBeHidden();
   await expectAccessible(page);
 
   await main(page).getByLabel('Price', { exact: true }).fill('470');
@@ -75,6 +76,8 @@ test('opens a product with its Basics and link, and one Save sends only what cha
   await expect(toast(page)).toHaveText('Saved. Cotton T-shirt is on the storefront.');
   expect(writes(log, 'PATCH').map((call) => call.body)).toEqual([{ basePrice: 470 }]);
   expect(writes(log, 'PUT')).toEqual([]);
+  // §7.4c: saving an edit returns to the product's page.
+  await expect(page).toHaveURL(`/${SLUG}/products/p-1`);
   // Saved: nothing is left to ask about on the way out.
   await page.getByRole('link', { name: 'Home' }).first().click();
   await expect(page).toHaveURL(`/${SLUG}`);
@@ -207,6 +210,9 @@ test('picks categories: ticks, the primary, none, and a new one made in a step o
   const sent = writes(log, 'PATCH').at(-1)?.body as { categoryIds: string[] };
   expect(sent).toMatchObject({ primaryCategoryId: 'c-jackets' });
   expect(sent.categoryIds).toHaveLength(3);
+  // §7.4c: Save returns to the product's page; Edit opens the editor again.
+  await expect(page).toHaveURL(`/${SLUG}/products/p-1`);
+  await main(page).getByRole('link', { name: 'Edit' }).click();
 
   // Uncategorized files it in none.
   await main(page)
@@ -252,28 +258,22 @@ test('a refused field is said under it, and Save counts what is left to fix', as
   await expect(save(page)).toHaveText('Fix 1 thing to save');
 });
 
-// The owner, 2026-11-25: the link names the product by its ID, so its name (the slug) is no longer changed here.
-test("the link: by the product's ID, a variant for it, and no changing its name", async ({
-  page,
-}) => {
-  await open(page, 'p-1');
-  await main(page)
-    .getByRole('button', { name: 'Pick a variant and the link opens on it.' })
-    .click();
-  await sheet(page).getByLabel('Pick a variant (optional)').selectOption({ label: 'M · Black' });
-  await expect(sheet(page).getByText('megh.lytro.app/l/p-1?v=p-1-v3')).toBeVisible();
-  await expect(sheet(page).getByText('Change the link')).toHaveCount(0);
-  await expect(sheet(page).getByLabel('Link name')).toHaveCount(0);
-  await sheet(page).getByRole('button', { name: 'Done' }).click();
-  await expect(main(page).getByText('megh.lytro.app/l/p-1').first()).toBeVisible();
+// The owner, 2026-11-26: the link names the product by its ID, so "Change the link" (its slug) is gone from the editor;
+// the server keeps the route, and an old slug link still opens.
+test('More settings no longer changes the link', async ({ page }) => {
+  const log = await open(page, 'p-1');
+  await moreSettings(page);
+  await expect(main(page).getByRole('button', { name: 'Duplicate' })).toBeVisible();
+  await expect(main(page).getByRole('button', { name: 'Change the link' })).toHaveCount(0);
   await expect(main(page).getByText('cotton-t-shirt')).toHaveCount(0);
+  expect(log.sent('PUT', '/products/p-1/slug')).toBeUndefined();
 });
 
 test('Duplicate opens the copy, and at the limit says so first', async ({ page }) => {
   await open(page, 'p-1');
   await moreSettings(page);
   await main(page).getByRole('button', { name: 'Duplicate' }).click();
-  await expect(page).toHaveURL(new RegExp(`/${SLUG}/products/p-new-\\d+$`));
+  await expect(page).toHaveURL(new RegExp(`/${SLUG}/products/p-new-\\d+/edit$`));
   await expect(toast(page)).toHaveText('Copied · inactive until you turn it on');
   await expect(main(page).getByLabel('Name', { exact: true })).toHaveValue('Cotton T-shirt (copy)');
 
@@ -299,7 +299,7 @@ test('Archive and Delete for good ask first, then go back to the list with a toa
   await expect(toast(page)).toHaveText('Denim jacket archived · find it under Archived');
   expect(log.calls.some((call) => call.method === 'DELETE' && call.query === '')).toBe(true);
 
-  await page.goto(`/${SLUG}/products/p-3`);
+  await page.goto(`/${SLUG}/products/p-3/edit`);
   await moreSettings(page);
   await main(page).getByRole('button', { name: 'Delete for good' }).click();
   await page

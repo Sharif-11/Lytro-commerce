@@ -1,4 +1,4 @@
-import { Link } from '@tanstack/react-router';
+import { Link, useParams } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/icon';
 import { ShopMark } from '@/components/ui/shop-mark';
@@ -22,6 +22,8 @@ interface BarActionsProps {
 export function AppBar({ canSearch, canAdd }: BarActionsProps): React.JSX.Element {
   const { t } = useTranslation('shell');
   const { slug, tenant, screen, openPlus } = useShell();
+  // A back path below a product (§7.4c: the editor's, to its page) takes the product's id from where we are.
+  const { productId = '' } = useParams({ strict: false });
   const back = screen?.back;
   const title = screen?.title;
   return (
@@ -29,7 +31,7 @@ export function AppBar({ canSearch, canAdd }: BarActionsProps): React.JSX.Elemen
       {back ? (
         <Link
           to={back}
-          params={{ shop: slug }}
+          params={{ shop: slug, productId }}
           aria-label={t('back')}
           className={`${iconButton} -ml-2`}
         >

@@ -379,6 +379,45 @@ the shop's home area; `/me` for the plan and its end. **States.** Day one: the c
 tiles read zero with the trial days; a queue with nothing says so in one line; a failed read says so with Try
 again.
 
+### 7.1a The install box: the app, offered the moment the shop is made (proposal 2026-11-26, awaiting the owner)
+
+**Why.** The owner, 2026-11-26: "The app install instruction must appear after signup so that they can install the app
+immediately, currently it is nested". Then, picking a box on the page over an extra sign-up step: "sketch option A but
+the instruction is lengthy make it shorter. user likes app already". Today the only way to install is the Menu's row
+(Part 27, TEN-17), and it shows only when Chrome offers to install. On 2026-11-25, 6 of the campaign's 10 new shops
+signed up inside Facebook's own browser, which can't install anything and loses the seller once it is closed.
+
+**Where.** One row, on top of:
+- the first landing, quick add's `/products/new?first=1` (§7.4b), above its welcome line;
+- Home, above the checklist.
+
+It stays on every visit until the app is installed or the row is closed with ✕. Closing it is remembered on that
+device. The Menu keeps its row (Part 27) for later. Not shown:
+- when the dashboard is opened from the installed icon (display mode standalone);
+- on a computer;
+- to a staff member, whose own app is the same install from their own Menu.
+
+**What it says.** Always the shop's app icon (Part 27's, with the gear) and **অ্যাপ ইনস্টল করুন** / Install the app,
+plus one action that depends on where the page is open:
+
+| Open in | The row | A tap |
+| --- | --- | --- |
+| Chrome on Android, the browser offering to install | one line: title, **ইনস্টল**, ✕ | Chrome's own install dialog; the icon lands on the home screen |
+| Facebook's (or Messenger's, Instagram's) own browser on Android | title; under it **Chrome-এ খুলুন**; ✕ | the same page opens in Chrome. The seller signs in there once (phone and the password set a minute earlier), and the Chrome row installs |
+| Safari on an iPhone | title; under it "Share → Add to Home Screen"; ✕ | nothing to tap: Apple has no install button |
+| Facebook's own browser on an iPhone | title; under it "⋯ → Safari-তে খুলুন → Share → Add to Home Screen"; ✕ | nothing to tap: an iPhone page can't open Safari itself |
+| Android Chrome before its install offer arrives, or another Android browser | title; under it "⋮ → Install app / Add to Home screen"; ✕ | nothing to tap |
+
+**Sign-in.** A seller who is still signed in and opens the sign-in page goes straight to their shop. That covers lytro.app's
+"লগইন" and "ফ্রি দোকান খুলুন" tapped again from the ad. Pricing's plan buttons (`?planId=`) still go on to checkout.
+
+**Prototype.** The group "The install box (proposal 2026-11-26)" in `docs/brand/lytro-dashboard.html`:
+- `app-first`, `app-first-fb`, `app-first-ios` and `app-first-ios-fb` (the first landing);
+- `app-home` and `app-home-fb` (Home).
+
+The Facebook views draw Facebook's own bar (✕, the address, ⋯) at the top of the phone. Each screen also opens by its
+address, e.g. `lytro-dashboard.html#app-first-fb`. The Home under the row is the sketch's own Home; only the row is new.
+
 ### 7.2 Orders tab (placeholder)
 
 "No orders yet. Orders arrive in Phase 4; you will confirm and book couriers from here." with the share-link
@@ -819,6 +858,85 @@ flow, the server and the storefront.
 7. **Should editing an existing product use the same quick layout?** I recommend yes, but as a second step, once the
    new-product flow has proved itself. This proposal changes `/products/new` only.
 8. **On a computer, the right-hand column holds আরও সেটিংস and the combo link** (`pq-wide`). I recommend keeping it.
+
+### 7.4c The product's share link in the list, and a product page for the seller (proposal 2026-11-25, awaiting the owner)
+
+The owner, 2026-11-25: "i think the product card in product list need the sharable link also. sketch first please";
+then "currently when seller click a product from product list it directly lands to product edit form but the correct
+flow is product detail page for seller with button for editing, deleting etc, sharing etc". Drawn in
+`brand/lytro-dashboard.html`, group "Products · share link and product page (proposal 2026-11-25)". Screenshots are in
+`Lytro screenshots/product-list-share/`; `before-products-list.png` is today's list on staging. One PR builds it after
+approval, with no separate sketch PR (the owner, 2026-11-25).
+
+**The list (`pl-share-row`, `pl-share-wide`).** Each row stays as built, with no new column, divider or cell: the
+first photo, the name with its tags, "n variants · category", and the price over the stock chip. A small share glyph
+(18 px, muted ink `--n700`, no box) sits inline after the stock chip. Its button keeps an invisible 44 px tap area
+through negative margins, so it reads as an icon, not a column. The owner, 2026-11-25, on the first drawing with a
+separate column: "share row is not good, instead use share icon with no separate column. now it looks like a table".
+- A tap on the glyph opens the share sheet. A tap anywhere else on the row opens the product page (`pd-detail`), not
+  the editor. Built as one row that navigates, with the glyph button inside it stopping the row's tap.
+- An **inactive** product's glyph is greyed and does nothing, with the hint "অ্যাক্টিভ করলে শেয়ার করা যাবে" (shoppers
+  can't see an inactive product yet).
+- **Archived** products have no glyph. Their tab is for restoring or deleting, and their link shows nothing.
+- On a computer the row is the same: the glyph follows the stock chip after the price.
+
+Share icon: the three connected dots (the owner, 2026-11-25), replacing the box-and-arrow everywhere in the seller
+dashboard. In the build, `share` in apps/dashboard/src/components/icon.tsx changes once (one definition), so Home's link
+card, the quick-add save sheet and every other share button follow.
+
+**The share sheet (`pl-share-sheet`, `-design`, `-copied`, `-paused`).** The body is the quick-add save sheet's
+(`pq-saved`, §7.4b), without "saved ✓" and without the add-another buttons; one component serves both.
+- The product's photo, name and price.
+- The landing link `/l/<slug>` on the shop's own address (the verified custom domain, else `<slug>.lytro.app`).
+- লিংক কপি করুন, শেয়ার করুন (Web Share, falling back to WhatsApp, Facebook and Messenger), and পেজটা দেখুন.
+- **নির্দিষ্ট ডিজাইনের লিংক:** on a product with photo designs, "পুরো প্রোডাক্ট" (the default) or one design. A
+  design adds the storefront's `?d=<design id>`, so the page opens with that design chosen. The sheet's photo follows
+  the choice.
+- The shop's link, as a secondary block.
+- A shop that isn't open yet (pay-as-you-go not activated, or the storefront off) still shows the link, with one line
+  saying when it opens and the action that opens it.
+- Copied: the button turns to "কপি হয়েছে ✓" for 1.6 s, and the toast says so.
+
+**The product page (`pd-detail`, `-designs`, `-made`, `-wide`).** A read view, top to bottom:
+1. The photo strip: each design labelled, the video last with its ▶.
+2. The name and status (অ্যাক্টিভ, or the archived chip), then the price and category.
+3. **Stock.**
+   - One shared stock: the built Stock card's three figures (বিক্রি করা যাবে, শিপের অপেক্ষায়, হাতে আছে).
+   - Designs × sizes: the grid, red when sold out and amber when low. Once orders beyond stock are built, a short
+     cell shows "1টা কম".
+   - Made to order: one line, with no figures.
+   - স্টক যোগ করুন opens the built add-stock sheet.
+4. **Recent orders:** the last 3 with this product, in the new order-row style (photo, name, phone with its digits
+   together, total, status), and সব দেখুন.
+5. **The product link:** the link with Copy, Share and See (Share opens the share sheet).
+6. **The last 30 days:** pieces sold, sales in taka and orders, with সেলস দেখুন to the built product sales page
+   (`/sales/:productId`).
+7. **Links:** স্টক হিস্টরি (the built history sheet) and কম্বোতে আছে (the combos it is in).
+
+Actions: **এডিট করুন** (primary; opens today's editor), **শেয়ার**, and **⋮** with দোকানে দেখুন, কপি বানান (the
+built Duplicate), আর্কাইভ and ডিলিট. Delete opens the built remove dialog (`pd-delete`): Archive is the default, or
+"একেবারে ডিলিট", each with the built note.
+- On a phone the actions sit in the foot bar: Edit, Share, ⋮.
+- On a computer they sit in the head: See in the shop, Share, ⋮, Edit. The photos, stock and orders take the left
+  column; the link, the sales and the links take the right.
+
+**Archived (`pd-archived`):** the built banner (peArchived), the photos, name and price, with ফিরিয়ে আনুন and
+একেবারে ডিলিট. No share card and no stock.
+
+**Open questions, each with my recommendation:**
+1. **A link per design** (`?d=`) in the share sheet, or the whole product only? **Include it,** with the whole product
+   as the default: a seller posting one colour on Facebook wants the shopper to land on that colour.
+2. **The editor's own link card** (link-card.tsx, with its variant link `?v=` and "লিংক বদলান"), once the product page
+   has a link card? **Remove it from the editor,** which becomes edit-only. Keep "লিংক বদলান" (changing the slug) in
+   the editor's more settings. Drop the per-variant link from the screens (the backend and old links keep working),
+   since the design link covers what shoppers choose.
+3. **Which sales numbers?** **Pieces sold, sales in taka and orders, over the last 30 days,** linking to the sales page
+   for more.
+4. **Does "কপি বানান" (Duplicate) belong in ⋮?** **Yes.** It is built (`useDuplicateProduct`) and sellers use it for
+   similar products. Its pay-as-you-go fee note follows it, as in the editor.
+5. **After Save in the editor:** return to the product page, not the list? **Yes.** A new product's first save still
+   shows the quick-add share sheet (§7.4b).
+6. **Recent orders:** **3 rows.** More is the orders list, filtered to this product (সব দেখুন).
 
 ### 7.5 Categories (`/categories`)
 

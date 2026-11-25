@@ -26,6 +26,7 @@ import { useShell } from '@/shell/shell-context';
 import { ShellPage } from '@/shell/shell-page';
 import { CategoryFilterSheet, UNCATEGORIZED } from './category-filter-sheet';
 import { ProductLimitBanner } from './product-limit-banner';
+import { ProductShareSheet } from '@/components/product-share/product-share';
 import { ProductRow } from './product-row';
 import { useCategoryName } from './product-words';
 
@@ -56,6 +57,8 @@ export function ProductsView({
   const { t: shell } = useTranslation('shell');
   const navigate = useNavigate();
   const { slug, viewer, tenant } = useShell();
+  // §7.4c: the product whose share sheet is open, from its row's share glyph.
+  const [sharing, setSharing] = useState<string | null>(null);
   const mayManage = allows(viewer, [Permission.ProductsManage]);
   const gate = useBalanceGate();
   const [typed, setTyped] = useState(search);
@@ -255,6 +258,7 @@ export function ProductsView({
                     product={product}
                     category={categoryName(product.primaryCategoryId)}
                     archived={segment === 'archived'}
+                    onShare={setSharing}
                   />
                 ))}
               </RowList>
@@ -288,6 +292,12 @@ export function ProductsView({
         }}
         onClose={() => {
           setFiltering(false);
+        }}
+      />
+      <ProductShareSheet
+        productId={sharing}
+        onClose={() => {
+          setSharing(null);
         }}
       />
     </ShellPage>

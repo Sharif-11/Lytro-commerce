@@ -144,7 +144,7 @@ function HolderRow({ holder }: { holder: ZoneHolder }): React.JSX.Element {
         </Button>
       ) : (
         <Link
-          to="/$shop/products/$productId"
+          to="/$shop/products/$productId/edit"
           params={{ shop: slug, productId: holder.id }}
           className="text-[14px] font-medium text-primary no-underline"
         >

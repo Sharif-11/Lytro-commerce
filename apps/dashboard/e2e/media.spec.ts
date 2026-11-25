@@ -13,7 +13,8 @@ const MB = 1024 * 1024;
 
 async function open(page: Page, path: string, state: ShopState = {}): Promise<ApiLog> {
   const log = await mockApi(page, { language: 'en', ...state });
-  await page.goto(`/${SLUG}/products/${path}`);
+  // §7.4c: a product opens its page; the editor is at .../edit.
+  await page.goto(`/${SLUG}/products/${path === 'new' ? path : `${path}/edit`}`);
   await expect(page.getByRole('main').getByRole('heading').first()).toBeAttached();
   return log;
 }
@@ -170,6 +171,9 @@ test('adds a video, shown with its length and size, and Remove takes it off', as
   await expect(toast(page)).toBeVisible();
   const [sent] = sentBodies(log, 'PUT', '/products/p-1/video') as { mediaId: string }[];
   expect(sent?.mediaId).toMatch(/^m-up-/);
+  // §7.4c: Save returns to the product's page; Edit opens the editor again.
+  await expect(page).toHaveURL(`/${SLUG}/products/p-1`);
+  await main(page).getByRole('link', { name: 'Edit' }).click();
 
   await main(page).getByRole('button', { name: 'Video' }).click();
   await sheet(page).getByRole('button', { name: 'Remove', exact: true }).click();
