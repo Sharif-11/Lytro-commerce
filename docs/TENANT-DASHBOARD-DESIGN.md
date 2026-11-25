@@ -379,6 +379,45 @@ the shop's home area; `/me` for the plan and its end. **States.** Day one: the c
 tiles read zero with the trial days; a queue with nothing says so in one line; a failed read says so with Try
 again.
 
+### 7.1a The install box: the app, offered the moment the shop is made (proposal 2026-11-26, awaiting the owner)
+
+**Why.** The owner, 2026-11-26: "The app install instruction must appear after signup so that they can install the app
+immediately, currently it is nested". Then, picking a box on the page over an extra sign-up step: "sketch option A but
+the instruction is lengthy make it shorter. user likes app already". Today the only way to install is the Menu's row
+(Part 27, TEN-17), and it shows only when Chrome offers to install. On 2026-11-25, 6 of the campaign's 10 new shops
+signed up inside Facebook's own browser, which can't install anything and loses the seller once it is closed.
+
+**Where.** One row, on top of:
+- the first landing, quick add's `/products/new?first=1` (§7.4b), above its welcome line;
+- Home, above the checklist.
+
+It stays on every visit until the app is installed or the row is closed with ✕. Closing it is remembered on that
+device. The Menu keeps its row (Part 27) for later. Not shown:
+- when the dashboard is opened from the installed icon (display mode standalone);
+- on a computer;
+- to a staff member, whose own app is the same install from their own Menu.
+
+**What it says.** Always the shop's app icon (Part 27's, with the gear) and **অ্যাপ ইনস্টল করুন** / Install the app,
+plus one action that depends on where the page is open:
+
+| Open in | The row | A tap |
+| --- | --- | --- |
+| Chrome on Android, the browser offering to install | one line: title, **ইনস্টল**, ✕ | Chrome's own install dialog; the icon lands on the home screen |
+| Facebook's (or Messenger's, Instagram's) own browser on Android | title; under it **Chrome-এ খুলুন**; ✕ | the same page opens in Chrome. The seller signs in there once (phone and the password set a minute earlier), and the Chrome row installs |
+| Safari on an iPhone | title; under it "Share → Add to Home Screen"; ✕ | nothing to tap: Apple has no install button |
+| Facebook's own browser on an iPhone | title; under it "⋯ → Safari-তে খুলুন → Share → Add to Home Screen"; ✕ | nothing to tap: an iPhone page can't open Safari itself |
+| Android Chrome before its install offer arrives, or another Android browser | title; under it "⋮ → Install app / Add to Home screen"; ✕ | nothing to tap |
+
+**Sign-in.** A seller who is still signed in and opens the sign-in page goes straight to their shop. That covers lytro.app's
+"লগইন" and "ফ্রি দোকান খুলুন" tapped again from the ad. Pricing's plan buttons (`?planId=`) still go on to checkout.
+
+**Prototype.** The group "The install box (proposal 2026-11-26)" in `docs/brand/lytro-dashboard.html`:
+- `app-first`, `app-first-fb`, `app-first-ios` and `app-first-ios-fb` (the first landing);
+- `app-home` and `app-home-fb` (Home).
+
+The Facebook views draw Facebook's own bar (✕, the address, ⋯) at the top of the phone. Each screen also opens by its
+address, e.g. `lytro-dashboard.html#app-first-fb`. The Home under the row is the sketch's own Home; only the row is new.
+
 ### 7.2 Orders tab (placeholder)
 
 "No orders yet. Orders arrive in Phase 4; you will confirm and book couriers from here." with the share-link
