@@ -12,7 +12,13 @@ import {
   type ProductFormField,
 } from '@lytronix/validators';
 import { useTaxClasses } from '@/api/tax-classes';
-import { useAttributes, useProductDefaults, useProductStock } from '@/api/attributes';
+import {
+  useAddOptions,
+  useAttributes,
+  useProductDefaults,
+  useProductStock,
+} from '@/api/attributes';
+import { coversCountry, useDeliverySettings } from '@/api/delivery';
 import { useCategories, useProductRoom } from '@/api/catalogue';
 import { usePresets } from '@/api/shop-setup';
 import { unusedMedia } from '@/api/media';
@@ -57,7 +63,9 @@ import {
   type TypeSetting,
 } from '@/lib/product-settings';
 import { requestIdOf } from '@/lib/help-line';
-import { overLimit } from '@/lib/variant-matrix';
+import { overLimit, reconcile, type SplitAttribute } from '@/lib/variant-matrix';
+import { quickBody, quickStockMode, quickStockProblems, sizePreset } from '@/lib/quick-add';
+import { formatTakaExact } from '@lytronix/ui';
 import type { ProductDefaults } from '@/types/attribute';
 import { useBalanceGate } from '@/hooks/use-balance-gate';
 import { allows } from '@/shell/hubs';
@@ -72,6 +80,22 @@ import { InCombosDialog } from './in-combos-dialog';
 import { combosIn } from './in-combos';
 import { ArchivedProduct } from './archived-product';
 import { BasicsCard } from './basics-card';
+import { CategoryPicker } from './category-picker';
+import {
+  AddSizesButton,
+  ComboLink,
+  Description,
+  NamePrice,
+  PhotoMenuSheet,
+  QuickCard,
+  QuickFee,
+  QuickMore,
+  QuickPhotos,
+  QuickStock,
+  SizeSheet,
+  SplitChips,
+} from './quick-add';
+import { ZonesSheet } from './zones-sheet';
 import { LinkCard } from './link-card';
 import { OfferCards } from './offer-card';
 import { MediaSheet } from './media-sheet';
@@ -381,6 +405,114 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
     },
   });
 
+  // Quick add (TENANT-DASHBOARD-DESIGN §7.4b, the owner 2026-11-25): a new product, not a combo and not counted in
+  // batches or by serial, is one card; everything else keeps the full editor. One state, two layouts: turning batches
+  // or serials on in আরও সেটিংস opens the full form with everything typed.
+  const quickAdd =
+    product === null && !isCombo && !form.settings.batchTracked && !form.settings.serialTracked;
+  const [quickSplit, setQuickSplit] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [optionsOpen, setOptionsOpen] = useState(false);
+  const [zeroOk, setZeroOk] = useState(false);
+  const [sizesOpen, setSizesOpen] = useState(false);
+  const [menuPhoto, setMenuPhoto] = useState<string | null>(null);
+  const [quickZones, setQuickZones] = useState(false);
+  const addOptions = useAddOptions();
+  const delivery = useDeliverySettings();
+  const quickMode = quickStockMode(form, quickSplit, designAttributeId);
+  const stockChecks = quickAdd
+    ? quickStockProblems(form, quickMode, zeroOk)
+    : { empty: false, cells: [] };
+  const preset = sizePreset(defaults.data?.presetKey);
+  const sizeAttribute = attributes.data?.find(
+    (each) => each.name === 'Size' && each.scope === 'platform' && !each.retired,
+  );
+  const sizeSplit = form.splits.find((split) => split.attributeId === sizeAttribute?.id) ?? null;
+  const otherSplits = form.splits.filter(
+    (split) => split.attributeId !== designAttributeId && split.attributeId !== sizeAttribute?.id,
+  );
+  const fee = useBalanceGate().productFee();
+  const zoneNames = (delivery.data?.zones ?? [])
+    .filter((zone) => form.deliveryZoneIds.includes(zone.id))
+    .map((zone) => (i18n.language === 'bn' ? zone.label.bn : zone.label.en));
+  const deliversTo =
+    form.deliveryZoneIds.length === 0
+      ? coversCountry(delivery.data)
+        ? t('zonesCountry')
+        : t('everywhere')
+      : zoneNames.length > 0
+        ? zoneNames.join(', ')
+        : t('zonesN', { count: form.deliveryZoneIds.length });
+
+  // The category as Basics words it: the primary one, and how many more.
+  const primaryCategory = categories.data?.find((each) => each.id === form.primaryCategoryId);
+  const categoryWords =
+    form.categoryIds.length === 0
+      ? t('uncategorized')
+      : primaryCategory
+        ? form.categoryIds.length > 1
+          ? t('categoryMore', { name: primaryCategory.name, more: form.categoryIds.length - 1 })
+          : primaryCategory.name
+        : '';
+
+  /** The splits as they now stand, the rows following them (the variants card's rule). */
+  function setQuickSplits(splits: SplitAttribute[]): void {
+    update({ splits, variants: reconcile(splits, form.variants, saved.variants) });
+  }
+
+  /** A split's option taken off; the split goes with its last one. */
+  function removeOption(split: SplitAttribute, optionId: string): void {
+    const options = split.options.filter((option) => option.id !== optionId);
+    setQuickSplits(
+      options.length === 0
+        ? form.splits.filter((each) => each.attributeId !== split.attributeId)
+        : form.splits.map((each) =>
+            each.attributeId === split.attributeId ? { ...each, options } : each,
+          ),
+    );
+  }
+
+  /** "+ সাইজ যোগ করুন": the picked sizes, made the size attribute's values if new, split the product. */
+  function addSizes(values: string[]): void {
+    const attribute = sizeAttribute;
+    if (!attribute) return;
+    addOptions.mutate(
+      { attributeId: attribute.id, values },
+      {
+        onSuccess: (made) => {
+          const current: SplitAttribute = sizeSplit ?? {
+            attributeId: attribute.id,
+            name: attribute.name,
+            dataType: attribute.dataType,
+            unitKind: attribute.unitKind,
+            options: [],
+          };
+          const known = new Set(current.options.map((option) => option.id));
+          const next: SplitAttribute = {
+            ...current,
+            options: [
+              ...current.options,
+              ...made
+                .filter((option) => !known.has(option.id))
+                .map((option) => ({
+                  id: option.id,
+                  value: option.value,
+                  swatchColor: option.swatchColor,
+                  swatchImage: option.swatchImage,
+                })),
+            ],
+          };
+          setQuickSplits(
+            sizeSplit
+              ? form.splits.map((each) => (each.attributeId === attribute.id ? next : each))
+              : [...form.splits, next],
+          );
+          setSizesOpen(false);
+        },
+      },
+    );
+  }
+
   /** PRD-17: the nearest category, the primary one or one above it, with a chart of its own. */
   const categoryChart = ((): { name: string } | null => {
     const list = categories.data ?? [];
@@ -470,6 +602,11 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
         : undefined,
     rows: Object.keys(tableProblems).length > 0 ? 'rows' : undefined,
     quick: Object.keys(quickProblems).length > 0 ? 'quick' : undefined,
+    // Quick add (§7.4b): the one box left empty, or split boxes left empty, once Save is tried.
+    stock:
+      tried && quickAdd && (stockChecks.empty || stockChecks.cells.length > 0)
+        ? 'stock'
+        : undefined,
     // CMB-01: Save tried with nothing inside, or a part the server refused.
     parts:
       (tried && own.parts) || Object.keys(serverProblems).some((key) => key.startsWith('parts'))
@@ -511,8 +648,9 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
     if (own.name || own.price || own.parts || overLimit(form.splits) || measuredSerials) return;
     if (form.splits.some((each) => each.options.length === 0)) return;
     if (Object.keys(quickRead.problems).length > 0 || Object.keys(openingRead).length > 0) return;
+    if (quickAdd && (stockChecks.empty || stockChecks.cells.length > 0)) return;
     if (product === null) {
-      create.mutate(createBody(form, designs.labels), {
+      create.mutate(createBody(quickAdd ? quickBody(form, quickMode) : form, designs.labels), {
         onSuccess: (made) => {
           forget([...made.images.map((image) => image.id), made.video?.id ?? null], []);
           showToast(savedWords(made));
@@ -688,7 +826,7 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
           : undefined
       }
     >
-      {product === null ? (
+      {product === null && !quickAdd ? (
         <KindCard
           value={form.kind}
           onChange={(kind) => {
@@ -697,7 +835,7 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
         />
       ) : null}
       {isCombo ? <ComboOutBanners issues={canMake?.issues ?? []} /> : null}
-      {defaults.data && !isCombo ? (
+      {defaults.data && !isCombo && !quickAdd ? (
         <DefaultsLine
           type={presetOf(defaults.data.presetKey)}
           onChange={
@@ -740,191 +878,455 @@ function ProductPage({ product }: { product: ProductDetail | null }): React.JSX.
         <ErrorBanner error={addStocks.error} />
       ) : null}
       {product ? <OfferCards product={product} /> : null}
-      <div className="flex flex-col gap-section lg:grid lg:grid-cols-[1fr_340px] lg:items-start lg:gap-columns">
-        <div className="flex flex-col gap-section">
-          <BasicsCard
-            form={form}
-            problems={problems}
-            readOnly={!mayManage}
-            priceLocked={(product?.offers ?? []).some(
-              (offer) => offer.state === OfferState.Running && offer.designIds === null,
-            )}
-            picking={picking}
-            onPicking={setPicking}
-            onChange={update}
-            strip={
-              <PhotoStrip
+      {quickAdd && fee ? (
+        <QuickFee
+          need={formatTakaExact(fee.need.toFixed(2))}
+          have={formatTakaExact(fee.have.toFixed(2))}
+          short={productShort !== null}
+          onTopUp={
+            allows(viewer, [Permission.BalanceManage])
+              ? () => {
+                  void navigate({
+                    to: '/$shop/balance',
+                    params: { shop: slug },
+                    search: { topup: 1 },
+                  });
+                }
+              : null
+          }
+        />
+      ) : null}
+      {quickAdd ? (
+        <div className="flex flex-col gap-section lg:grid lg:grid-cols-[1fr_340px] lg:items-start lg:gap-columns">
+          <div className="flex flex-col gap-section">
+            <QuickCard>
+              <QuickPhotos
+                form={form}
                 photos={photos}
                 video={video}
                 uploads={media.uploads}
                 storage={media.storage}
+                labels={designs.labels}
+                mode={quickMode}
                 readOnly={!mayManage}
+                emptyCells={tried ? stockChecks.cells : []}
                 onOpen={() => {
                   setMediaOpen(true);
                 }}
+                onMenu={setMenuPhoto}
                 onAddPhotos={media.addPhotos}
                 onAddVideo={media.addVideo}
                 onDismiss={media.dismiss}
-                designs={form.designs.length}
-              />
-            }
-          />
-          {isCombo ? (
-            <>
-              <ComboPartsCard
-                parts={form.parts}
-                quote={quote}
-                canMake={canMake}
-                readOnly={!mayManage}
-                needsPart={tried && own.parts !== undefined}
-                refused={refusedParts}
-                onChange={(parts) => {
-                  update({ parts });
+                onRows={(variants) => {
+                  update({ variants });
                 }}
               />
-              <ComboDeliveryCard
-                settings={form.settings}
-                weightKg={quote?.weightKg ?? null}
-                shopDefault={defaults.data?.shopPaymentPolicy ?? null}
+              <NamePrice form={form} problems={problems} readOnly={!mayManage} onChange={update} />
+              <QuickStock
+                form={form}
+                mode={quickMode}
+                designAttributeId={designAttributeId}
+                covers={(key) => media.items.get(photosOf(form, key)[0] ?? '')?.thumbnail}
                 readOnly={!mayManage}
-                errors={problems}
-                onSettings={updateSettings}
+                empty={tried && stockChecks.empty}
+                emptyCells={tried ? stockChecks.cells : []}
+                onBox={(sharedOpeningStock) => {
+                  setZeroOk(false);
+                  update({ sharedOpeningStock });
+                }}
+                onRows={(variants) => {
+                  update({ variants });
+                }}
+                onSplit={setQuickSplit}
+                onMade={() => {
+                  tracking.choose(StockTracking.NotTracked);
+                }}
+                onZero={() => {
+                  setZeroOk(true);
+                }}
               />
-            </>
-          ) : null}
-          {defaults.data && !isCombo ? (
-            <UpfrontCard
-              title={presetOf(defaults.data.presetKey)}
-              fields={defaults.data.upFrontFields}
-              settings={form.settings}
+              {preset && sizeAttribute ? (
+                sizeSplit ? (
+                  <SplitChips
+                    label={t('qaSize')}
+                    split={sizeSplit}
+                    readOnly={!mayManage}
+                    onRemove={(optionId) => {
+                      removeOption(sizeSplit, optionId);
+                    }}
+                    onMore={() => {
+                      setSizesOpen(true);
+                    }}
+                  />
+                ) : mayManage ? (
+                  <AddSizesButton
+                    onOpen={() => {
+                      setSizesOpen(true);
+                    }}
+                  />
+                ) : null
+              ) : null}
+              {otherSplits.map((split) => (
+                <SplitChips
+                  key={split.attributeId}
+                  label={split.name}
+                  split={split}
+                  readOnly={!mayManage}
+                  onRemove={(optionId) => {
+                    removeOption(split, optionId);
+                  }}
+                  onMore={null}
+                />
+              ))}
+              <Description
+                value={form.description}
+                error={problems.description}
+                readOnly={!mayManage}
+                onChange={(description) => {
+                  update({ description });
+                }}
+              />
+            </QuickCard>
+          </div>
+          <div className="flex flex-col gap-section">
+            <QuickMore
+              form={form}
+              open={moreOpen}
+              clothing={preset !== null}
+              categoryText={categoryWords}
+              deliversTo={deliversTo}
               chartText={chartText}
+              shopDefault={defaults.data?.shopPaymentPolicy ?? null}
+              presetName={defaults.data ? presetOf(defaults.data.presetKey) : ''}
+              tax={
+                taxes.data && taxes.data.classes.length > 0
+                  ? {
+                      classes: taxes.data.classes,
+                      value: form.taxClassId === undefined ? taxes.data.defaultId : form.taxClassId,
+                      onChange: (taxClassId) => {
+                        update({ taxClassId });
+                      },
+                    }
+                  : null
+              }
               readOnly={!mayManage}
-              onSettings={updateSettings}
+              errors={problems}
+              colourLink={
+                photos.length <= 1
+                  ? () => {
+                      setOptionsOpen(true);
+                    }
+                  : null
+              }
+              onOpen={setMoreOpen}
               onTracking={tracking.choose}
+              onSettings={updateSettings}
+              onChange={update}
+              onCategory={() => {
+                setPicking(true);
+              }}
+              onZones={() => {
+                setQuickZones(true);
+              }}
               onChart={() => {
                 setChartOpen(true);
               }}
+              onOptions={() => {
+                setOptionsOpen(true);
+              }}
+              onAddOns={() => {
+                setOptionsOpen(true);
+              }}
             />
-          ) : null}
-          {/* CMB-01, MNU-01: a combo has its parts, no options of its own and no add-ons. */}
-          {isCombo ? null : (
-            <>
-              <VariantsCard
-                form={form}
-                saved={saved}
-                product={product}
-                kind={kind}
-                suggestedIds={defaults.data?.suggestedAttributeIds ?? []}
-                stock={stock.data}
-                readOnly={!mayManage}
-                problems={tableProblems}
-                onChange={update}
-                designs={
-                  designAttributeId === null
-                    ? null
-                    : {
-                        attributeId: designAttributeId,
-                        coverOf: (key) => media.items.get(photosOf(form, key)[0] ?? '')?.thumbnail,
-                        onPhotos: () => {
-                          setMediaOpen(true);
-                        },
-                      }
-                }
-                onHeldSerials={
-                  mayReadStock
-                    ? (variantId) => {
-                        setStockSheet({ kind: 'serials', variantId });
-                      }
-                    : null
-                }
-                quick={
-                  offersQuick
-                    ? {
-                        values: quick,
-                        problems: quickProblems,
-                        onChange: (variantId, value) => {
-                          setQuick((current) => ({ ...current, [variantId]: value }));
-                          setQuickRefused({});
-                          addStocks.reset();
-                        },
-                      }
-                    : null
-                }
-              />
-              <AddOnsCard
-                groups={form.addOns}
-                readOnly={!mayManage}
-                onChange={(addOns) => {
-                  update({ addOns });
+            {optionsOpen ? (
+              <>
+                <VariantsCard
+                  form={form}
+                  saved={saved}
+                  product={product}
+                  kind={kind}
+                  suggestedIds={defaults.data?.suggestedAttributeIds ?? []}
+                  stock={stock.data}
+                  readOnly={!mayManage}
+                  problems={tableProblems}
+                  onChange={update}
+                  designs={
+                    designAttributeId === null
+                      ? null
+                      : {
+                          attributeId: designAttributeId,
+                          coverOf: (key) =>
+                            media.items.get(photosOf(form, key)[0] ?? '')?.thumbnail,
+                          onPhotos: () => {
+                            setMediaOpen(true);
+                          },
+                        }
+                  }
+                  onHeldSerials={null}
+                  quick={null}
+                />
+                <AddOnsCard
+                  groups={form.addOns}
+                  readOnly={!mayManage}
+                  onChange={(addOns) => {
+                    update({ addOns });
+                  }}
+                />
+              </>
+            ) : null}
+            {mayManage ? (
+              <ComboLink
+                onOpen={() => {
+                  update({ kind: ProductKind.Combo });
                 }}
               />
-              <StockDeliveryCard
-                form={form}
-                product={product}
-                shopDefault={defaults.data?.shopPaymentPolicy ?? null}
-                readOnly={!mayManage}
-                errors={problems}
-                onTracking={tracking.choose}
-                onSettings={updateSettings}
-                onChange={update}
-              />
-            </>
-          )}
-          <MoreSettings
-            combo={isCombo}
-            active={form.active}
-            tax={
-              taxes.data && taxes.data.classes.length > 0
-                ? {
-                    classes: taxes.data.classes,
-                    defaultId: taxes.data.defaultId,
-                    // A new product starts with the shop's default, as the server will give it.
-                    value: form.taxClassId === undefined ? taxes.data.defaultId : form.taxClassId,
-                    onChange: (taxClassId) => {
-                      update({ taxClassId });
-                    },
-                  }
-                : null
-            }
-            upFront={defaults.data?.upFrontFields ?? []}
-            settings={form.settings}
-            single={form.splits.length === 0 && !isCombo ? form.single : null}
-            chartText={chartText}
-            readOnly={!mayManage}
-            busy={duplicate.isPending}
-            onActive={(active) => {
-              update({ active });
+            ) : null}
+          </div>
+          <CategoryPicker
+            open={picking}
+            chosen={{ categoryIds: form.categoryIds, primaryCategoryId: form.primaryCategoryId }}
+            onDone={(chosen) => {
+              setPicking(false);
+              update(chosen);
             }}
-            onSettings={updateSettings}
-            onSingle={(patch) => {
-              update({ single: { ...form.single, ...patch } });
+            onClose={() => {
+              setPicking(false);
             }}
-            onChart={() => {
-              setChartOpen(true);
-            }}
-            onDuplicate={product ? copy : null}
-            duplicateNote={
-              productShort ? <BalanceNote short={productShort} what={shell('bgWhatCopy')} /> : null
-            }
-            onRemove={product ? setRemoving : null}
           />
-        </div>
-        <div className="flex flex-col gap-section">
-          {product ? <LinkCard product={product} readOnly={!mayManage} /> : null}
-          {product && mayReadStock && kind.tracked && !isCombo ? (
-            <StockCard
-              product={product}
-              stock={stock.data}
-              kind={kind}
-              mayManage={mayManageStock}
-              onOpen={setStockSheet}
+          <ZonesSheet
+            open={quickZones}
+            chosen={form.deliveryZoneIds}
+            onDone={(deliveryZoneIds) => {
+              setQuickZones(false);
+              update({ deliveryZoneIds });
+            }}
+            onClose={() => {
+              setQuickZones(false);
+            }}
+          />
+          {preset ? (
+            <SizeSheet
+              open={sizesOpen}
+              preset={preset}
+              picked={sizeSplit?.options.map((option) => option.value) ?? []}
+              busy={addOptions.isPending}
+              error={addOptions.isError ? errorText(addOptions.error) : null}
+              onDone={addSizes}
+              onClose={() => {
+                setSizesOpen(false);
+              }}
             />
           ) : null}
-          {defaults.data && !isCombo ? (
-            <WhyCard defaults={defaults.data} suggested={suggestedNames} />
-          ) : null}
+          <PhotoMenuSheet
+            open={menuPhoto !== null}
+            photo={photos.find((photo) => photo.id === menuPhoto) ?? null}
+            number={photos.findIndex((photo) => photo.id === menuPhoto) + 1}
+            current={menuPhoto === null ? null : (form.photoDesigns[menuPhoto] ?? null)}
+            designs={(designs.sheet?.list ?? []).map((design) => ({
+              key: design.key,
+              label: design.label,
+              cover: design.cover?.thumbnail,
+            }))}
+            mayBePlain={menuPhoto !== null && (designs.sheet?.mayBePlain(menuPhoto) ?? true)}
+            onChoose={(choice) => {
+              if (menuPhoto !== null) designs.sheet?.onChoose(menuPhoto, choice);
+              setMenuPhoto(null);
+            }}
+            onClose={() => {
+              setMenuPhoto(null);
+            }}
+          />
         </div>
-      </div>
+      ) : (
+        <div className="flex flex-col gap-section lg:grid lg:grid-cols-[1fr_340px] lg:items-start lg:gap-columns">
+          <div className="flex flex-col gap-section">
+            <BasicsCard
+              form={form}
+              problems={problems}
+              readOnly={!mayManage}
+              priceLocked={(product?.offers ?? []).some(
+                (offer) => offer.state === OfferState.Running && offer.designIds === null,
+              )}
+              picking={picking}
+              onPicking={setPicking}
+              onChange={update}
+              strip={
+                <PhotoStrip
+                  photos={photos}
+                  video={video}
+                  uploads={media.uploads}
+                  storage={media.storage}
+                  readOnly={!mayManage}
+                  onOpen={() => {
+                    setMediaOpen(true);
+                  }}
+                  onAddPhotos={media.addPhotos}
+                  onAddVideo={media.addVideo}
+                  onDismiss={media.dismiss}
+                  designs={form.designs.length}
+                />
+              }
+            />
+            {isCombo ? (
+              <>
+                <ComboPartsCard
+                  parts={form.parts}
+                  quote={quote}
+                  canMake={canMake}
+                  readOnly={!mayManage}
+                  needsPart={tried && own.parts !== undefined}
+                  refused={refusedParts}
+                  onChange={(parts) => {
+                    update({ parts });
+                  }}
+                />
+                <ComboDeliveryCard
+                  settings={form.settings}
+                  weightKg={quote?.weightKg ?? null}
+                  shopDefault={defaults.data?.shopPaymentPolicy ?? null}
+                  readOnly={!mayManage}
+                  errors={problems}
+                  onSettings={updateSettings}
+                />
+              </>
+            ) : null}
+            {defaults.data && !isCombo ? (
+              <UpfrontCard
+                title={presetOf(defaults.data.presetKey)}
+                fields={defaults.data.upFrontFields}
+                settings={form.settings}
+                chartText={chartText}
+                readOnly={!mayManage}
+                onSettings={updateSettings}
+                onTracking={tracking.choose}
+                onChart={() => {
+                  setChartOpen(true);
+                }}
+              />
+            ) : null}
+            {/* CMB-01, MNU-01: a combo has its parts, no options of its own and no add-ons. */}
+            {isCombo ? null : (
+              <>
+                <VariantsCard
+                  form={form}
+                  saved={saved}
+                  product={product}
+                  kind={kind}
+                  suggestedIds={defaults.data?.suggestedAttributeIds ?? []}
+                  stock={stock.data}
+                  readOnly={!mayManage}
+                  problems={tableProblems}
+                  onChange={update}
+                  designs={
+                    designAttributeId === null
+                      ? null
+                      : {
+                          attributeId: designAttributeId,
+                          coverOf: (key) =>
+                            media.items.get(photosOf(form, key)[0] ?? '')?.thumbnail,
+                          onPhotos: () => {
+                            setMediaOpen(true);
+                          },
+                        }
+                  }
+                  onHeldSerials={
+                    mayReadStock
+                      ? (variantId) => {
+                          setStockSheet({ kind: 'serials', variantId });
+                        }
+                      : null
+                  }
+                  quick={
+                    offersQuick
+                      ? {
+                          values: quick,
+                          problems: quickProblems,
+                          onChange: (variantId, value) => {
+                            setQuick((current) => ({ ...current, [variantId]: value }));
+                            setQuickRefused({});
+                            addStocks.reset();
+                          },
+                        }
+                      : null
+                  }
+                />
+                <AddOnsCard
+                  groups={form.addOns}
+                  readOnly={!mayManage}
+                  onChange={(addOns) => {
+                    update({ addOns });
+                  }}
+                />
+                <StockDeliveryCard
+                  form={form}
+                  product={product}
+                  shopDefault={defaults.data?.shopPaymentPolicy ?? null}
+                  readOnly={!mayManage}
+                  errors={problems}
+                  onTracking={tracking.choose}
+                  onSettings={updateSettings}
+                  onChange={update}
+                />
+              </>
+            )}
+            <MoreSettings
+              combo={isCombo}
+              active={form.active}
+              tax={
+                taxes.data && taxes.data.classes.length > 0
+                  ? {
+                      classes: taxes.data.classes,
+                      defaultId: taxes.data.defaultId,
+                      // A new product starts with the shop's default, as the server will give it.
+                      value: form.taxClassId === undefined ? taxes.data.defaultId : form.taxClassId,
+                      onChange: (taxClassId) => {
+                        update({ taxClassId });
+                      },
+                    }
+                  : null
+              }
+              upFront={defaults.data?.upFrontFields ?? []}
+              settings={form.settings}
+              single={form.splits.length === 0 && !isCombo ? form.single : null}
+              chartText={chartText}
+              readOnly={!mayManage}
+              busy={duplicate.isPending}
+              onActive={(active) => {
+                update({ active });
+              }}
+              onSettings={updateSettings}
+              onSingle={(patch) => {
+                update({ single: { ...form.single, ...patch } });
+              }}
+              onChart={() => {
+                setChartOpen(true);
+              }}
+              onDuplicate={product ? copy : null}
+              duplicateNote={
+                productShort ? (
+                  <BalanceNote short={productShort} what={shell('bgWhatCopy')} />
+                ) : null
+              }
+              onRemove={product ? setRemoving : null}
+            />
+          </div>
+          <div className="flex flex-col gap-section">
+            {product ? <LinkCard product={product} readOnly={!mayManage} /> : null}
+            {product && mayReadStock && kind.tracked && !isCombo ? (
+              <StockCard
+                product={product}
+                stock={stock.data}
+                kind={kind}
+                mayManage={mayManageStock}
+                onOpen={setStockSheet}
+              />
+            ) : null}
+            {defaults.data && !isCombo ? (
+              <WhyCard defaults={defaults.data} suggested={suggestedNames} />
+            ) : null}
+          </div>
+        </div>
+      )}
       {mayManage && product === null && productShort ? (
         <BalanceNote id="new-product-balance" short={productShort} what={shell('bgWhatProduct')} />
       ) : null}
