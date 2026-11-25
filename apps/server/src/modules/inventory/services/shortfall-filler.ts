@@ -27,10 +27,25 @@ function byId(a: string, b: string): number {
  */
 @Injectable()
 export class ShortfallFiller {
+  /**
+   * OB-10: the orders each transaction's fills gave to so far, by order (true once it waits for nothing), so a caller
+   * whose stock arrived through another module (a purchase receipt) can still say how many orders it went to. Keyed by
+   * the transaction itself, so two requests never see each other's; gone with it.
+   */
+  private readonly given = new WeakMap<Transaction, Map<string, boolean>>();
+
   constructor(
     @Inject(RESERVATION_STORE) private readonly reservations: ReservationStore,
     @Inject(STOCK_STORE) private readonly store: StockStore,
   ) {}
+
+  /** OB-10: every order this transaction's fills gave stock to, and whether each now waits for nothing. */
+  filledIn(tx: Transaction): FilledOrder[] {
+    return [...(this.given.get(tx) ?? new Map<string, boolean>())].map(([orderId, covered]) => ({
+      orderId,
+      covered,
+    }));
+  }
 
   /**
    * OB-8: gives the free stock of these variants (the stock each holds: a variant, or a shared stock's holder) to their
@@ -56,7 +71,11 @@ export class ShortfallFiller {
         (row) => row.orderId,
       ),
     );
-    return [...touched].map((orderId) => ({ orderId, covered: !still.has(orderId) }));
+    const filled = [...touched].map((orderId) => ({ orderId, covered: !still.has(orderId) }));
+    const given = this.given.get(tx) ?? new Map<string, boolean>();
+    for (const order of filled) given.set(order.orderId, order.covered);
+    this.given.set(tx, given);
+    return filled;
   }
 
   /** INV-25, OB-9: whether any line of this order still waits for stock; the first one that does, if so. */
@@ -67,6 +86,73 @@ export class ShortfallFiller {
   ): Promise<OrderShortfallRecord | null> {
     const rows = await this.reservations.listShortfallsForOrders(tx, tenantId, orderIds);
     return rows[0] ?? null;
+  }
+
+  /**
+   * INV-25 (ORDERS-BEYOND-STOCK Q3, the owner 2026-11-25: "accept it"): a count that found fewer than are held for
+   * orders is still the truth. Before `need` thousandths of this stock leave, the newest orders give up what they hold
+   * of it, into their lines' shortfalls, until enough is free; the oldest keep theirs. A size drawing on a shared stock
+   * gives up whole packs. The caller has locked the level; the orders given up are returned.
+   */
+  async giveUp(
+    tx: Transaction,
+    tenantId: string,
+    variantId: string,
+    need: number,
+  ): Promise<string[]> {
+    let free = milli((await this.store.lockLevelFigures(tx, tenantId, variantId)).available);
+    const orders = new Set<string>();
+    if (free >= need) return [];
+    for (const held of await this.reservations.lockHeldNewestFirst(tx, tenantId, variantId)) {
+      if (free >= need) break;
+      const ordered = milli(held.ordered);
+      const pack = held.packAmount === null ? null : milli(held.packAmount);
+      const missing = need - free;
+      const back =
+        pack === null ? Math.min(ordered, missing) : Math.min(ordered, Math.ceil(missing / pack) * 1000);
+      await this.reservations.resolve(tx, tenantId, [held.id], ReservationStatus.Released);
+      if (ordered - back > 0) {
+        await this.reservations.insert(tx, tenantId, {
+          orderId: held.orderId,
+          orderLineId: held.orderLineId,
+          productId: held.productId,
+          variantId: held.variantId,
+          soldVariantId: held.soldVariantId,
+          ordered: quantityOf(ordered - back),
+          packAmount: held.packAmount,
+          quantity: quantityOf(
+            pack === null ? ordered - back : Math.round(((ordered - back) * pack) / 1000),
+          ),
+          expiresAt: held.expiresAt,
+        });
+      }
+      const waiting = (
+        await this.reservations.listShortfallsForOrders(tx, tenantId, [held.orderId])
+      ).find(
+        (row) => row.orderLineId === held.orderLineId && row.soldVariantId === held.soldVariantId,
+      );
+      if (waiting) {
+        await this.reservations.setShortfall(
+          tx,
+          tenantId,
+          waiting.id,
+          quantityOf(milli(waiting.quantity) + back),
+        );
+      } else {
+        await this.reservations.insertShortfall(tx, tenantId, {
+          orderId: held.orderId,
+          orderLineId: held.orderLineId,
+          productId: held.productId,
+          variantId: held.variantId,
+          soldVariantId: held.soldVariantId,
+          packAmount: held.packAmount,
+          quantity: quantityOf(back),
+        });
+      }
+      free += pack === null ? back : Math.round((back * pack) / 1000);
+      orders.add(held.orderId);
+    }
+    return [...orders];
   }
 
   /** How many of the ordered variant (thousandths) this much free stock can give the line: whole packs on a shared stock. */

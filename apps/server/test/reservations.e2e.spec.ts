@@ -587,18 +587,27 @@ describeIfDatabase('holding stock for orders (INV-15, PRD-07)', () => {
       reserved: '0.000',
     });
     // A sale outside a reservation never takes held units.
-    await reserve(shop, [line(soap.variantId, 4)]);
+    const [fourHeld] = await reserve(shop, [line(soap.variantId, 4)]);
     await expect(sell(shop, soap.variantId, 2)).rejects.toMatchObject({
       code: 'conflict',
       messageKey: 'NotEnoughStock',
     });
     await sell(shop, soap.variantId, 1);
-    // Nor does a stock edit: 4 are held, so the stock cannot go below 4.
+    // ORDERS-BEYOND-STOCK Q3: a stock edit below what is held stands; the order gives up the difference and waits.
+    const before = await variantStock(shop, soap.product.id, soap.variantId);
+    expect(before).toMatchObject({ onHand: '4.000', reserved: '4.000' });
     const edit = await shop.put(`/products/${soap.product.id}/variants/${soap.variantId}/stock`, {
       onHand: 3,
     });
-    expect(edit.status).toBe(409);
-    expect(errorOf(edit).message).toBe(said('NotEnoughStock'));
+    expect(edit.status).toBe(200);
+    expect(await variantStock(shop, soap.product.id, soap.variantId)).toMatchObject({
+      onHand: '3.000',
+      reserved: '3.000',
+      available: '0.000',
+    });
+    expect(await waitingFor(shop, [fourHeld?.orderId ?? ''])).toEqual([
+      expect.objectContaining({ soldVariantId: soap.variantId, quantity: '1.000' }),
+    ]);
     await expectLedgerAgrees(shop.tenantId);
   });
 });

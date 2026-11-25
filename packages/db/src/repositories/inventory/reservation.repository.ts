@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNotNull, lte, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNotNull, lte, sql } from 'drizzle-orm';
 import { ReservationStatus } from '@lytronix/validators';
 import {
   stockReservations,
@@ -180,6 +180,27 @@ export class ReservationRepository {
       .from(stockShortfalls)
       .where(and(eq(stockShortfalls.tenantId, tenantId), eq(stockShortfalls.variantId, variantId)))
       .orderBy(asc(stockShortfalls.createdAt), asc(stockShortfalls.id))
+      .for('update');
+  }
+
+  /** INV-25 (ORDERS-BEYOND-STOCK Q3): one stock's active reservations, newest first, locked; lock its level first. */
+  async lockHeldNewestFirst(
+    tx: Transaction,
+    tenantId: string,
+    variantId: string,
+  ): Promise<SelectStockReservation[]> {
+    await this.transactions.setTenantContext(tx, tenantId);
+    return tx
+      .select()
+      .from(stockReservations)
+      .where(
+        and(
+          eq(stockReservations.tenantId, tenantId),
+          eq(stockReservations.variantId, variantId),
+          eq(stockReservations.status, ReservationStatus.Active),
+        ),
+      )
+      .orderBy(desc(stockReservations.createdAt), desc(stockReservations.id))
       .for('update');
   }
 

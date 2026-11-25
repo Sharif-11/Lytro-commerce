@@ -34,7 +34,9 @@ import { StatusTag, type StatusTone } from '@/components/ui/status-tag';
 import { Taka } from '@/components/ui/taka';
 import { TimelineRow, type TimelineDot } from '@/components/ui/timeline';
 import { Button } from '@/components/ui/button';
+import { Toast } from '@/components/ui/toast';
 import { useBalanceGate } from '@/hooks/use-balance-gate';
+import { useToast } from '@/hooks/use-toast';
 import { courierName } from '@/lib/couriers';
 import { dayKey, formatDayMonth } from '@/lib/dates';
 import { initialOf } from '@/lib/initial';
@@ -63,6 +65,7 @@ import { autoConfirmed, autoVerified, confirmedByPayment } from './order-auto';
 import { choicesOf, refundable, voidable } from './order-choices';
 import { atCounter, useOrderWords } from './order-words';
 import { PictureSheet } from './picture-sheet';
+import { firstShortItem, OrderStockSheet, ShortBlockedSheet } from './order-stock-sheet';
 
 /** ORD-47: an item's photo, as ORD-46 kept it, or the placeholder once it is gone or was never there. */
 function ItemPicture({ url }: { url: string | null }): React.JSX.Element {
@@ -114,6 +117,16 @@ function OrderBody({ order }: { order: Order }): React.JSX.Element {
   }, [editedBooked]);
   const may = (permission: Permission) => allows(viewer, [permission]);
   const can = choicesOf(order, may);
+  // INV-25 (ORDERS-BEYOND-STOCK OB-9, OB-12): what the order still waits for; the step that hands it on waits too, and
+  // whoever may add stock adds it from here.
+  const waiting = Number(order.short) > 0;
+  const canStock = may(Permission.InventoryManage);
+  const [stocking, setStocking] = useState<OrderItem | null>(null);
+  const toast = useToast();
+  const stockFor = (item: OrderItem | null) => {
+    setOpen(null);
+    setStocking(item ?? firstShortItem(order));
+  };
   const counter = atCounter(order);
   const shown = words.status(order.status);
   // Phase 6 (Part 36): the shop's couriers, for whoever may book. With one connected, Book courier is a confirmed order's next step
@@ -303,7 +316,30 @@ function OrderBody({ order }: { order: Order }): React.JSX.Element {
     </Button>
   ) : null;
 
-  const next = opens ?? usual;
+  // OB-9 (the sketch's `obs-order`): while the order waits for stock its hand-on step is greyed, beside adding stock.
+  const handsOn = can.handOver || book || can.ship;
+  const blockedNext =
+    waiting && handsOn && opens === null && !waitsOnCall && !can.settle && !can.retry ? (
+      <div className="flex w-full gap-2 lg:w-auto">
+        <Button tone="outline" disabled className="flex-1 lg:flex-none">
+          <Icon name="truck" />
+          {can.handOver ? t('handOver') : book ? t('crBookT') : t('markShipped')}
+        </Button>
+        {canStock && firstShortItem(order) ? (
+          <Button
+            className="flex-1 lg:flex-none"
+            onClick={() => {
+              stockFor(null);
+            }}
+          >
+            {t('obs.addStock')}
+          </Button>
+        ) : null}
+      </div>
+    ) : null;
+  const next = opens ?? blockedNext ?? usual;
+  const blockedOpen =
+    waiting && (open?.kind === 'book' || open?.kind === 'ship' || open?.kind === 'handover');
 
   return (
     <>
@@ -336,6 +372,28 @@ function OrderBody({ order }: { order: Order }): React.JSX.Element {
         </div>
       </div>
       {opening(order) ? null : <StateBanner order={order} />}
+      {waiting ? (
+        <Banner
+          tone="warn"
+          action={
+            canStock && firstShortItem(order) ? (
+              <button
+                type="button"
+                className="font-semibold whitespace-nowrap text-primary underline"
+                onClick={() => {
+                  stockFor(null);
+                }}
+              >
+                {t('obs.addStock')}
+              </button>
+            ) : undefined
+          }
+        >
+          <b>{t('obs.bannerTitle', { count: order.items.filter((item) => Number(item.short) > 0).length })}</b>
+          {' · '}
+          {t('obs.bannerBody')}
+        </Banner>
+      ) : null}
       <AccessCard
         order={order}
         short={phoneShort === null ? null : { balance: formatTaka(phoneShort.have) }}
@@ -370,7 +428,16 @@ function OrderBody({ order }: { order: Order }): React.JSX.Element {
       />
       {counter ? null : <TrackingCard order={order} />}
       {counter ? null : <CallsCard calls={order.calls} byPayment={autoConfirmed(order)} />}
-      <ItemsCard items={order.items} />
+      <ItemsCard
+        items={order.items}
+        onAddStock={
+          canStock
+            ? (item) => {
+                stockFor(item);
+              }
+            : undefined
+        }
+      />
       <PricingCard order={order} />
       <PaymentsCard
         order={order}
@@ -410,7 +477,7 @@ function OrderBody({ order }: { order: Order }): React.JSX.Element {
       ) : null}
       <OrderSheets
         order={order}
-        open={open}
+        open={blockedOpen ? null : open}
         can={{ ...can, book }}
         couriers={connected}
         adapters={adapters.data ?? []}
@@ -423,6 +490,31 @@ function OrderBody({ order }: { order: Order }): React.JSX.Element {
           setOpen(null);
         }}
       />
+      <ShortBlockedSheet
+        open={blockedOpen}
+        canAdd={canStock && firstShortItem(order) !== null}
+        canCancel={can.cancel}
+        onAdd={() => {
+          stockFor(null);
+        }}
+        onCancel={() => {
+          setOpen({ kind: 'cancel', fromCall: false, note: '' });
+        }}
+        onClose={() => {
+          setOpen(null);
+        }}
+      />
+      <OrderStockSheet
+        item={stocking}
+        onClose={() => {
+          setStocking(null);
+        }}
+        onAdded={(filled) => {
+          setStocking(null);
+          toast.show(filled > 0 ? t('obs.filled', { count: filled }) : t('obs.added'));
+        }}
+      />
+      <Toast message={toast.message} />
     </>
   );
 }
@@ -700,11 +792,59 @@ function CallsCard({
  * (2026-11-14) -- each line's SKU and its quantity in its unit times the price of one, the picture opening large.
  */
 /**
+ * INV-25 (ORDERS-BEYOND-STOCK OB-11, the sketch's `obs-order`): a line still waiting for stock -- how many it waits for,
+ * what was ordered against what it holds, and adding stock for it where it can be added here (not a combo).
+ */
+function ShortLine({
+  item,
+  onAddStock,
+}: {
+  item: OrderItem;
+  onAddStock?: (item: OrderItem) => void;
+}): React.JSX.Element {
+  const { t } = useTranslation('orders');
+  const short = Number(item.short);
+  const ordered = Number(item.quantity);
+  const addable = onAddStock && item.components.length === 0 && item.variantId !== null;
+  return (
+    <div className="clear-both mb-1.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+      <StatusTag tone="warn">
+        <Icon name="alert" size={14} />
+        {t('obs.short', { count: short })}
+      </StatusTag>
+      {item.components.length === 0 ? (
+        <span className="num text-[14px] text-fg-muted">
+          {t('obs.lineShort', { ordered, held: Math.max(0, ordered - short) })}
+        </span>
+      ) : null}
+      {addable ? (
+        <button
+          type="button"
+          className="ml-auto text-[15px] font-semibold text-primary underline"
+          onClick={() => {
+            onAddStock(item);
+          }}
+        >
+          {t('obs.addStock')}
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+/**
  * The items, each at a glance (the owner, 2026-11-19, the sketch's `oi-items`): its photo, which opens large; its name
  * and total; then chips -- the design, the SKU, the quantity in its unit, each option by its name. A combo lists what is
  * inside it the same way, each with its own photo.
  */
-function ItemsCard({ items }: { items: OrderItem[] }): React.JSX.Element {
+function ItemsCard({
+  items,
+  onAddStock,
+}: {
+  items: OrderItem[];
+  /** OB-12: whoever may add stock adds it for a line still waiting (the line's own variant). */
+  onAddStock?: (item: OrderItem) => void;
+}): React.JSX.Element {
   const { t } = useTranslation('orders');
   const [large, setLarge] = useState<string | null>(null);
   const pictured = items.some((item) => item.thumbnail !== null);
@@ -754,6 +894,9 @@ function ItemsCard({ items }: { items: OrderItem[] }): React.JSX.Element {
               ) : null}
             </div>
             <ItemChips item={item} />
+            {Number(item.short) > 0 ? (
+              <ShortLine item={item} onAddStock={onAddStock} />
+            ) : null}
             {item.components.length > 0 ? (
               <div className="clear-both mt-0.5 mb-1.5 flex flex-col gap-1.5 border-l-[3px] border-neutral-200 pl-3">
                 <div className="text-[14px] font-semibold text-fg-muted">

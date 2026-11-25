@@ -1,7 +1,8 @@
 # Orders beyond stock -- plan
 
-**Status:** PROPOSAL, awaiting the owner. The owner's four answers (2026-11-25) are in section 1; my calls (section 2)
-and the open questions (section 7) wait for their word. Nothing is built.
+**Status:** APPROVED by the owner 2026-11-25 ("ok fine"): OB-1 to OB-20 and every question in section 7 as recommended,
+plus OB-20's list rows (photos, name, phone, a two-line address, total, status and the short chip). Built in one PR
+(feat/orders-beyond-stock); the SRS amendments of section 4 are in SRS-detailed.md.
 
 **Sketch:**
 - `docs/brand/lytro-dashboard.html`, group "Orders beyond stock (proposal 2026-11-25)", screens `obs-*` (`ob-*` was

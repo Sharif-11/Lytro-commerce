@@ -730,6 +730,9 @@
     "cancel": "Cancel the order",
     "filled_one": "Stock given: {{count}} order",
     "filled_other": "Stock given: {{count}} orders",
-    "olderFirst": "Older orders waiting for it get the stock first."
+    "olderFirst": "Older orders waiting for it get the stock first.",
+    "quantity": "How many arrived",
+    "openProduct": "Open the product",
+    "added": "Stock added"
   }
 }

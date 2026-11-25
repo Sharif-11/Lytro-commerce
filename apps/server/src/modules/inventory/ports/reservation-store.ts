@@ -47,6 +47,8 @@ export interface ReservationStore {
   ): Promise<OrderShortfallRecord[]>;
   /** OB-8: the lines waiting for one stock, oldest first, locked; lock its level first. */
   lockWaiting(tx: Transaction, tenantId: string, variantId: string): Promise<OrderShortfallRecord[]>;
+  /** Q3: one stock's active reservations, newest first, locked; lock its level first. */
+  lockHeldNewestFirst(tx: Transaction, tenantId: string, variantId: string): Promise<ReservationRecord[]>;
   /** OB-8: what a line still waits for after a fill; nothing left takes the row away. */
   setShortfall(tx: Transaction, tenantId: string, id: string, quantity: string): Promise<void>;
   /** OB-13: drops what an order waits for; how many rows went. */
