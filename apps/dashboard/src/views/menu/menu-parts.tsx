@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { dashboardAppName, monogramLetter } from '@lytronix/validators';
+import { dashboardAppName } from '@lytronix/validators';
+import { DashboardAppIcon } from '@/components/app-icon';
 import { Icon, type IconName } from '@/components/icon';
 import { Button } from '@/components/ui/button';
 
@@ -78,12 +79,7 @@ export function InstallCard({
   const { t } = useTranslation('menu');
   return (
     <div className="flex items-center gap-3 rounded-[12px] border border-brand-200 bg-primary-soft px-3.5 py-3">
-      <span className="relative flex size-11 flex-none items-center justify-center rounded-[11px] bg-ink text-[18px] font-extrabold text-brand-300">
-        {monogramLetter(shopName, slug)}
-        <span className="absolute -right-[5px] -bottom-[5px] flex size-5 items-center justify-center rounded-full bg-white text-ink shadow-[0_0_0_2px_var(--color-primary-soft)] [&>svg]:size-[13px]">
-          <Icon name="settings" />
-        </span>
-      </span>
+      <DashboardAppIcon shopName={shopName} slug={slug} />
       <span className="min-w-0 flex-1 text-[14px]">
         {onIphone
           ? t('inIosTitle', { shop: dashboardAppName(shopName) })
