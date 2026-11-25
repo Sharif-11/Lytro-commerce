@@ -1,25 +1,31 @@
 import {
   HeroDesign,
+  ProductRowLayout,
   ProductRowSource,
   PUBLIC_PAGE_SIZE_MAX,
   STOREFRONT_ALL_PRODUCTS_PAGE,
+  STOREFRONT_GRID_FILL,
   STOREFRONT_THEMES,
   StorefrontFill,
+  StorefrontLinkKind,
   StorefrontSectionKind,
   storefrontRowFill,
   type HeroSource,
   type StorefrontCollection,
+  type StorefrontLink,
   type StorefrontSection,
 } from '@lytronix/validators';
 import type {
   ProductCard,
   ProductPage,
   ProductQuery,
+  PublicShop,
   PublicStorefrontDesign,
   ShopperPaymentMethod,
 } from '../api/storefront-api';
 import { cardKey } from './card-links';
 import { collectionKey, FALLBACK_COLLECTIONS } from './collections';
+import { linkShows } from './links';
 
 // STOREFRONT-BUILDER-PLAN SB-9: what the designed home reads besides the shop -- each product row's products, and what
 // the sections that fill themselves draw from. Plain functions of the design; the page makes the reads.
@@ -141,12 +147,61 @@ export interface HomeReadPlan {
   all: ProductQuery;
 }
 
+/** What the plan knows of the shop before the home is drawn: its answer's sale and its products (SB-16, SB-32). */
+export type ShopFacts = Pick<PublicShop, 'sale' | 'productCount'>;
+
+/**
+ * SB-16 as amended 2026-11-26: whether every one of a seller's own slides or banners may be hidden once the home is
+ * drawn -- its photo gone, or its link leading where nothing is now (`linkShows`). A category's count is known only
+ * then, so a category's link may be. When all may, the hero's own source or the banners' collections are read too, in
+ * the same call, so the hero fills itself and the banners fall back to the collections rather than leave a hole.
+ */
+export function mayAllHide(
+  items: readonly { photo: { mediaId: string }; link: StorefrontLink }[],
+  design: Pick<PublicStorefrontDesign, 'images' | 'offers'>,
+  shop: ShopFacts,
+): boolean {
+  const facts = {
+    categories: [],
+    sale: shop.sale ?? { products: 0 },
+    productCount: shop.productCount,
+  };
+  return items.every(
+    (item) =>
+      !(item.photo.mediaId in design.images) ||
+      item.link.kind === StorefrontLinkKind.Category ||
+      !linkShows(item.link, design, facts),
+  );
+}
+
+/**
+ * SB-32 as amended (the owner, 2026-11-26, "yes to all"): the rows whose grid ends on a full line -- the four that fill
+ * themselves from the shop's lists. A row picked by hand or an offer's shows all it has; a carousel has no lines.
+ */
+const ENDS_ON_A_LINE: ReadonlySet<ProductRowSource> = new Set([
+  ProductRowSource.Newest,
+  ProductRowSource.OnSale,
+  ProductRowSource.BestSellers,
+  ProductRowSource.Category,
+]);
+
+/** SB-32 as amended: how many of a row's cards it shows -- such a grid whole lines of four, the rest in "সব প্রোডাক্ট". */
+export function rowShows(
+  section: Pick<ProductsSection, 'source' | 'layout'>,
+  available: number,
+): number {
+  if (section.layout !== ProductRowLayout.Grid || !ENDS_ON_A_LINE.has(section.source)) {
+    return available;
+  }
+  return Math.floor(available / STOREFRONT_GRID_FILL) * STOREFRONT_GRID_FILL;
+}
+
 /** SB-32: a list asked for its own count and as many again as the rows above may show, so it fills after skipping them. */
 function withRoom(count: number, above: number): number {
   return Math.min(PUBLIC_PAGE_SIZE_MAX, count + above);
 }
 
-export function homeReadPlan(design: PublicStorefrontDesign): HomeReadPlan {
+export function homeReadPlan(design: PublicStorefrontDesign, shop: ShopFacts = {}): HomeReadPlan {
   const plan: HomeReadPlan = {
     rows: [],
     heroes: [],
@@ -180,13 +235,16 @@ export function homeReadPlan(design: PublicStorefrontDesign): HomeReadPlan {
         break;
       }
       case StorefrontSectionKind.Hero:
-        if (section.fill === StorefrontFill.Auto) {
+        // SB-16 as amended: an own hero whose every slide may hide reads its source too, to fill itself.
+        if (section.fill === StorefrontFill.Auto || mayAllHide(section.slides, design, shop)) {
           plan.heroes.push({ sectionId: section.id, ...heroQuery(section.source) });
         }
         if (hasTiles(section, design)) want(section.tiles);
         break;
       case StorefrontSectionKind.OfferBanners:
-        if (section.fill === StorefrontFill.Auto) want(section.collections);
+        if (section.fill === StorefrontFill.Auto || mayAllHide(section.banners, design, shop)) {
+          want(section.collections);
+        }
         break;
       case StorefrontSectionKind.Trust:
         plan.methods = true;
@@ -234,11 +292,13 @@ export function homeLayout(
       : [...read];
     if (cards.length === 0) continue;
     if (fillsItself(section) && cards.length < storefrontRowFill(section)) continue;
-    for (const card of cards) {
+    // SB-32 as amended: a grid filling itself ends on a full line; the cards past it come in "সব প্রোডাক্ট".
+    const lines = cards.slice(0, rowShows(section, cards.length));
+    for (const card of lines) {
       seen.add(cardKey(card));
       above.add(card.id);
     }
-    shown.set(section.id, cards);
+    shown.set(section.id, lines);
   }
   const rest = all.products.filter((card) => !seen.has(cardKey(card)));
   return {

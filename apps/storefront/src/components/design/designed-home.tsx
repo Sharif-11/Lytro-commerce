@@ -52,7 +52,7 @@ export async function loadDesignedHome(
   page: OpenShopPage,
   design: PublicStorefrontDesign,
 ): Promise<DesignedHomeReads> {
-  const plan = homeReadPlan(design);
+  const plan = homeReadPlan(design, page.info);
   const lists = new ProductListBatch((queries) =>
     storefrontApi.productLists(page.shop, page.shopper, queries),
   );
@@ -127,6 +127,8 @@ function DesignedSection({
     lists: reads.collections,
     categories: frame.categories,
     sale: info.sale ?? { products: 0, bestDiscount: 0 },
+    // SB-16 as amended: what a seller's own slide or banner is shown by.
+    productCount: info.productCount,
     words,
   };
   switch (section.kind) {
@@ -163,7 +165,7 @@ function DesignedSection({
         <OfferBanners section={section} design={design} collections={collections} words={words} />
       );
     case StorefrontSectionKind.WideBanner:
-      return <WideBanner section={section} design={design} />;
+      return <WideBanner section={section} design={design} facts={collections} />;
     case StorefrontSectionKind.Trust:
       return <Trust info={info} methods={reads.methods} words={words} />;
     case StorefrontSectionKind.Testimonials:

@@ -167,6 +167,7 @@ describe("the hero's tiles and the banners' collections (BL-2 to BL-13)", () => 
     sale = { products: 2, bestDiscount: 25 },
   ): CollectionFacts => ({
     lists: new Map(Object.entries(lists)),
+    productCount: 7,
     categories: [
       {
         id: CATEGORY.id,

@@ -31,7 +31,7 @@ import { WALLET_NAMES } from '@/lib/order/wallet-names';
 import { AnnouncementBar } from './announcement-bar';
 import { type CategoryTile, CategoryStrip } from './category-strip';
 import { DesignIcon } from './design-icon';
-import { linkHref, offerPath } from '@/lib/design/links';
+import { type LinkFacts, linkHref, linkShows, offerPath } from '@/lib/design/links';
 import { firstLetter } from '@/lib/design/marks';
 import { FocusedPhoto, SectionHead } from './design-parts';
 import { ThemeCard } from './theme-card';
@@ -221,13 +221,15 @@ function Banner({ banner, at, compact }: { banner: BannerView; at: number; compa
   );
 }
 
+/** A seller's banner as it shows; null with its photo gone or (SB-16 as amended) its link leading where nothing is now. */
 function ownBanner(
   banner: StorefrontBanner,
   design: PublicStorefrontDesign,
+  facts: LinkFacts,
   key: string,
 ): BannerView | null {
   const image = design.images[banner.photo.mediaId];
-  if (!image) return null;
+  if (!image || !linkShows(banner.link, design, facts)) return null;
   return {
     key,
     image: {
@@ -273,8 +275,11 @@ export function OfferBanners({
 }) {
   const own =
     section.fill === StorefrontFill.Own
-      ? section.banners.flatMap((banner, at) => ownBanner(banner, design, String(at)) ?? [])
+      ? section.banners.flatMap(
+          (banner, at) => ownBanner(banner, design, collections, String(at)) ?? [],
+        )
       : [];
+  // Every own banner hidden, the collections show instead (read for them, `mayAllHide`); none of those, it leaves.
   const banners =
     own.length > 0
       ? own
@@ -296,15 +301,20 @@ export function OfferBanners({
   );
 }
 
-/** SB-8: one banner across the page; its photo gone, it leaves (SB-16). */
+/**
+ * SB-8: one banner across the page; its photo gone, it leaves (SB-16), and (as amended 2026-11-26) while its link leads
+ * where nothing is now, coming back by itself when that changes.
+ */
 export function WideBanner({
   section,
   design,
+  facts,
 }: {
   section: Section<StorefrontSectionKind.WideBanner>;
   design: PublicStorefrontDesign;
+  facts: LinkFacts;
 }) {
-  const banner = ownBanner(section.banner, design, 'wide');
+  const banner = ownBanner(section.banner, design, facts, 'wide');
   if (!banner) return null;
   return (
     <section className="sb-sec">
