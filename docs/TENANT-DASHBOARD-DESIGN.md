@@ -815,6 +815,10 @@ separate column: "share row is not good, instead use share icon with no separate
 - **Archived** products have no glyph. Their tab is for restoring or deleting, and their link shows nothing.
 - On a computer the row is the same: the glyph follows the stock chip after the price.
 
+Share icon: the three connected dots (the owner, 2026-11-25), replacing the box-and-arrow everywhere in the seller
+dashboard. In the build, `share` in apps/dashboard/src/components/icon.tsx changes once (one definition), so Home's link
+card, the quick-add save sheet and every other share button follow.
+
 **The share sheet (`pl-share-sheet`, `-design`, `-copied`, `-paused`).** The body is the quick-add save sheet's
 (`pq-saved`, §7.4b), without "saved ✓" and without the add-another buttons; one component serves both.
 - The product's photo, name and price.
