@@ -1761,6 +1761,16 @@ Object.assign(EDITOR, {
   'pp-off': { label: ['পণ্যের পেজ: স্টোরফ্রন্ট বন্ধ', 'Product page: storefront off'], note: ['/l/ লিংক, স্টোরফ্রন্ট বন্ধ (SFT-16): শুধু দোকানের নাম; কার্ট, সার্চ, ক্যাটাগরি বা আরও পণ্য নেই।', '/l/ link with the storefront off (SFT-16): the shop\'s name only; no cart, search, categories or more products.'], render: () => ppPage({ off: true }) },
 });
 
+/* ---------- Orders beyond stock (proposal 2026-11-25, docs/ORDERS-BEYOND-STOCK-PLAN.md OB-1, OB-2, OB-18). The owner: "from
+   shoppers points of view we shouldn't do this [prevent ordering]", then "No stock wording": a product with no stock is
+   ordered like any other. The page is the one product page as built, for a product whose stock is 0: no "স্টক শেষ", no
+   "● স্টকে আছে" (that stays on in-stock products, question 5), and the form and Order button working. pp-out, the
+   sold-out page with no form, is retired for tracked products. ---------- */
+Object.assign(EDITOR, {
+  'obs-pp-short': { label: ['পণ্যের পেজ: স্টক ০, তবু অর্ডার', 'Product page: stock 0, still orderable'], note: ['প্রস্তাব (২০২৬-১১-২৫): স্টক না থাকলেও কাস্টমার অর্ডার করতে পারেন; স্টকের কোনো কথা দেখায় না। অর্ডারটা বিক্রেতার কাছে "স্টক কম" হয়ে আসে, স্টক যোগ না করা পর্যন্ত শিপ হয় না।', 'Proposal (2026-11-25): a shopper can order with no stock, and sees no stock wording. The order reaches the seller marked short and cannot ship until stock is added.'], render: () => ppPage().replace(/<span class="pp-stock">[^<]*<\/span>/, '') },
+});
+/* ---------- end of orders beyond stock (proposal) ---------- */
+
 function render() {
   const theme = THEMES[STATE.screen];
   const ed = EDITOR[STATE.screen];
