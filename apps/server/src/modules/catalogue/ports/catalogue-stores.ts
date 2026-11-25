@@ -66,6 +66,25 @@ export interface ProductStockHooks {
   ): Promise<void>;
   /** After its variants, tracking or threshold changed: its public stock state worked out again (CCH-08, INV-19). */
   refreshStockState(tx: Transaction, tenantId: string, productId: string): Promise<void>;
+  /**
+   * Quick add's split (TENANT-DASHBOARD-DESIGN §7.4b): the shared stock its holder keeps written off to zero, recorded,
+   * before the product stops sharing; refused while units are held for orders (INV-15). What it held, as stored.
+   */
+  emptySharedStock(
+    tx: Transaction,
+    tenantId: string,
+    productId: string,
+    who: ResolvedActor,
+  ): Promise<string>;
+  /** Quick add's split: once sharing is off, each variant's count arriving on it, recorded with what was shared. */
+  recordSplitStock(
+    tx: Transaction,
+    tenantId: string,
+    productId: string,
+    lines: { variantId: string; quantity: string }[],
+    shared: string,
+    who: ResolvedActor,
+  ): Promise<void>;
   /** INV-24: whether any variant of the product, its stock holder included, holds or has reserved any stock. */
   holdsStock(tx: Transaction, tenantId: string, productId: string): Promise<boolean>;
   /** INV-14: which of these serials (as stored) a unit the shop holds already has. */

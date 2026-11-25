@@ -64,6 +64,8 @@ const NONE_INCOMING = '0.000';
 
 // What the note on a made-to-order switch's write-off says (INV-02).
 const UNTRACKING_NOTE = 'Switched to made to order';
+// Quick add (TENANT-DASHBOARD-DESIGN §7.4b): the shared stock split into each design's and size's own.
+const SPLIT_NOTE = 'Shared stock split';
 
 /** INV-10: a unit cost as the ledger and the average keep it, to four decimals. */
 const costOf = (cost: string): string => Number(cost).toFixed(4);
@@ -675,6 +677,83 @@ export class StockService implements ProductStockHooks {
         })),
         reason: StockReason.ManualAdjustment,
         note: UNTRACKING_NOTE,
+      },
+    );
+  }
+
+  /**
+   * Quick add's split (TENANT-DASHBOARD-DESIGN §7.4b): the stock the product's holder keeps written off to zero and
+   * recorded, before the product stops sharing. Refused while units are held for orders (INV-15). What it held.
+   */
+  async emptySharedStock(
+    tx: Transaction,
+    tenantId: string,
+    productId: string,
+    who: ResolvedActor,
+  ): Promise<string> {
+    const holder = (await this.store.findStockHolders(tx, tenantId, [productId]))[0];
+    if (!holder) return '0.000';
+    await this.store.lockLevel(tx, tenantId, holder.variantId);
+    const level = (await this.store.listVariantStock(tx, tenantId, [productId])).find(
+      (row) => row.variantId === holder.variantId,
+    );
+    if (!level) return '0.000';
+    if (milli(level.reserved) > 0) throw new ApiError('conflict', 'UnitsHeldForOrders', {});
+    if (milli(level.onHand) === 0) return level.onHand;
+    await this.ledger.apply(
+      tx,
+      tenantId,
+      [
+        {
+          variantId: holder.variantId,
+          delta: quantityOf(-milli(level.onHand)),
+          reason: StockReason.ManualAdjustment,
+          note: SPLIT_NOTE,
+          serials: null,
+        },
+      ],
+      who,
+    );
+    return level.onHand;
+  }
+
+  /** Quick add's split: each variant's count arriving on it once sharing is off, recorded beside what was shared. */
+  async recordSplitStock(
+    tx: Transaction,
+    tenantId: string,
+    productId: string,
+    lines: { variantId: string; quantity: string }[],
+    shared: string,
+    who: ResolvedActor,
+  ): Promise<void> {
+    const arriving = lines.filter((line) => milli(line.quantity) > 0);
+    if (arriving.length > 0) {
+      await this.ledger.apply(
+        tx,
+        tenantId,
+        arriving.map((line) => ({
+          variantId: line.variantId,
+          delta: quantityOf(milli(line.quantity)),
+          reason: StockReason.ManualAdjustment,
+          note: SPLIT_NOTE,
+          serials: null,
+        })),
+        who,
+      );
+    }
+    await this.activity.record(
+      tx,
+      tenantId,
+      who,
+      AuditAction.StockAdjusted,
+      { type: 'product', id: productId },
+      {
+        split: {
+          shared,
+          into: lines.map((line) => ({ variantId: line.variantId, to: line.quantity })),
+        },
+        reason: StockReason.ManualAdjustment,
+        note: SPLIT_NOTE,
       },
     );
   }
