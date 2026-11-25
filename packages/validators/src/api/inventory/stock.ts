@@ -136,6 +136,31 @@ export const addStocksSchema = z
     });
   });
 export type AddStocksInput = z.infer<typeof addStocksSchema>;
+// POST products/:id/stock-split (TENANT-DASHBOARD-DESIGN §7.4b, the owner 2026-11-25): a product sharing one stock (INV-24)
+// split into each variant's own -- how many of each design or size, every variant once. The shared stock leaves its
+// holder and each count arrives on its variant, in one transaction; a total that differs is recorded as it is.
+export const splitSharedStockSchema = z
+  .object({
+    counts: z
+      .array(z.object({ variantId: catalogueIdSchema, quantity: quantityField }))
+      .min(1)
+      .max(STOCK_ADDITIONS_MAX),
+  })
+  .superRefine((value, ctx) => {
+    const seen = new Set<string>();
+    value.counts.forEach((row, index) => {
+      if (seen.has(row.variantId)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['counts', index, 'variantId'],
+          message: 'Each variant once.',
+          params: { problem: FieldProblemCode.NotAllowed },
+        });
+      }
+      seen.add(row.variantId);
+    });
+  });
+export type SplitSharedStockInput = z.infer<typeof splitSharedStockSchema>;
 
 // PUT products/:id/variants/:variantId/cost (INV-10): the average unit cost entered by hand, before any purchase
 // receipt sets it; null clears it to unknown. Never required, never public.

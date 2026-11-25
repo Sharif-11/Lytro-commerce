@@ -146,17 +146,58 @@ async function signUp(page: Page, preset: Preset): Promise<void> {
   await page.getByRole('button', { name: preset.type, exact: true }).click();
   await expect(page.getByRole('button', { name: 'সিটি বা জেলা সার্চ করুন' })).toHaveCount(0);
   await page.getByRole('button', { name: 'সেভ করে ড্যাশবোর্ডে যান' }).click();
-  await expect(page).toHaveURL(`/${preset.slug}`);
+  // The owner, 2026-11-25 (§7.4b `pq-first`): a brand-new shop lands on its first product, welcomed, not on Home.
+  await expect(page).toHaveURL(`/${preset.slug}/products/new`);
+  await expect(
+    main(page).getByText('শপ তৈরি হয়েছে! প্রথম প্রোডাক্ট যোগ করুন, তারপর লিংক শেয়ার করুন।'),
+  ).toBeVisible();
+  await expect(main(page).getByRole('button', { name: 'পরে করব' })).toBeVisible();
   await expectPlainWords(page);
 }
 
+/**
+ * The first product, from where onboarding lands. A clothing shop's is quick add (§7.4b): name, price, the sizes from
+ * the size sheet, and each size's own stock in the grid, so the stock steps after it work on one size as before. A shop
+ * that keeps batches gets today's full form, its variants from the suggested attribute.
+ */
 async function makeProduct(page: Page, preset: Preset): Promise<void> {
-  await main(page)
-    .getByRole('link', { name: 'প্রোডাক্ট' })
-    .first()
-    .click()
-    .catch(() => undefined);
-  await page.goto(`/${preset.slug}/products/new`);
+  if (preset.batches) await makeInFullForm(page, preset);
+  else await makeInQuickAdd(page, preset);
+  // After the first save, the product's link to share (`pq-saved`); then on to the product.
+  const saved = page.getByRole('dialog', { name: /প্রোডাক্ট সেভ হয়েছে/ });
+  await expect(saved).toBeVisible();
+  await expect(saved.getByText(new RegExp(`/l/`)).first()).toBeVisible();
+  await expectPlainWords(page);
+  await saved.getByRole('button', { name: 'প্রোডাক্টে যান' }).click();
+  await expect(page).toHaveURL(new RegExp(`/${preset.slug}/products/(?!new$)[^/]+$`));
+  await expect(main(page).getByLabel('নাম', { exact: true })).toHaveValue(preset.product);
+}
+
+async function makeInQuickAdd(page: Page, preset: Preset): Promise<void> {
+  await expect(main(page).getByLabel('স্টক', { exact: true })).toBeVisible();
+  await expectPlainWords(page);
+  await main(page).getByLabel('নাম', { exact: true }).fill(preset.product);
+  await main(page).getByLabel('দাম', { exact: true }).fill(preset.price);
+  await main(page).getByRole('button', { name: 'সাইজ যোগ করুন' }).click();
+  const sizes = page.getByRole('dialog', { name: 'সাইজ যোগ করুন' });
+  for (const value of preset.options) {
+    await sizes.getByRole('button', { name: value, exact: true }).click();
+  }
+  await expectPlainWords(page);
+  await sizes
+    .getByRole('button', { name: `${String(preset.options.length)}টি সাইজ যোগ করুন` })
+    .click();
+  await expect(sizes).toBeHidden();
+  await expect(main(page).getByText('সব সাইজ মিলিয়ে')).toBeVisible();
+  await main(page).getByRole('button', { name: 'সাইজ অনুযায়ী আলাদা স্টক দিন' }).click();
+  for (const value of preset.options) {
+    await main(page).getByLabel(value, { exact: true }).fill('5');
+  }
+  await expectPlainWords(page);
+  await main(page).getByRole('button', { name: 'সেভ করুন' }).first().click();
+}
+
+async function makeInFullForm(page: Page, preset: Preset): Promise<void> {
   await expect(main(page).getByText(`ডিফল্ট: ${preset.type}`)).toBeVisible();
   await expectPlainWords(page);
   await main(page).getByLabel('নাম', { exact: true }).fill(preset.product);
@@ -175,8 +216,6 @@ async function makeProduct(page: Page, preset: Preset): Promise<void> {
   await options.getByRole('button', { name: 'ঠিক আছে' }).click();
   await expectPlainWords(page);
   await main(page).getByRole('button', { name: 'সেভ করুন' }).click();
-  await expect(page).toHaveURL(`/${preset.slug}/products`);
-  await expect(main(page).getByRole('link', { name: new RegExp(preset.product) })).toBeVisible();
 }
 
 async function addStock(page: Page, preset: Preset): Promise<void> {

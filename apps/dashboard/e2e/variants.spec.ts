@@ -2,6 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { mockApi, SLUG, type ApiLog, type ShopState } from './support/mock-api';
 import { drawnProducts, MEDIA_UPLOAD_PREFIX, type ProductsFixture } from './support/products';
+import { closeSaved, toFullForm } from './support/quick-add';
 import { drawnLibrary, type MatrixFixture } from './support/variants';
 
 // TENANT-DASHBOARD-DESIGN §7.4, Slice 11.7b (Part 14): options and variants -- the attribute cards, the variant table
@@ -269,6 +270,8 @@ test('a swatch from a photo says how far its upload is, and the other choices wa
 test('an option set is inserted in one tap, its values reused, never doubled', async ({ page }) => {
   const log = await open(page, 'new');
   await named(page, 'Kurta', '900');
+  // The attribute card is the full form's (§7.4b), from quick add's More settings.
+  await toFullForm(page);
   await addAttribute(page, 'Size', /^Splits into variants/);
   const options = sheet(page, 'Size · options');
   await options.getByRole('button', { name: 'S–XXL' }).click();
@@ -404,6 +407,7 @@ test('a new product made to order: two attributes split it, one is asked when or
   };
   const log = await open(page, 'new', { products });
   await named(page, 'Chocolate cake', '850');
+  await toFullForm(page);
   await addAttribute(page, 'Size', /^Splits into variants/);
   await typeOptions(page, 'Size', ['1 lb', '2 lb']);
   await main(page).getByRole('button', { name: 'Add attribute' }).click();
@@ -428,6 +432,7 @@ test('a new product made to order: two attributes split it, one is asked when or
   await expect(table.getByRole('row').nth(2)).toContainText('1 lb · Vanilla');
   await table.getByLabel('Price of 2 lb · Chocolate').fill('1600');
   await save(page).click();
+  await closeSaved(page);
   await expect(page).toHaveURL(`/${SLUG}/products`);
   const [body] = sent(log, 'POST', '/products');
   expect(body?.variantAttributes).toHaveLength(2);
@@ -457,6 +462,7 @@ test('the variants share one stock: each pack says what it holds, the stock open
   };
   const log = await open(page, 'new', { products });
   await named(page, 'Miniket rice', '78');
+  await toFullForm(page);
   await addAttribute(page, 'Pack size', /^Splits into variants/);
   const options = sheet(page, 'Pack size · options');
   await options.getByRole('radio', { name: 'kg' }).click();
@@ -477,6 +483,7 @@ test('the variants share one stock: each pack says what it holds, the stock open
   await table.getByLabel('Pack of 10 kg').fill('10');
   await card(page).getByLabel('Shared stock (kg)').fill('240');
   await save(page).click();
+  await closeSaved(page);
   await expect(page).toHaveURL(`/${SLUG}/products`);
   const [body] = sent(log, 'POST', '/products');
   expect(body).toMatchObject({

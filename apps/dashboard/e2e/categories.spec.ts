@@ -180,7 +180,8 @@ test('edits a category: its name, where it sits, what it suggests and its own ch
   await sheet(page).getByRole('button', { name: 'Remove Size' }).click();
   await expect(sheet(page).getByRole('button', { name: 'Remove Colour' })).toBeVisible();
 
-  // Its own chart: the sheet over the page in the category's place, Done keeps it for Save.
+  // Its own chart, a picture: the sheet over the page in the category's place, Done keeps it for Save. The table form
+  // is switched off in the dashboard (§7.4b; the server still keeps one).
   await expect(sheet(page).getByRole('button', { name: / Edit$/ })).toContainText('No chart');
   await sheet(page)
     .getByRole('button', { name: / Edit$/ })
@@ -188,24 +189,19 @@ test('edits a category: its name, where it sits, what it suggests and its own ch
   await expect(sheet(page).getByRole('heading', { name: 'Size chart · Tees' })).toBeVisible();
   await expect(sheet(page).getByText(/Shown on every product here and below/)).toBeVisible();
   await expect(sheet(page).getByRole('button', { name: 'Remove the chart' })).toHaveCount(0);
-  await sheet(page).getByLabel('Row 1, column 2').fill('Chest');
-  await sheet(page).getByLabel('Row 2, column 1').fill('M');
-  await sheet(page).getByLabel('Row 2, column 2').fill('40');
+  await expect(sheet(page).getByLabel(/^Row \d+, column \d+$/)).toHaveCount(0);
+  await sheet(page).locator('input[type=file]').first().setInputFiles(file('chart.jpg'));
+  await expect(sheet(page).getByRole('img', { name: 'Size chart' })).toBeVisible();
   await expectAccessible(page);
   await sheet(page).getByRole('button', { name: 'Done' }).click();
-  await expect(sheet(page).getByRole('button', { name: / Edit$/ })).toContainText(
-    '1 row × 1 column',
-  );
+  await expect(sheet(page).getByRole('button', { name: / Edit$/ })).toContainText('Picture');
   await sheet(page).getByRole('button', { name: 'Save' }).click();
   await expect(sheet(page)).toHaveCount(0);
   expect(log.sent('PATCH', '/categories/c-tshirts')).toEqual({ name: 'Tees' });
   expect(log.sent('PUT', '/categories/c-tshirts/attributes')).toEqual({ attributeIds: ['a-2'] });
-  expect(log.sent('PUT', '/categories/c-tshirts/size-chart')).toEqual({
-    rows: [
-      ['', 'Chest'],
-      ['M', '40'],
-    ],
-  });
+  const chart = log.sent('PUT', '/categories/c-tshirts/size-chart') as
+    { imageId?: unknown } | undefined;
+  expect(chart?.imageId).toMatch(/^m-up-/);
   await expect(row(page, 'Tees')).toBeVisible();
 
   // Removing the chart deletes it on Save.
@@ -283,7 +279,8 @@ test("a category's chart picture shows its upload in the picture's place, and Do
   await sheet(page)
     .getByRole('button', { name: / Edit$/ })
     .click();
-  await sheet(page).getByRole('radio', { name: 'Picture' }).click();
+  // A picture is the only form now (§7.4b): no Table or Picture choice first.
+  await expect(sheet(page).getByRole('radio', { name: 'Picture' })).toHaveCount(0);
   await sheet(page).locator('input[type=file]').first().setInputFiles(file('chart.jpg'));
   await expect(
     sheet(page)
