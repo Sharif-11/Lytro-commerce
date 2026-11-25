@@ -2113,7 +2113,8 @@ function emPage(shop, parts, o = {}) {
   // No empty heading anywhere: a shop with no categories has no Categories column in its footer.
   if (shop.cats.length === 0) foot = foot.replace(`<div><h3>${L('ক্যাটাগরি', 'Categories')}</h3><ul></ul></div>`, '');
   const top = o.search ?? SECTIONS.announce('studio', shop) + hdr;
-  const bottom = o.search ? '' : SECTIONS.trust() + foot;
+  // The trust strip is the home's (a section of its design); inner pages, as built, go straight to the footer.
+  const bottom = o.search ? '' : (o.home ? SECTIONS.trust() : '') + foot;
   const chat = c.wa && !o.search && !bare ? `<span class="chatbtn">${ic('wa')}</span>` : '';
   return `<div class="shop ${o.white ? 'em-white' : ''} ${STATE.outlined ? 'outlined' : ''}" style="${vars}">${top}${parts.join('')}${bottom}${chat}</div>`;
 }
@@ -2123,14 +2124,14 @@ function emHomeNow() {
   return emPage(EM_SHOP([], []), [emCap(
     'আজ যেমন (বিল্ট): প্রোডাক্ট ছাড়া শপের হোম। হিরো, ক্যাটাগরি আর প্রোডাক্টের সারি নিজে থেকে লুকায়; থাকে ঘোষণা, হেডার, ভরসার সারি আর ফুটার। মাঝখানে কিছু নেই: ক্রেতা বোঝে না শপটা চালু কিনা, আর কী করবে।',
     "As built: a shop's home with no products. The hero, categories and product rows hide themselves; the announcement, header, trust strip and footer stay. Nothing in between: a shopper can't tell whether the shop is open, or what to do.",
-  )], { offer: true });
+  )], { offer: true, home: true });
 }
 
 // The proposal: the hero's place says the shop is coming, in its own colours; a card offers the ways to reach it.
 function emHomeEmpty(plan) {
   const shop = EM_SHOP([], []);
   const c = EM_CONTACT[plan];
-  const hero = `<section class="em-hero" data-sec="${L('নতুন · প্রোডাক্ট না থাকলে হিরোর জায়গায়', 'New · in the hero’s place while there are no products')}"><div class="em-mk">${shop.mark}</div><div class="em-kick">${L('নতুন কালেকশন শিগগিরই আসছে', 'New collection coming soon')}</div><h1>${T(shop.name)}</h1><p>${T(shop.tag)}</p></section>`;
+  const hero = `<section class="em-hero" data-sec="${L('নতুন · প্রোডাক্ট না থাকলে হিরোর জায়গায়', 'New · in the hero’s place while there are no products')}"><div class="em-mk">${shop.mark}</div><div class="em-kick">${L('নতুন কালেকশন শিগগিরই আসছে', 'New collection coming soon')}</div><h1>${T(shop.name)}</h1></section>`;
   const direct = c.wa || c.msg || c.phone;
   const card = direct || c.fb
     ? emBox('msg', L('কিছু খুঁজছেন?', 'Looking for something?'), direct ? L('মেসেজ করুন, কী আছে আর কী আসছে জানিয়ে দেব।', "Message us and we'll tell you what we have and what's coming.") : L('নতুন কালেকশনের খবর পাবেন আমাদের ফেসবুক পেজে।', "You'll find news of the new collection on our Facebook page."), emActs(c), { card: true })
@@ -2138,7 +2139,7 @@ function emHomeEmpty(plan) {
   const note = plan === 'paid'
     ? emCap('পেইড প্ল্যান (আর ফেয়ার ইউজ বন্ধ থাকলে যেকোনো শপ): শপ যেগুলো দিয়েছে শুধু সেগুলো: WhatsApp, Messenger, কল, ফেসবুক পেজ। যেটা দেয়নি তার বোতাম নেই; ফেসবুক একা থাকলে সেটাই বড় বোতাম।', 'A paid plan (and any shop while fair use is off): only what the shop set: WhatsApp, Messenger, call, Facebook page. No button for what it left out; Facebook alone becomes the big button.')
     : emCap('পে-অ্যাজ-ইউ-গো, ফেয়ার ইউজ চালু: সার্ভার সরাসরি যোগাযোগ দেয় না (PYG-29), থাকে ঠিকানা আর ফেসবুক পেজ। তাই শুধু ফেসবুক পেজের বোতাম, আর WhatsApp-এর ভাসমান বোতামও নেই। ফেসবুক পেজও না থাকলে কার্ডে “শিগগিরই আবার আসুন”, কোনো বোতাম নেই।', "Pay as you go with fair use on: the server gives no direct contact (PYG-29), only the address and Facebook page. So just the Facebook button, and no floating WhatsApp button. With no Facebook page either, the card says “Come back soon”, with no button.");
-  return emPage(shop, [hero, emSec(EM_NEW(), card), note], { contact: c });
+  return emPage(shop, [hero, emSec(EM_NEW(), card), note], { contact: c, home: true });
 }
 
 function emListEmpty() {

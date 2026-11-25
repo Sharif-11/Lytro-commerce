@@ -263,10 +263,17 @@ screens. `em-home-now` is the home as built; the rest is the proposal. Captures 
 2. **Q2. A removed product keeps its HTTP 404: yes.**
 3. **Q3. This joins the same PR as the product ID links and SB-32: yes.** It touches the same list and home pages.
 
-**Open:**
-- **Q4. Should a category with no products leave the header chips, the menu and the footer?** Recommended: yes, so
-  shoppers aren't led to an empty page. The category's own page stays for old links (`em-category-empty`). This is
-  drawn that way: শাড়ি is not among the chips.
+4. **Q4. Categories with no products leave the header chips, the menu, the footer and search's suggestions: yes**
+   ("follow your recommendation"). The test is the category's product count, which includes its subcategories and
+   counts out-of-stock products, so a category with only sold-out products stays, and so does a parent whose
+   subcategories hold products. The category's own page stays for old links (`em-category-empty`). A category page's
+   own subcategory chips skip the empty ones too.
+
+**APPROVED 2026-11-26** ("sketch is approved"). Built in the same branch as the dashboard's shop-name link. The build
+matches the built storefront where the sketch drew sample data:
+- the band has no tagline, because a shop has none;
+- the trust strip stays the home's own (inner pages go to the footer, as built);
+- the built storefront has no floating WhatsApp button, so there is none to hide.
 
 ---
 
