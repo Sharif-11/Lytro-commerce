@@ -1060,7 +1060,9 @@ test.describe('Editing a booked order (ORD-11)', () => {
 });
 
 test.describe('The Orders list', () => {
-  test("a booked order's line, and Needs a look with its count", async ({ page }) => {
+  test('Needs a look with its count, listing only those orders (rows show no courier line, OB-20)', async ({
+    page,
+  }) => {
     const day = booked({ reading: 'hold' });
     const other = day.orders.find((each) => each.id === 'o-46');
     if (other) {
@@ -1074,11 +1076,9 @@ test.describe('The Orders list', () => {
       };
     }
     const log = await open(page, '/orders?tab=all', { couriers: couriers(), orders: day });
-    await expect(main(page).getByRole('link', { name: /^#261031-0047/ })).toContainText(
-      'Steadfast · on hold',
-    );
-    await expect(main(page).getByRole('link', { name: /^#261031-0046/ })).toContainText(
-      'Needs a look',
+    // ORDERS-BEYOND-STOCK OB-20 (the owner, 2026-11-25): a row shows its photos, name, phone, address, total and status.
+    await expect(main(page).getByRole('link', { name: /^#261031-0047/ })).not.toContainText(
+      'Steadfast',
     );
     const look = main(page)
       .getByRole('group')
