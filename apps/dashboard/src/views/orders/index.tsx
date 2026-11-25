@@ -181,7 +181,12 @@ export function OrdersScreen({
       <OrderTabs
         filter={filter}
         onTab={(tab: OrderTab, reason) => {
-          show({ tab, reason });
+          show({ tab, reason, short: false });
+        }}
+        short={list.data?.pages[0]?.short ?? 0}
+        onShort={() => {
+          // OB-11: every order still waiting for stock, whatever its status; off again, the day's work.
+          show(filter.short === true ? { short: false } : { short: true, tab: 'all' });
         }}
       />
       {filter.tab === LOOK_TAB ? (

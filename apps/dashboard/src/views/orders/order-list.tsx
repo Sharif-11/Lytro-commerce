@@ -21,6 +21,7 @@ import { StatusTag } from '@/components/ui/status-tag';
 import { Icon } from '@/components/icon';
 import { courierName } from '@/lib/couriers';
 import { dayLabel, groupByDay } from '@/lib/dates';
+import { bangladeshiPhone } from '@/lib/phone';
 import { useShell } from '@/shell/shell-context';
 import type { OrderSummary } from '@/types/orders';
 import { advancePaid } from './order-auto';
@@ -59,9 +60,14 @@ function groupsOf(orders: OrderSummary[]): { day: Day; orders: OrderSummary[] }[
 export function OrderTabs({
   filter,
   onTab,
+  short = 0,
+  onShort,
 }: {
   filter: OrderFilter;
   onTab: (tab: OrderTab, reason?: CancelReason) => void;
+  /** INV-25 (ORDERS-BEYOND-STOCK OB-11): how many orders still wait for stock. */
+  short?: number;
+  onShort?: () => void;
 }): React.JSX.Element {
   const { t } = useTranslation('orders');
   const [more, setMore] = useState(false);
@@ -70,6 +76,18 @@ export function OrderTabs({
     <>
       {/* Beside an order the column is narrow: the tabs wrap there (the prototype's `.split .list-col .chips`). */}
       <ChipRow role="group" className="lg:flex-wrap lg:overflow-visible">
+        {/* OB-11: the orders still waiting for stock, first in the row, while there are any. */}
+        {onShort && (short > 0 || filter.short === true) ? (
+          <Chip
+            on={filter.short === true}
+            count={short}
+            className={filter.short === true ? 'bg-warning text-white' : 'text-warning'}
+            onClick={onShort}
+          >
+            <Icon name="alert" size={16} />
+            {t('obs.chip')}
+          </Chip>
+        ) : null}
         {ORDER_TABS.map((tab) => (
           <TabChip
             key={tab}
@@ -287,9 +305,11 @@ function CourierLine({ order }: { order: OrderSummary }): React.JSX.Element | nu
 }
 
 /**
- * One order (the prototype's `o29Row`): its full number and the customer; where it goes or the counter's chip, its
- * items, and what needs doing -- the unanswered calls, a hold's time, a cancelled order's reason; the total over its
- * status.
+ * One order (the prototype's `o29Row`, as ORDERS-BEYOND-STOCK OB-20 has it -- the owner, 2026-11-25: "in order list just
+ * customer phone number, his address and order total and the image", keeping the status, the "স্টক কম" chip and the
+ * name): the photos its lines were ordered with, the customer's name and phone, the address on two lines (the delivery
+ * line, then thana and zilla, each cut with "…"), the total and the status, and what it still waits for. A locked
+ * pay-as-you-go order shows its masked name and phone and its zilla alone (PF-21, PF-25).
  */
 export function OrderRow({
   order,
@@ -309,46 +329,40 @@ export function OrderRow({
   const { slug } = useShell();
   const words = useOrderWords();
   const shown = words.status(order.status);
-  const note =
-    order.status === OrderStatus.Hold && order.holdUntil ? (
-      <span className="text-warning">{t('callAt', { time: words.time(order.holdUntil) })}</span>
-    ) : order.unansweredCalls > 0 &&
-      (order.status === OrderStatus.Pending || order.status === OrderStatus.Hold) ? (
-      <span className="text-warning">{t('noAnswer', { count: order.unansweredCalls })}</span>
-    ) : order.status === OrderStatus.Cancelled && order.cancelReason ? (
-      words.reason(order.cancelReason)
-    ) : advancePaid(order) ? (
-      // The fixes PR's `fx-autoconfirm-list` (2026-11-14): money already verified, so no call was needed.
-      t('paidTag')
-    ) : null;
+  const short = Number(order.short);
+  const phone = order.customerPhone === null ? null : bangladeshiPhone.forField(order.customerPhone);
   const content = (
     <>
+      <OrderThumbs thumbs={order.thumbs} lines={order.items} />
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="truncate text-[16px] font-medium">
-          <span className="num mr-1.5 font-semibold text-fg-muted">#{order.orderNumber}</span>
-          {order.customerErased ? (
-            t('erased')
-          ) : order.access === OrderAccess.Locked ? (
-            // PF-25: a locked row shows its masked phone where the name goes.
-            <span className="num text-fg-muted">
-              {order.customerPhone ?? order.customerName ?? ''}
-            </span>
-          ) : (
-            (order.customerName ?? '')
-          )}
+          {order.customerErased ? t('erased') : (order.customerName ?? '')}
         </span>
-        <span className="truncate text-[14px] text-fg-muted">
-          {atCounter(order) ? (
-            <span className="mr-1.5">
-              <StatusTag tone="neutral">{words.counter(order)}</StatusTag>
-            </span>
-          ) : order.area ? (
-            `${words.area(order.area)} · `
-          ) : null}
-          {t('items', { count: order.items })}
-          {note ? <> · {note}</> : null}
-        </span>
-        <CourierLine order={order} />
+        {phone !== null && !order.customerErased ? (
+          <span className="num truncate text-[15px] text-fg-muted">{phone}</span>
+        ) : null}
+        {atCounter(order) ? (
+          <span>
+            <StatusTag tone="neutral">{words.counter(order)}</StatusTag>
+          </span>
+        ) : (
+          <>
+            {order.deliveryAddress ? (
+              <span className="truncate text-[14px] text-fg-muted">{order.deliveryAddress}</span>
+            ) : null}
+            {order.area ? (
+              <span className="truncate text-[14px] text-fg-muted">{words.area(order.area)}</span>
+            ) : null}
+          </>
+        )}
+        {short > 0 ? (
+          <span>
+            <StatusTag tone="warn">
+              <Icon name="alert" size={14} />
+              {t('obs.short', { count: short })}
+            </StatusTag>
+          </span>
+        ) : null}
       </span>
       <span
         className={`flex flex-none flex-col items-end gap-1 text-right sm:flex-row sm:items-center sm:gap-4 ${wide ? '' : 'lg:flex-col lg:items-end lg:gap-1'}`}
@@ -374,16 +388,27 @@ export function OrderRow({
   );
   // Picking to print: the row ticks itself rather than opening the order.
   return picking ? (
-    <label className="flex min-h-16 w-full cursor-pointer items-center gap-3 px-4 py-3">
-      <CheckBox
-        checked={picking.picked.has(order.id)}
-        label={`#${order.orderNumber}`}
-        onChange={() => {
-          picking.onToggle(order.id);
-        }}
-      />
-      {content}
-    </label>
+    short > 0 ? (
+      // OB-9: an order still short of stock can't leave, so its label isn't printed.
+      <div className="flex min-h-16 w-full items-center gap-3 px-4 py-3 opacity-80" aria-disabled="true">
+        <span className="w-6 flex-none" aria-hidden="true" />
+        <span className="flex min-w-0 flex-1 flex-col gap-1">
+          <span className="flex min-w-0 items-center gap-3">{content}</span>
+          <span className="text-[13px] font-medium text-warning">{t('obs.cantPrint')}</span>
+        </span>
+      </div>
+    ) : (
+      <label className="flex min-h-16 w-full cursor-pointer items-center gap-3 px-4 py-3">
+        <CheckBox
+          checked={picking.picked.has(order.id)}
+          label={`#${order.orderNumber}`}
+          onChange={() => {
+            picking.onToggle(order.id);
+          }}
+        />
+        {content}
+      </label>
+    )
   ) : (
     <Link
       to="/$shop/orders/$orderId"
@@ -495,5 +520,43 @@ export function DatesSheet({
         ))}
       </div>
     </Sheet>
+  );
+}
+
+/**
+ * OB-20: the photos an order's first lines were ordered with -- each design's own photo -- stacked, each 14 px further
+ * right so its design shows, then "+N" for the lines beyond them.
+ */
+function OrderThumbs({ thumbs, lines }: { thumbs: string[]; lines: number }): React.JSX.Element {
+  const { t } = useTranslation('orders');
+  const more = lines - thumbs.length;
+  return (
+    <span
+      className="relative h-11 flex-none"
+      style={{ width: `${String(44 + Math.max(0, thumbs.length - 1) * 14)}px` }}
+      aria-hidden="true"
+    >
+      {thumbs.length === 0 ? (
+        <span className="absolute inset-y-0 left-0 grid w-11 place-items-center rounded-[10px] bg-neutral-100 text-fg-muted">
+          <Icon name="box" size={20} />
+        </span>
+      ) : (
+        thumbs.map((url, at) => (
+          <img
+            key={`${String(at)} ${url}`}
+            src={url}
+            alt=""
+            loading="lazy"
+            className="absolute top-0 h-11 w-11 rounded-[10px] border-2 border-surface object-cover"
+            style={{ left: `${String(at * 14)}px`, zIndex: thumbs.length - at }}
+          />
+        ))
+      )}
+      {more > 0 ? (
+        <span className="num absolute -bottom-1 right-[-6px] z-10 rounded-full bg-fg px-1.5 text-[12px] font-semibold text-surface">
+          {t('obs.more', { count: more })}
+        </span>
+      ) : null}
+    </span>
   );
 }

@@ -16,6 +16,8 @@ export const ordersSearch = z.object({
   source: z.enum(OrderSource).optional().catch(undefined),
   // PYG-22 (PF-25): only the locked pay-as-you-go orders, the লক করা chip.
   locked: z.literal('1').optional().catch(undefined),
+  // INV-25 (ORDERS-BEYOND-STOCK OB-11): only the orders still waiting for stock, the স্টক কম chip.
+  short: z.literal('1').optional().catch(undefined),
 });
 
 export type OrdersSearch = z.infer<typeof ordersSearch>;
@@ -32,6 +34,7 @@ export function searchOf(filter: OrderFilter): Record<string, string | undefined
     holdingName: filter.holding ? filter.holdingName : undefined,
     source: filter.source,
     locked: filter.locked ? '1' : undefined,
+    short: filter.short ? '1' : undefined,
   };
 }
 
@@ -47,5 +50,6 @@ export function filterOf(search: OrdersSearch): OrderFilter {
     holdingName: search.holdingName,
     source: search.source,
     locked: search.locked === '1',
+    short: search.short === '1',
   };
 }
