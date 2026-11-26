@@ -49,7 +49,12 @@ const openOfferShop = (page: Page, design: PublicStorefrontDesign | null = null)
   openShop(page, (language) => ({
     products: [SAREE, SCARF, KURTI],
     offers: offers(),
-    ...(design ? { info: { ...meghShop(language).info, design } } : {}),
+    // The Eid offer runs, so the shop has something on sale (the Offers link shows only then).
+    info: {
+      ...meghShop(language).info,
+      sale: { products: 2, bestDiscount: 20 },
+      ...(design ? { design } : {}),
+    },
   }));
 
 test.describe("an offer's page (OF-8, OF-12)", () => {

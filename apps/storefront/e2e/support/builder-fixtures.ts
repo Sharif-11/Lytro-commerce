@@ -163,7 +163,9 @@ export function builderShop(
     name: t([bn, en]),
     image: null,
     cover: picture(image, false),
-    productCount: count,
+    // The Studio sketch draws its categories without a count; each still holds products (SB-33's Q4 leaves out a
+    // category with none).
+    productCount: (count as number | undefined) ?? 6,
     children: [],
   }));
   const products = sketch.products.map((spec) => {
