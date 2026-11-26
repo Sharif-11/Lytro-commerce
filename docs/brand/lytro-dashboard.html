@@ -427,6 +427,7 @@ svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.75;str
       <optgroup label="Orders beyond stock (proposal 2026-11-25)"><option value="obs-list">Orders · photo, name, phone, address, total, status; the স্টক কম chip; a courier's news and a call-back when they apply</option><option value="obs-list-short">· the স্টক কম chip on: only short orders</option><option value="obs-list-payg">· a pay-as-you-go shop: a locked order masked as today</option><option value="obs-order">Order · short: the banner, the short line, Book waits</option><option value="obs-book-blocked">· Book tapped while short (sheet)</option><option value="obs-add-stock">· Add stock from the order, where it goes (sheet)</option><option value="obs-filled">· stock added: covered, Book live (toast)</option><option value="obs-print">Orders · printing labels: a short order can not be picked</option><option value="obs-alert">The bell · a new order arrived short; stock given</option></optgroup>
       <optgroup label="Products · share link and product page (proposal 2026-11-25)"><option value="pl-share-row">Products list · a row opens the product page (pd-detail); its share icon opens the share sheet</option><option value="pl-share-sheet">· the share sheet: the landing link, Copy, Share, See the page; a design link; the shop link</option><option value="pl-share-design">· a design chosen: the link opens with it (?d=)</option><option value="pl-share-copied">· copied (toast)</option><option value="pl-share-paused">· the shop not open yet: the link still shows, with when it opens</option><option value="pl-share-wide">· on a computer</option><option value="pd-detail">Product page · one photo: stock, link, last 30 days, recent orders; Edit, Share, more</option><option value="pd-detail-designs">· several designs: the stock by design and size</option><option value="pd-made">· made to order: no stock counted</option><option value="pd-menu">· the more menu: see in the shop, duplicate, archive, delete</option><option value="pd-delete">· delete: the remove dialog as built</option><option value="pd-archived">· archived: restore or delete for good</option><option value="pd-share">· share from the product page</option><option value="pd-wide">· on a computer</option></optgroup>
       <optgroup label="The install box (proposal 2026-11-26)"><option value="app-first">First landing · Install the app (Chrome on Android)</option><option value="app-first-fb">· inside Facebook on Android: Open in Chrome</option><option value="app-first-ios">· an iPhone, in Safari: Apple's two taps</option><option value="app-first-ios-fb">· an iPhone, inside Facebook</option><option value="app-first-other">· Android before Chrome offers it, or another browser: the menu steps</option><option value="app-home">Home · the same row on top, until installed or closed</option><option value="app-home-fb">· inside Facebook</option></optgroup>
+      <optgroup label="Live chat with Lytro (sketch 2026-11-27)"><option value="lc-home-peek">Home · the small chat button, first 5 seconds</option><option value="lc-home-gone">· after it slides away</option><option value="lc-menu">Menu · the button, always there</option><option value="lc-unread-any">Any screen (orders) · Lytro replied: the button with a count and a sound</option><option value="lc-chat">The chat · names in two colours, a photo, a deleted photo, 7 days</option><option value="lc-offhours">· outside hours: when we answer, and WhatsApp</option><option value="lc-busy">· 10 minutes unanswered: the busy line</option><option value="lc-ai">· an AI answer, labelled, and Talk to a person</option><option value="lc-chat-desktop">· on a computer: the side panel (switch to Computer)</option><option value="lc-sound">Notifications · chat sound beside the bell's</option></optgroup>
       <optgroup label="Later phases (design only)"><option value="storefront">Storefront settings · slides as a carousel (Slice 12)</option><option value="storefront-tiles">· one banner and two tiles (Slice 12)</option><option value="storefront-empty">· no slides yet (Slice 12)</option><option value="sh-slide">· slide editor with the focal point (Slice 12)</option><option value="sh-slide-new">· new slide (Slice 12)</option><option value="sh-slide-preview">· both crops (Slice 12)</option><option value="sh-slide-delete">· remove slide (Slice 12)</option><option value="storefront-saved">· slide saved (Slice 12)</option></optgroup>
     </select>
   </label>
@@ -11286,6 +11287,101 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 </style>`);
 (function initApp() { const h = location.hash.replace('#', ''); if (h && h.startsWith('app-') && SCREENS[h] && h !== ST.screen) { ST.screen = h; document.getElementById('selScreen').value = h; render(); } })();
 /* ---------- end of the install box (proposal) ---------- */
+/* ---------- Live chat with Lytro (sketch, 2026-11-27; docs/LIVE-CHAT-PLAN.md) ----------
+   The owner: live chat, not tickets; a small floating button that shows 5 seconds each time Home opens, always in Menu,
+   and on any screen while a message from Lytro is unread, with a sound; it hides while scrolling. One chat per shop;
+   names in two colours (owner, staff); history 7 days; photos deleted sooner; outside hours and the 10-minute busy line
+   point to WhatsApp; an AI answer is labelled and "talk to a person" stops it (LC-1 to LC-21). */
+const LC_IMG = (n) => `sample-photos/builder/${n}.jpg`;
+const lcNote = (text) => `<div class="lc-skn"><b>${L('স্কেচ নোট', 'Sketch note')}:</b> ${text}</div>`;
+const lcFab = (o) => `<button class="lc-fab ${o.fab === 'gone' ? 'lc-ghost' : ''}" aria-label="${L('Lytro-র সাথে চ্যাট', 'Chat with Lytro')}">${ic('message')}${o.n ? `<span class="lc-n">${o.n}</span>` : ''}</button>`;
+const lcWho = (role) => (role === 'owner'
+  ? `<span class="lc-who lc-owner">${L('রহিম', 'Rahim')} · ${L('মালিক', 'owner')}</span>`
+  : `<span class="lc-who lc-staff">${L('সুমি', 'Sumi')} · ${L('স্টাফ', 'staff')}</span>`);
+const lcMine = (role, body, time) => `<div class="lc-m lc-mine">${lcWho(role)}<div class="lc-b">${body}</div><span class="lc-t">${time}</span></div>`;
+const lcTheirs = (body, time, ai) => `<div class="lc-m lc-theirs"><span class="lc-who lc-lytro">${ic('mark', 14)} Lytro${ai ? ` <span class="lc-ai">${L('স্বয়ংক্রিয় উত্তর', 'Automatic answer')}</span>` : ''}</span><div class="lc-b">${body}</div><span class="lc-t">${time}</span></div>`;
+const lcWa = () => btn('o xs', `${ic('message', 14)} WhatsApp`);
+const lcSys = (icon, text) => `<div class="lc-sys">${ic(icon, 18)}<span>${text}</span>${lcWa()}</div>`;
+const lcHead = () => `<div class="lc-keep">${ic('clock', 14)}<span>${L('৭ দিনের পুরোনো মেসেজ নিজে থেকে মুছে যায়', 'Messages older than 7 days are deleted')}</span><span class="lc-wa">${ic('message', 14)} WhatsApp</span></div>`;
+const lcYesterday = () => `<div class="lc-day">${L('গতকাল', 'Yesterday')}</div>
+  ${lcMine('staff', `<div class="lc-gone">${ic('image', 16)}${L('ছবি মুছে ফেলা হয়েছে', 'Photo deleted')}</div>${L('পেমেন্ট পেজে bKash দেখাচ্ছে না কেন?', 'Why does bKash not show on the payment page?')}`, '4:10 PM')}
+  ${lcTheirs(L('মেনু → পেমেন্ট মেথডে bKash চালু করলেই দেখাবে।', 'Turn bKash on in Menu → Payment methods and it shows.'), '4:18 PM')}`;
+const LC_BODY = {
+  base: () => `${lcHead()}${lcYesterday()}<div class="lc-day">${L('আজ', 'Today')}</div>
+    ${lcMine('owner', `<img class="lc-pic" src="${LC_IMG('fashion-2')}" alt="">${L('কুরিয়ার লেবেলে ঠিকানা কেটে যাচ্ছে। একটু দেখবেন?', 'The courier label cuts off the address. Could you look?')}`, '11:02 AM')}
+    ${lcTheirs(L('দেখছি। লেবেল প্রিন্টের সময় কাগজ A6 বেছে নিন, পুরো ঠিকানা আসবে।', 'Looking. Choose A6 paper when printing labels and the whole address fits.'), '11:05 AM')}`,
+  offhours: () => `${lcHead()}${lcYesterday()}<div class="lc-day">${L('আজ', 'Today')}</div>
+    ${lcMine('owner', L('রাতের অর্ডারগুলোর পেমেন্ট মিলছে না।', 'Payments for tonight’s orders do not match.'), '11:40 PM')}
+    ${lcSys('clock', L('আমরা সকাল 9টা থেকে রাত 10টা পর্যন্ত উত্তর দিই — সকাল 9টায় উত্তর দেব। জরুরি হলে WhatsApp করুন।', 'We answer from 9 AM to 10 PM — we will reply at 9 AM. WhatsApp us if it is urgent.'))}`,
+  busy: () => `${lcHead()}<div class="lc-day">${L('আজ', 'Today')}</div>
+    ${lcMine('staff', L('স্টাফ যোগ করতে গেলে “লিমিট শেষ” দেখাচ্ছে।', 'Adding a staff member says the limit is reached.'), '3:02 PM')}
+    ${lcSys('clock', L('একটু ব্যস্ত আছি — শিগগিরই উত্তর দিচ্ছি। জরুরি হলে WhatsApp করুন।', 'Busy for a moment — we will answer soon. WhatsApp us if it is urgent.'))}`,
+  ai: () => `${lcHead()}<div class="lc-day">${L('আজ', 'Today')}</div>
+    ${lcMine('owner', L('কুরিয়ার লেবেল কীভাবে প্রিন্ট করব?', 'How do I print a courier label?'), '10:31 PM')}
+    ${lcTheirs(L('অর্ডার খুলে “লেবেল প্রিন্ট” চাপুন। একসাথে অনেকগুলো লাগলে অর্ডার লিস্টে বেছে নিয়ে প্রিন্ট করুন।', 'Open the order and tap “Print label”. For many at once, pick them in the orders list and print.'), '10:31 PM', true)}
+    <button class="lc-human">${ic('user', 16)} ${L('মানুষের সাথে কথা বলুন', 'Talk to a person')}</button>`,
+};
+const lcComposer = () => `<div class="lc-comp"><button class="ib" aria-label="${L('ছবি', 'Photo')}">${ic('image')}</button><div class="lc-in">${L('মেসেজ লিখুন…', 'Write a message…')}</div><button class="btn p sm lc-send" aria-label="${L('পাঠান', 'Send')}">${ic('right')}</button></div>`;
+const lcSheet = (kind) => sheet(`Lytro ${L('সাপোর্ট', 'support')}`, `<div class="lc-chat">${LC_BODY[kind]()}</div>`, lcComposer());
+SCREENS['lc-home-peek'] = { ...SCREENS.home, lc: { fab: 'peek' }, render() { return lcNote(L('হোম খুললেই নিচে ডানে ছোট চ্যাট বাটন ৫ সেকেন্ড দেখায়, তারপর সরে যায়। প্রতিবার হোম খুললে।', 'Each time Home opens, the small chat button shows at the bottom right for 5 seconds, then slides away.')) + SCREENS.home.render(); } };
+SCREENS['lc-home-gone'] = { ...SCREENS.home, lc: { fab: 'gone' }, render() { return lcNote(L('৫ সেকেন্ড পরে বাটন সরে গেছে (দাগ দেওয়া জায়গাটা শুধু স্কেচে)। স্ক্রল করার সময়ও লুকায়, থামলে ফেরে।', 'After 5 seconds the button has gone (the dashed outline is the sketch only). It also hides while scrolling and returns when it stops.')) + SCREENS.home.render(); } };
+SCREENS['lc-menu'] = { ...SCREENS.menu, lc: { fab: 'on' }, render() { return lcNote(L('মেনুতে বাটন সবসময় থাকে।', 'In Menu the button is always there.')) + SCREENS.menu.render(); } };
+SCREENS['lc-unread-any'] = { ...SCREENS.orders, lc: { fab: 'on', n: 2 }, render() { return lcNote(L('Lytro উত্তর দিলে যেকোনো স্ক্রিনে বাটন আসে, সংখ্যা আর সাউন্ডসহ; পড়া হলে আগের নিয়মে ফেরে।', 'When Lytro replies, the button comes onto any screen with a count and a sound; once read it goes back to its usual rules.')) + SCREENS.orders.render(); } };
+SCREENS['lc-chat'] = { ...SCREENS.home, base: 'home', sheet: () => lcSheet('base') };
+SCREENS['lc-chat-desktop'] = { ...SCREENS['lc-chat'] };
+SCREENS['lc-offhours'] = { ...SCREENS.home, base: 'home', sheet: () => lcSheet('offhours') };
+SCREENS['lc-busy'] = { ...SCREENS.home, base: 'home', sheet: () => lcSheet('busy') };
+SCREENS['lc-ai'] = { ...SCREENS.home, base: 'home', sheet: () => lcSheet('ai') };
+SCREENS['lc-sound'] = { ...P37_PREFS, render: () => {
+  const h = sndPrefs(true);
+  const row = `<div class="p37nk" style="padding:10px 0 4px;border-top:1px solid var(--line);margin-top:8px"><span class="body"><span class="l1">${L('চ্যাট মেসেজে সাউন্ড', 'Sound for a chat message')}</span><span class="l2">${L('Lytro উত্তর দিলে একই সাউন্ড বাজবে, যেকোনো স্ক্রিনে। শুধু এই ডিভাইসে।', 'The same sound plays when Lytro replies, on any screen. On this device only.')}</span></span><span class="switch on"></span></div>`;
+  const at = h.indexOf('<div class="actions" style="margin-top:8px">', h.indexOf(L('নতুন নোটিফিকেশনে সাউন্ড', 'Sound for a new notification')));
+  if (at < 0) throw new Error('Live chat: the sound card not found');
+  return h.slice(0, at) + row + h.slice(at);
+} };
+const _renderLc = render;
+render = function () {
+  _renderLc();
+  const scr = SCREENS[ST.screen];
+  if (!scr || !scr.lc) return;
+  const shell = document.querySelector('#frame .shell');
+  if (shell) shell.insertAdjacentHTML('beforeend', lcFab(scr.lc));
+};
+document.head.insertAdjacentHTML('beforeend', `<style>
+.lc-fab{position:absolute;right:16px;bottom:76px;width:44px;height:44px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 16px rgba(16,32,31,.28);z-index:15;border:0;cursor:pointer}
+.lc-fab svg.i{width:22px;height:22px}
+.lc-fab .lc-n{position:absolute;top:-5px;right:-5px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:var(--danger);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid var(--bg)}
+.lc-fab.lc-ghost{background:transparent;border:2px dashed #b45309;box-shadow:none;color:#b45309;opacity:.7}
+@container (min-width: 1024px){.lc-fab{right:24px;bottom:24px}}
+.lc-skn{border:1px dashed #b45309;background:#fff7ed;color:#7c2d12;border-radius:10px;padding:10px 12px;font-size:13px;margin-bottom:12px}
+.lc-chat{display:flex;flex-direction:column}
+.lc-keep{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--n700);margin-bottom:4px}
+.lc-keep .lc-wa{margin-left:auto;display:inline-flex;align-items:center;gap:4px;color:var(--primary);font-weight:600;flex:none}
+.lc-day{text-align:center;font-size:12px;color:var(--n700);margin:12px 0 6px}
+.lc-m{display:flex;flex-direction:column;max-width:82%;margin:6px 0}
+.lc-mine{margin-left:auto;align-items:flex-end}
+.lc-theirs{align-items:flex-start}
+.lc-b{padding:9px 12px;border-radius:14px;font-size:15px;line-height:1.5}
+.lc-mine .lc-b{background:var(--primary);color:#fff;border-bottom-right-radius:4px}
+.lc-theirs .lc-b{background:var(--n50);color:var(--text);border:1px solid var(--line);border-bottom-left-radius:4px}
+.lc-who{font-size:12px;font-weight:600;margin:0 4px 3px;display:inline-flex;align-items:center;gap:4px}
+.lc-owner{color:var(--teal-700)}
+.lc-staff{color:var(--mar-700)}
+.lc-lytro{color:var(--n700)}
+.lc-ai{background:var(--warning-soft);color:var(--warning);border-radius:6px;padding:0 6px;font-weight:600}
+.lc-t{font-size:11px;color:var(--n700);margin:3px 4px 0}
+.lc-pic{display:block;width:160px;height:160px;object-fit:cover;border-radius:10px;margin-bottom:6px}
+.lc-gone{display:flex;align-items:center;gap:6px;font-size:13px;margin-bottom:6px;font-style:italic;opacity:.9}
+.lc-sys{display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:var(--info-soft);color:var(--text);border-radius:12px;padding:10px 12px;font-size:14px;margin:10px 0}
+.lc-sys > span{flex:1;min-width:180px}
+.lc-human{align-self:flex-start;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:14px;display:inline-flex;align-items:center;gap:6px;color:var(--primary);font-weight:600;cursor:pointer}
+.lc-comp{display:flex;align-items:center;gap:8px;width:100%}
+.lc-in{flex:1;height:44px;border:1px solid var(--line);border-radius:22px;padding:0 16px;display:flex;align-items:center;color:var(--n700);font-size:15px}
+.sheet .sf .lc-send{flex:none;width:44px;height:44px;border-radius:50%;padding:0;justify-content:center}
+.sheet .sf .lc-comp .ib{flex:none}
+</style>`);
+(function initLc() { const h = location.hash.replace('#', ''); if (h && h.startsWith('lc-') && SCREENS[h] && h !== ST.screen) { ST.screen = h; document.getElementById('selScreen').value = h; render(); } })();
+/* ---------- end of live chat (sketch) ---------- */
 </script>
 </body>
 </html>

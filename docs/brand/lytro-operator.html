@@ -4227,6 +4227,229 @@ def('p99-credential-uses-bad', { ...p99Cred, label: '· CSV: "to" before "from" 
 def('p99-credential-uses-done', { ...p99Cred, label: '· CSV downloading (toast)', toast: () => t('p99_cu_done') });
 
 /* ---------- end of Phase 9 Slice 9.9 (sketch) ---------- */
+/* ---------- Live chat with shops (sketch, 2026-11-27; docs/LIVE-CHAT-PLAN.md) ----------
+   Lytro's side of LC-1 to LC-21: a floating button with the shop's name on any console page while a chat waits, with a
+   sound (none for a chat the AI fully answered, LC-20); the inbox; one chat with the shop's name opening its page, names
+   in two colours (owner, staff), the shop's context beside it, quick replies; an AI draft to approve; the operator's own
+   notifications; the chat's settings, the AI's (switch, provider and model, monthly cap and spend, replies per shop);
+   chat and AI per plan and per shop. What the AI knows is a placeholder: a separate discussion (LC-21). */
+const oL = (en, bn) => (L.lang === 'bn' ? bn : en);
+I.chat = '<svg class="i" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg>';
+I.image = '<svg class="i" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg>';
+I.send = '<svg class="i" viewBox="0 0 24 24"><path d="M4 12l16-8-6 16-2-7z"/></svg>';
+I.bolt = '<svg class="i" viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>';
+I.grip = '<svg class="i" viewBox="0 0 24 24"><circle cx="9" cy="6" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="18" r="1"/></svg>';
+const OC_IMG = (n) => `sample-photos/builder/${n}.jpg`;
+const ocNote = (text) => `<div class="oc-skn"><b>${oL('Sketch note', 'স্কেচ নোট')}:</b> ${text}</div>`;
+const OC_CHATS = () => [
+  { id: 'rahim', shop: 'Rahim Fashion', plan: 'Growth', last: oL('The courier label cuts off the address.', 'কুরিয়ার লেবেলে ঠিকানা কেটে যাচ্ছে।'), wait: oL('4 min', '4 মিনিট'), n: 2, kind: 'human' },
+  { id: 'megh', shop: 'Megh Fashion', plan: 'Starter', last: oL('Asked for a person', 'মানুষের সাথে কথা বলতে চেয়েছেন'), wait: oL('1 min', '1 মিনিট'), n: 1, kind: 'person' },
+  { id: 'dhaka', shop: 'Dhaka Gadget', plan: 'Pro', last: oL('Can I pause my shop for a week?', 'এক সপ্তাহ শপ বন্ধ রাখা যাবে?'), wait: oL('12 min', '12 মিনিট'), n: 1, kind: 'draft' },
+  { id: 'noor', shop: 'Noor Modest', plan: 'Pilot', last: oL('How do I print a courier label?', 'কুরিয়ার লেবেল কীভাবে প্রিন্ট করব?'), wait: '', n: 1, kind: 'ai' },
+  { id: 'rongila', shop: 'Rongila Fashion', plan: 'Growth', last: oL('Thank you!', 'ধন্যবাদ!'), wait: '', n: 0, kind: 'done' },
+];
+const ocMark = (kind) => ({
+  person: st('bad', oL('Wants a person', 'মানুষ চান')),
+  draft: st('warn', oL('AI draft to approve', 'AI ড্রাফট অনুমোদন বাকি')),
+  ai: st('info', oL('AI answered', 'AI উত্তর দিয়েছে')),
+  human: '', done: '',
+}[kind]);
+const ocRow = (c, sel) => `<button class="oc-row ${sel ? 'sel' : ''} ${c.n && c.kind !== 'ai' ? 'unread' : ''}" onclick="go('oc-chat')"><span class="oc-av">${c.shop[0]}</span><span class="oc-rb"><span class="oc-r1"><b>${c.shop}</b><span class="oc-plan">${c.plan}</span>${c.wait ? `<span class="oc-wait">${I.clock}${c.wait}</span>` : ''}</span><span class="oc-r2">${c.last}</span>${ocMark(c.kind) ? `<span class="oc-r3">${ocMark(c.kind)}</span>` : ''}</span>${c.n ? `<span class="oc-n ${c.kind === 'ai' ? 'quiet' : ''}">${c.n}</span>` : ''}</button>`;
+const ocFilters = () => `<div class="chips">${[[oL('All', 'সব'), 5, true], [oL('Waiting for you', 'আপনার উত্তর বাকি'), 3], [oL('AI drafts', 'AI ড্রাফট'), 1], [oL('AI answered', 'AI উত্তর দিয়েছে'), 1]].map(([l, n, on]) => `<button class="chip ${on ? 'on' : ''}">${l} <span class="oc-cn">${n}</span></button>`).join('')}</div>`;
+const ocList = (selId) => `<div class="card flush oc-list">${OC_CHATS().map((c) => ocRow(c, c.id === selId)).join('')}</div>`;
+const ocWho = (role) => (role === 'owner' ? `<span class="oc-who oc-owner">${oL('Rahim', 'রহিম')} · ${oL('owner', 'মালিক')}</span>` : `<span class="oc-who oc-staff">${oL('Sumi', 'সুমি')} · ${oL('staff', 'স্টাফ')}</span>`);
+const ocShop = (role, body, time) => `<div class="oc-m oc-shopm">${ocWho(role)}<div class="oc-b">${body}</div><span class="oc-t">${time}</span></div>`;
+const ocUs = (body, time, ai) => `<div class="oc-m oc-us"><span class="oc-who oc-lytro">${ai ? `<span class="oc-ai">${oL('Automatic answer', 'স্বয়ংক্রিয় উত্তর')}</span>` : oL('You', 'আপনি')}</span><div class="oc-b">${body}</div><span class="oc-t">${time}</span></div>`;
+const ocConvo = (o) => `<div class="oc-conv">
+  <div class="oc-ch"><a class="oc-shoplink" onclick="go('tenant')">Rahim Fashion ${I.arrow}</a><span class="oc-plan">Growth</span>${stateChip('active')}<span class="oc-chsp"></span><span class="oc-hint">${oL('Messages older than 7 days are deleted', '৭ দিনের পুরোনো মেসেজ মুছে যায়')}</span></div>
+  <div class="oc-msgs">
+    <div class="oc-day">${oL('Yesterday', 'গতকাল')}</div>
+    ${ocShop('staff', `<div class="oc-gone">${I.image}${oL('Photo deleted', 'ছবি মুছে ফেলা হয়েছে')}</div>${oL('Why does bKash not show on the payment page?', 'পেমেন্ট পেজে bKash দেখাচ্ছে না কেন?')}`, '4:10 PM')}
+    ${ocUs(oL('Turn bKash on in Menu → Payment methods and it shows.', 'মেনু → পেমেন্ট মেথডে bKash চালু করলেই দেখাবে।'), '4:18 PM')}
+    <div class="oc-day">${oL('Today', 'আজ')}</div>
+    ${ocShop('owner', `<img class="oc-pic" src="${OC_IMG('fashion-2')}" alt="">${oL('The courier label cuts off the address. Could you look?', 'কুরিয়ার লেবেলে ঠিকানা কেটে যাচ্ছে। একটু দেখবেন?')}`, '11:02 AM')}
+    ${o.draft ? `<div class="oc-draft"><div class="oc-dh">${I.bolt}<b>${oL('AI draft · not confident enough to send', 'AI ড্রাফট · সরাসরি পাঠানোর মতো নিশ্চিত না')}</b></div><div class="oc-db">${oL('When printing labels, choose A6 paper; the whole address fits. If it still cuts, shorten the address line in the order.', 'লেবেল প্রিন্টের সময় কাগজ A6 বেছে নিন, পুরো ঠিকানা আসবে। তবুও কাটলে অর্ডারে ঠিকানার লাইন একটু ছোট করুন।')}</div><div class="oc-dn">${oL('The shop sees nothing until you approve.', 'আপনি অনুমোদন না করা পর্যন্ত শপ কিছুই দেখবে না।')}</div><div class="oc-da">${btn(oL('Approve and send', 'অনুমোদন করে পাঠান'), 'primary sm')}${btn(oL('Edit', 'এডিট'), 'ghost sm')}${btn(oL('Discard', 'বাদ দিন'), 'ghost sm oc-dang')}</div></div>` : ocUs(oL('Looking. Choose A6 paper when printing labels and the whole address fits.', 'দেখছি। লেবেল প্রিন্টের সময় কাগজ A6 বেছে নিন, পুরো ঠিকানা আসবে।'), '11:05 AM')}
+  </div>
+  ${o.quick ? `<div class="oc-qpop"><div class="oc-qh"><b>${oL('Quick replies', 'দ্রুত উত্তর')}</b><a onclick="go('oc-settings-chat')">${oL('Edit the list', 'লিস্ট এডিট করুন')}</a></div>${OC_QUICK().map(([ti, tx]) => `<button class="oc-qi"><b>${ti}</b><span>${tx}</span></button>`).join('')}</div>` : ''}
+  <div class="oc-comp"><button class="btn ghost sm oc-qb" onclick="go('oc-quick')">${I.bolt}${oL('Quick replies', 'দ্রুত উত্তর')}</button><button class="iconbtn">${I.image}</button><div class="oc-in">${oL('Write a reply…', 'উত্তর লিখুন…')}</div><button class="btn primary sm oc-send">${I.send}</button></div>
+</div>`;
+const OC_QUICK = () => [
+  [oL('Label paper', 'লেবেলের কাগজ'), oL('Choose A6 paper when printing labels…', 'লেবেল প্রিন্টের সময় কাগজ A6 বেছে নিন…')],
+  [oL('bKash on the page', 'পেজে bKash'), oL('Turn bKash on in Menu → Payment methods…', 'মেনু → পেমেন্ট মেথডে bKash চালু করুন…')],
+  [oL('Top-up timing', 'টপ-আপের সময়'), oL('A top-up is usually added within an hour…', 'টপ-আপ সাধারণত এক ঘণ্টার মধ্যে যোগ হয়…')],
+  [oL('Staff limit', 'স্টাফ লিমিট'), oL('Your plan counts the owner as one seat…', 'আপনার প্ল্যানে মালিকও একটা সিট…')],
+];
+const ocContext = () => `<div class="oc-ctx">
+  <div class="card"><h3>${oL('The shop', 'শপ')}</h3>
+    <div class="oc-kv"><span>${oL('Plan', 'প্ল্যান')}</span><b>Growth · ${oL('until 12 Jan', '12 Jan পর্যন্ত')}</b></div>
+    <div class="oc-kv"><span>${oL('State', 'অবস্থা')}</span>${stateChip('active')}</div>
+    <div class="oc-kv"><span>${oL('Balance', 'ব্যালেন্স')}</span><b>৳412.50</b></div>
+    <div class="oc-kv"><span>${oL('Was on', 'ছিলেন')}</span><span class="mono">/orders/261127-0012</span></div>
+    <a class="oc-more" onclick="go('tenant')">${oL('Open the shop page', 'শপের পেজ খুলুন')} ${I.arrow}</a></div>
+  <div class="card"><h3>${oL('Recent errors', 'সাম্প্রতিক এরর')}</h3>
+    <div class="oc-err">${st('bad', '502')}<span>${oL('Courier booking · Steadfast · 10:58', 'কুরিয়ার বুকিং · Steadfast · 10:58')}</span></div>
+    <div class="oc-err">${st('mute', '429')}<span>${oL('Too many label prints · 10:41', 'অনেক বেশি লেবেল প্রিন্ট · 10:41')}</span></div></div>
+  <div class="card"><h3>${oL('People in this chat', 'এই চ্যাটে যারা')}</h3><div class="oc-ppl">${ocWho('owner')}${ocWho('staff')}</div></div>
+</div>`;
+const ocChatPage = (o) => `<div class="oc-wrap"><div class="oc-left">${ocFilters()}${ocList('rahim')}</div>${ocConvo(o)}${ocContext()}</div>`;
+const ocPh = (title, sub, right) => `<div class="ttl"><div><h1>${title}</h1>${sub ? `<div class="sub">${sub}</div>` : ''}</div>${right || ''}</div>`;
+const ocInbox = () => `${ocPh(oL('Chats', 'চ্যাট'), oL('One chat per shop. A sound plays only when a person is needed; a chat the AI fully answered is counted quietly.', 'প্রতি শপে একটা চ্যাট। মানুষ লাগলে তবেই সাউন্ড বাজে; AI পুরো উত্তর দিলে চুপচাপ গোনা হয়।'))}${ocFilters()}${ocList(null)}`;
+const ocLine = (label, control, help) => `<div class="oc-set"><div class="oc-sl"><b>${label}</b>${help ? `<span>${help}</span>` : ''}</div><div class="oc-sc">${control}</div></div>`;
+const ocNum = (v, unit) => `<span class="oc-numw">${input(v, 'oc-num')}<span>${unit}</span></span>`;
+const ocNotif = () => `${ocPh(oL('My notifications', 'আমার নোটিফিকেশন'), oL('For you, on this browser.', 'আপনার জন্য, এই ব্রাউজারে।'))}
+  <div class="card">${ocLine(oL('A new chat message', 'নতুন চ্যাট মেসেজ'), sw(true), oL('The floating button with the shop’s name, on any page.', 'যেকোনো পেজে শপের নামসহ ভাসমান বাটন।'))}
+  ${ocLine(oL('Sound', 'সাউন্ড'), `${select([['chime', oL('Sharp chime (the shops’ sound)', 'তীক্ষ্ণ চাইম (শপের সাউন্ড)')], ['soft', oL('Soft', 'নরম')], ['none', oL('None', 'কোনোটা না')]], 'chime')} ${btn(`${I.play}${oL('Play', 'শুনুন')}`, 'ghost sm')}`, oL('Plays only when a person is needed: the AI handed over, a draft awaits you, or the shop asked for a person. A chat the AI fully answered makes no sound.', 'মানুষ লাগলে তবেই বাজে: AI হাতে দিলে, ড্রাফট আপনার অপেক্ষায় থাকলে, বা শপ মানুষ চাইলে। AI পুরো উত্তর দিলে বাজে না।'))}
+  ${ocLine(oL('Phone notification', 'ফোনে নোটিফিকেশন'), sw(true), oL('When the console is closed, through this browser.', 'কনসোল বন্ধ থাকলে, এই ব্রাউজার দিয়ে।'))}</div>`;
+const ocChatSettings = () => `${ocPh(oL('Live chat', 'লাইভ চ্যাট'), oL('Which shops have it is set per plan and per shop.', 'কোন শপ পাবে তা প্ল্যান আর শপ অনুযায়ী ঠিক হয়।'))}
+  <div class="card"><h3>${oL('Hours and rules', 'সময় ও নিয়ম')}</h3>
+  ${ocLine(oL('Answer hours', 'উত্তরের সময়'), `<span class="oc-ro">9 AM – 10 PM</span> <a class="oc-more" onclick="go('settings')">${oL('The help line’s hours · change', 'হেল্প লাইনের সময় · বদলান')}</a>`, oL('Outside them the shop sees when you’ll answer, and WhatsApp.', 'এর বাইরে শপ দেখে কখন উত্তর দেবেন, আর WhatsApp।'))}
+  ${ocLine(oL('Busy line after', 'ব্যস্ত লাইন যায়'), ocNum(10, oL('minutes unanswered', 'মিনিট উত্তর না দিলে')))}
+  ${ocLine(oL('Keep messages', 'মেসেজ থাকে'), ocNum(7, oL('days', 'দিন')), oL('Lowering it deletes older ones at the next nightly clean-up.', 'কমালে পরের রাতের ক্লিনআপে পুরোনোগুলো মুছে যাবে।'))}
+  ${ocLine(oL('Keep photos', 'ছবি থাকে'), ocNum(3, oL('days', 'দিন')), oL('Never longer than the messages.', 'মেসেজের চেয়ে বেশি দিন না।'))}
+  ${ocLine(oL('Messages per person', 'জন প্রতি মেসেজ'), ocNum(20, oL('a minute', 'প্রতি মিনিটে')))}</div>
+  <div class="card"><div class="oc-qeh"><h3>${oL('Quick replies', 'দ্রুত উত্তর')}</h3>${btn(`${I.plus}${oL('New quick reply', 'নতুন দ্রুত উত্তর')}`, 'ghost sm')}</div><div class="hint">${oL('Your own list, for you and other operators. The AI does not use it.', 'আপনার নিজের লিস্ট, আপনার আর অন্য অপারেটরদের জন্য। AI এটা ব্যবহার করে না।')}</div>
+  ${OC_QUICK().map(([ti, tx]) => `<div class="oc-qrow"><span class="oc-grip">${I.grip}</span><span class="oc-qt"><b>${ti}</b><span>${tx}</span></span><button class="iconbtn">${I.edit}</button><button class="iconbtn">${I.trash}</button></div>`).join('')}</div>`;
+const ocAiSettings = () => `${ocPh(oL('AI answers', 'AI উত্তর'), oL('Optional. Which shops get it is set per plan and per shop.', 'ঐচ্ছিক। কোন শপ পাবে তা প্ল্যান আর শপ অনুযায়ী ঠিক হয়।'))}
+  <div class="card">${ocLine(oL('AI answers', 'AI উত্তর'), sw(true), oL('Off: no AI anywhere, every chat is answered by people.', 'বন্ধ: কোথাও AI নেই, সব চ্যাটে মানুষ উত্তর দেয়।'))}
+  ${ocLine(oL('The AI', 'যে AI'), select([['gemini', 'Gemini']], 'gemini'), oL('Gemini is the only AI Lytro can use today; another needs its adapter built first, as for reading addresses.', 'আজ Lytro শুধু Gemini ব্যবহার করতে পারে; অন্য AI লাগলে আগে তার অ্যাডাপ্টার বানাতে হবে, ঠিকানা পড়ার মতোই।'))}
+  ${ocLine(oL('Its model', 'মডেল'), input('gemini-3.5-flash-lite', 'mono'), oL('Typed as the AI names it. Change it any time.', 'AI যে নামে ডাকে সেভাবে লিখুন। যখন খুশি বদলানো যায়।'))}
+  ${ocLine(oL('How it answers', 'কীভাবে উত্তর দেয়'), `<span class="oc-ro">${oL('Confident: sends at once · otherwise a draft for you', 'নিশ্চিত হলে সাথে সাথে পাঠায় · না হলে আপনার জন্য ড্রাফট')}</span>`)}</div>
+  <div class="card"><h3>${oL('Cost', 'খরচ')}</h3>
+  ${ocLine(oL('Monthly cap', 'মাসিক সীমা'), `<span class="oc-numw"><span>৳</span>${input(600, 'oc-num')}</span>`, oL('At the cap the AI stops everywhere until the month turns.', 'সীমায় পৌঁছালে মাস শেষ না হওয়া পর্যন্ত কোথাও AI চলবে না।'))}
+  <div class="oc-spend"><div class="oc-sbar"><i style="width:14%"></i></div><span>${oL('This month: ৳84.20 of ৳600 · 1,031 answers', 'এই মাসে: ৳600-এর ৳84.20 · 1,031টি উত্তর')}</span></div>
+  ${ocLine(oL('AI answers per shop', 'শপ প্রতি AI উত্তর'), `<span class="oc-numw">${input(10, 'oc-num')}<span>${oL('a day', 'প্রতিদিন')}</span></span> ${chk(false, oL('Unlimited', 'সীমা নেই'))}`, oL('At it, that shop’s chat is answered by people for the rest of the day.', 'সীমায় পৌঁছালে দিনের বাকি সময় সেই শপে মানুষ উত্তর দেবে।'))}</div>
+  <div class="card oc-tbd"><h3>${I.info}${oL('What the AI knows, and how it answers cheaply', 'AI কী জানে, আর কম খরচে কীভাবে উত্তর দেয়')}</h3><div class="hint">${oL('To discuss with the owner (LC-21). Not designed here, and not linked to the quick replies.', 'মালিকের সাথে আলোচনা বাকি (LC-21)। এখানে ডিজাইন করা হয়নি, দ্রুত উত্তরের সাথেও যুক্ত না।')}</div></div>`;
+const ocFeatures = (chat, ai) => `<div class="oc-feat"><h4>${oL('Features', 'ফিচার')}</h4>
+  ${ocLine(oL('Live chat with Lytro', 'Lytro-র সাথে লাইভ চ্যাট'), sw(chat), oL('Shops on this plan get the chat, unless a shop’s own setting says otherwise.', 'এই প্ল্যানের শপ চ্যাট পাবে, যদি না শপের নিজের সেটিং অন্য কিছু বলে।'))}
+  ${ocLine(oL('AI answers', 'AI উত্তর'), sw(ai), oL('Only in a chat: with live chat off, it does nothing.', 'শুধু চ্যাটে: লাইভ চ্যাট বন্ধ থাকলে কিছু করে না।'))}</div>`;
+const ocShopCard = () => `<div class="card oc-shopf"><h3>${I.chat}${oL('Live chat and AI', 'লাইভ চ্যাট ও AI')}</h3>
+  ${ocLine(oL('Live chat', 'লাইভ চ্যাট'), select([['plan', oL('As its plan (on)', 'প্ল্যান অনুযায়ী (চালু)')], ['on', oL('On for this shop', 'এই শপে চালু')], ['off', oL('Off for this shop', 'এই শপে বন্ধ')]], 'plan'), oL('Growth has it on. A shop’s own setting wins over its plan.', 'Growth-এ চালু। শপের নিজের সেটিং প্ল্যানের ওপরে।'))}
+  ${ocLine(oL('AI answers', 'AI উত্তর'), select([['plan', oL('As its plan (on)', 'প্ল্যান অনুযায়ী (চালু)')], ['on', oL('On for this shop', 'এই শপে চালু')], ['off', oL('Off for this shop', 'এই শপে বন্ধ')]], 'off'), oL('Off here: this shop is always answered by people.', 'এখানে বন্ধ: এই শপে সবসময় মানুষ উত্তর দেবে।'))}
+  <div class="oc-da">${btn(`${I.chat}${oL('Open its chat', 'চ্যাট খুলুন')}`, 'ghost sm', "go('oc-chat')")}</div></div>`;
+Object.assign(S, { oc_band: ['Chats', 'চ্যাট'] });
+const OC_BASE = { nav: 'inbox', group: 'Live chat (sketch 2026-11-27)', url: 'admin.lytro.app/chats', bandTitle: 'oc_band' };
+def('oc-fab', { ...SCREENS.tenants, group: OC_BASE.group, label: 'Any page · a chat waits: the floating button with the shop', oc: { shop: 'Rahim Fashion', n: 3 }, render: () => ocNote(oL('While a chat waits for a person, this button with the latest shop’s name and the total count shows on every console page, with a sound. A chat the AI fully answered makes no sound.', 'কোনো চ্যাট মানুষের অপেক্ষায় থাকলে কনসোলের প্রতিটা পেজে শপের নাম আর মোট সংখ্যাসহ এই বাটন থাকে, সাউন্ডসহ। AI পুরো উত্তর দিলে সাউন্ড নেই।')) + SCREENS.tenants.render() });
+def('oc-inbox', { ...OC_BASE, label: 'Chats · the inbox', render: ocInbox });
+def('oc-chat', { ...OC_BASE, url: 'admin.lytro.app/chats/rahim-fashion', label: 'One chat · shop link, two name colours, context, photos', render: () => ocChatPage({}) });
+def('oc-draft', { ...OC_BASE, url: 'admin.lytro.app/chats/rahim-fashion', label: '· an AI draft to approve, edit or discard', render: () => ocChatPage({ draft: true }) });
+def('oc-quick', { ...OC_BASE, url: 'admin.lytro.app/chats/rahim-fashion', label: '· quick replies, open', render: () => ocChatPage({ quick: true }) });
+def('oc-notif', { ...OC_BASE, url: 'admin.lytro.app/me/notifications', label: 'My notifications · sound and phone', render: ocNotif });
+def('oc-settings-chat', { ...OC_BASE, nav: 'settings', url: 'admin.lytro.app/settings/chat', label: 'Settings · live chat: hours, busy line, keeping, quick replies', render: ocChatSettings });
+def('oc-settings-ai', { ...OC_BASE, nav: 'settings', url: 'admin.lytro.app/settings/chat-ai', label: 'Settings · AI answers: switch, model, cap, per shop', render: ocAiSettings });
+def('oc-plan-features', { ...SCREENS['plan-edit'], group: OC_BASE.group, label: 'Plan editor · chat and AI per plan', sheet: () => { const h = SCREENS['plan-edit'].sheet(); const at = h.lastIndexOf('<div class="sf'); return at < 0 ? h : h.slice(0, at).replace(/<\/div>$/, `${ocFeatures(true, true)}</div>`) + h.slice(at); } });
+def('oc-shop-features', { ...SCREENS.tenant, group: OC_BASE.group, label: 'Shop page · chat and AI for this shop', render: () => { const h = SCREENS.tenant.render(); const at = h.indexOf('<div class="card'); return at < 0 ? ocShopCard() + h : h.slice(0, at) + ocShopCard() + h.slice(at); } });
+const _renderOc = render;
+render = function () {
+  _renderOc();
+  const scr = SCREENS[ST.screen];
+  if (!scr || !scr.oc) return;
+  const shell = document.querySelector('#root .shell');
+  if (shell) shell.insertAdjacentHTML('beforeend', `<button class="oc-fab" onclick="go('oc-chat')">${I.chat}<span>${scr.oc.shop}</span><span class="oc-fn">${scr.oc.n}</span></button>`);
+};
+document.head.insertAdjacentHTML('beforeend', `<style>
+.oc-fab{position:absolute;right:24px;bottom:24px;height:44px;padding:0 8px 0 14px;border-radius:22px;background:var(--primary);color:#fff;display:flex;align-items:center;gap:8px;border:0;box-shadow:0 6px 16px rgba(16,32,31,.28);z-index:15;font-size:14px;font-weight:600;cursor:pointer}
+.frame.phone .oc-fab,.frame.tablet .oc-fab{right:16px;bottom:76px}
+.oc-fab svg.i{width:20px;height:20px}
+.oc-fn{min-width:24px;height:24px;border-radius:12px;background:var(--danger);display:flex;align-items:center;justify-content:center;font-size:12px;padding:0 6px}
+.oc-skn{border:1px dashed #b45309;background:#fff7ed;color:#7c2d12;border-radius:10px;padding:10px 12px;font-size:13px}
+.oc-list{display:flex;flex-direction:column}
+.oc-row{display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border:0;border-bottom:1px solid var(--line);background:none;text-align:left;width:100%;color:inherit;cursor:pointer}
+.oc-row:last-child{border-bottom:0}
+.oc-row.sel{background:var(--info-soft)}
+.oc-av{width:36px;height:36px;border-radius:10px;background:var(--n100);color:var(--n700);display:flex;align-items:center;justify-content:center;font-weight:700;flex:none}
+.oc-rb{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.oc-r1{display:flex;align-items:center;gap:8px;font-size:15px;min-width:0}
+.oc-r1 b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.oc-r1 .oc-plan{flex:none}
+.oc-r2{font-size:14px;color:var(--n700);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.oc-row.unread .oc-r2{color:var(--ink);font-weight:600}
+.oc-r3{margin-top:2px}
+.oc-plan{font-size:12px;color:var(--n700);border:1px solid var(--line);border-radius:6px;padding:0 6px}
+.oc-wait{margin-left:auto;white-space:nowrap;flex:none;display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--warning);font-weight:600}
+.oc-wait svg.i{width:14px;height:14px}
+.oc-n{min-width:22px;height:22px;border-radius:11px;background:var(--danger);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 6px;flex:none;margin-top:6px}
+.oc-n.quiet{background:var(--n100);color:var(--n700)}
+.oc-cn{font-weight:700;margin-left:2px}
+.oc-wrap{display:grid;grid-template-columns:320px minmax(0,1fr) 280px;gap:16px;align-items:start;min-height:640px}
+.frame.phone .oc-wrap,.frame.tablet .oc-wrap{grid-template-columns:1fr}
+.frame.phone .oc-left,.frame.phone .oc-ctx,.frame.tablet .oc-left{display:none}
+.oc-left{display:flex;flex-direction:column;gap:12px}
+.oc-left .chips{margin:0;padding:0;flex-wrap:wrap}
+.oc-conv{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);display:flex;flex-direction:column;min-height:640px}
+.oc-ch{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 16px;border-bottom:1px solid var(--line)}
+.oc-shoplink{font-size:17px;font-weight:700;color:var(--primary);text-decoration:underline;text-underline-offset:3px;display:inline-flex;align-items:center;gap:4px;cursor:pointer}
+.oc-shoplink svg.i{width:16px;height:16px}
+.oc-chsp{flex:1}
+.oc-hint{font-size:12px;color:var(--n700)}
+.oc-msgs{flex:1;padding:8px 16px 16px;display:flex;flex-direction:column}
+.oc-day{text-align:center;font-size:12px;color:var(--n700);margin:12px 0 6px}
+.oc-m{display:flex;flex-direction:column;max-width:78%;margin:6px 0}
+.oc-shopm{align-items:flex-start}
+.oc-us{margin-left:auto;align-items:flex-end}
+.oc-b{padding:9px 12px;border-radius:14px;font-size:15px;line-height:1.5}
+.oc-shopm .oc-b{background:var(--n50);border:1px solid var(--line);border-bottom-left-radius:4px}
+.oc-us .oc-b{background:var(--primary);color:#fff;border-bottom-right-radius:4px}
+.oc-who{font-size:12px;font-weight:700;margin:0 4px 3px}
+.oc-owner{color:var(--teal-700)}
+.oc-staff{color:var(--mar-700)}
+.oc-lytro{color:var(--n700)}
+.oc-ai{background:var(--warning-soft);color:var(--warning);border-radius:6px;padding:0 6px}
+.oc-t{font-size:11px;color:var(--n700);margin:3px 4px 0}
+.oc-pic{display:block;width:160px;height:160px;object-fit:cover;border-radius:10px;margin-bottom:6px}
+.oc-gone{display:flex;align-items:center;gap:6px;font-size:13px;font-style:italic;margin-bottom:6px}
+.oc-gone svg.i{width:16px;height:16px}
+.oc-draft{margin:10px 0 0 auto;max-width:86%;border:1.5px dashed var(--warning);background:var(--warning-soft);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.oc-dh{display:flex;align-items:center;gap:6px;color:var(--warning);font-size:13px}
+.oc-dh svg.i{width:16px;height:16px}
+.oc-db{font-size:15px;line-height:1.5;color:var(--ink)}
+.oc-dn{font-size:12px;color:var(--n700)}
+.oc-da{display:flex;gap:8px;flex-wrap:wrap}
+.oc-dang{color:var(--danger)}
+.oc-comp{display:flex;align-items:center;gap:8px;padding:12px 16px;border-top:1px solid var(--line)}
+.oc-qb{flex:none;gap:6px}
+.oc-in{flex:1;height:40px;border:1px solid var(--line-strong);border-radius:20px;padding:0 14px;display:flex;align-items:center;color:var(--n700);font-size:14px}
+.oc-send{flex:none;width:40px;padding:0;justify-content:center}
+.oc-qpop{position:absolute;left:16px;bottom:64px;width:360px;max-width:calc(100% - 32px);background:var(--surface);border:1px solid var(--line-strong);border-radius:12px;box-shadow:0 12px 32px rgba(16,32,31,.18);padding:8px;z-index:5}
+.oc-qh{display:flex;justify-content:space-between;align-items:center;padding:4px 8px 8px;font-size:14px}
+.oc-qh a{color:var(--primary);font-size:13px;cursor:pointer}
+.oc-qi{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;border:0;background:none;text-align:left;padding:8px;border-radius:8px;cursor:pointer;color:inherit}
+.oc-qi:hover{background:var(--n50)}
+.oc-qi span{font-size:13px;color:var(--n700)}
+.oc-ctx{display:flex;flex-direction:column;gap:12px}
+.oc-kv{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:14px;padding:5px 0}
+.oc-kv > span:first-child{color:var(--n700)}
+.oc-more{color:var(--primary);font-size:14px;font-weight:600;display:inline-flex;align-items:center;gap:4px;margin-top:6px;cursor:pointer}
+.oc-more svg.i{width:14px;height:14px}
+.oc-err{display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0}
+.oc-ppl{display:flex;flex-direction:column;gap:4px}
+.oc-set{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0;border-top:1px solid var(--line)}
+.card h3 + .oc-set,.oc-feat h4 + .oc-set,.card > .oc-set:first-child{border-top:0}
+.oc-sl{display:flex;flex-direction:column;gap:2px;max-width:560px}
+.oc-sl span{font-size:13px;color:var(--n700)}
+.oc-sc{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.frame.phone .oc-set{flex-direction:column;align-items:stretch}
+.frame.phone .oc-sc{justify-content:flex-start}
+.oc-numw{display:inline-flex;align-items:center;gap:8px;font-size:14px;color:var(--n700)}
+.oc-num{width:88px;text-align:right}
+.oc-ro{font-size:14px;font-weight:600}
+.oc-spend{display:flex;align-items:center;gap:12px;font-size:13px;color:var(--n700);padding:0 0 12px}
+.oc-sbar{width:220px;height:8px;border-radius:4px;background:var(--n100);overflow:hidden}
+.oc-sbar i{display:block;height:100%;background:var(--primary)}
+.oc-tbd{border-style:dashed;background:var(--n50)}
+.oc-tbd h3{display:flex;align-items:center;gap:8px}
+.oc-tbd h3 svg.i{width:18px;height:18px}
+.oc-qeh{display:flex;justify-content:space-between;align-items:center}
+.oc-qrow{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.oc-grip{color:var(--n700);display:flex}
+.oc-grip svg.i{width:18px;height:18px}
+.oc-qt{flex:1;display:flex;flex-direction:column;min-width:0}
+.oc-qt span{font-size:13px;color:var(--n700);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.oc-feat{border-top:1px solid var(--line);margin-top:16px;padding-top:12px}
+.oc-feat h4{font-size:15px;font-weight:700}
+.oc-shopf h3{display:flex;align-items:center;gap:8px}
+.oc-shopf h3 svg.i{width:18px;height:18px}
+</style>`);
+/* ---------- end of live chat (sketch) ---------- */
 
 (function init() {
   const sel = document.getElementById('selScreen'); const groups = {};
