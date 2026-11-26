@@ -99,7 +99,6 @@ import {
 } from './quick-add';
 import { ZonesSheet } from './zones-sheet';
 import { SavedSheet } from './saved-sheet';
-import { LinkChangeButton } from './link-card';
 import { OfferCards } from './offer-card';
 import { MediaSheet } from './media-sheet';
 import { PhotoStrip } from './photo-strip';
@@ -1346,9 +1345,6 @@ function ProductPage({
                 ) : null
               }
               onRemove={product ? setRemoving : null}
-              linkChange={
-                product ? <LinkChangeButton product={product} readOnly={!mayManage} /> : null
-              }
             />
           </div>
           <div className="flex flex-col gap-section">

@@ -2,11 +2,13 @@ import { spreadsDesigns } from '@/lib/design/card-links';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { withBusyMetadata, withBusyPage } from '@/components/busy-page';
+import { EmptyList } from '@/components/catalogue/empty-state';
 import { ListView } from '@/components/catalogue/list-view';
 import { EdgeMark } from '@/components/edge-mark';
 import { OfflinePage } from '@/components/pages';
 import { ShopShell } from '@/components/shop-shell';
-import { chipsFor, findCategory, listParams } from '@/lib/catalogue/browse';
+import { chipsFor, findCategory, listHref, listParams } from '@/lib/catalogue/browse';
+import { emptyNext, shownOn } from '@/lib/catalogue/empty';
 import { pageTheme } from '@/lib/design/design-look';
 import { slugOfSegment } from '@/lib/request-path';
 import { loadFrame, loadShopPage, storefrontApi } from '@/lib/storefront';
@@ -55,6 +57,8 @@ export default withBusyPage(async function CategoryPage({ params, searchParams }
   const { words } = page;
   const path = `/c/${category.slug}`;
   const { all, chips } = chipsFor(found);
+  const next = await emptyNext(page, list, listed.inStock);
+  const theme = pageTheme(page.info);
   return (
     <ShopShell
       page={page}
@@ -63,13 +67,15 @@ export default withBusyPage(async function CategoryPage({ params, searchParams }
       title={category.name}
       current={found.top.slug}
     >
-      <EdgeMark page={page} listing products={list.products} />
+      <EdgeMark page={page} listing products={shownOn(list, next)} />
       <ListView
         words={words}
         heading={
           <div>
             <h1 className="pt">{category.name}</h1>
-            <div className="sub">{words.count('products_n', category.productCount)}</div>
+            {category.productCount > 0 ? (
+              <div className="sub">{words.count('products_n', category.productCount)}</div>
+            ) : null}
           </div>
         }
         chips={
@@ -98,7 +104,25 @@ export default withBusyPage(async function CategoryPage({ params, searchParams }
         sortable
         page={list}
         query={asked}
-        theme={pageTheme(page.info)}
+        theme={theme}
+        empty={
+          next ? (
+            <EmptyList
+              next={next}
+              line={{
+                icon: 'tag',
+                title: words.t('em_cat_h'),
+                text: words.t('em_cat_p'),
+                moreTitle: words.t('em_more_shop'),
+              }}
+              unfiltered={listHref(path, { ...listed, inStock: false }, 'featured')}
+              shop={page.info}
+              theme={theme}
+              words={words}
+              now={Date.now()}
+            />
+          ) : null
+        }
       />
     </ShopShell>
   );

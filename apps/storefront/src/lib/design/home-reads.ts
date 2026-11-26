@@ -1,20 +1,32 @@
 import {
   HeroDesign,
+  ProductRowLayout,
   ProductRowSource,
+  PUBLIC_PAGE_SIZE_MAX,
+  STOREFRONT_ALL_PRODUCTS_PAGE,
   STOREFRONT_THEMES,
   StorefrontFill,
+  StorefrontLinkKind,
   StorefrontSectionKind,
+  storefrontAllProductsAt,
+  storefrontGridLines,
+  storefrontRowFill,
   type HeroSource,
   type StorefrontCollection,
+  type StorefrontLink,
   type StorefrontSection,
 } from '@lytronix/validators';
 import type {
   ProductCard,
+  ProductPage,
   ProductQuery,
+  PublicShop,
   PublicStorefrontDesign,
   ShopperPaymentMethod,
 } from '../api/storefront-api';
+import { cardKey } from './card-links';
 import { collectionKey, FALLBACK_COLLECTIONS } from './collections';
+import { linkShows } from './links';
 
 // STOREFRONT-BUILDER-PLAN SB-9: what the designed home reads besides the shop -- each product row's products, and what
 // the sections that fill themselves draw from. Plain functions of the design; the page makes the reads.
@@ -89,10 +101,34 @@ export function hasTiles(
   return (section.design ?? STOREFRONT_THEMES[design.theme].hero) === HeroDesign.SlideTiles;
 }
 
+/**
+ * SB-32 (the owner, 2026-11-26): a row the seller picked by hand shows as chosen; every other row fills itself and skips
+ * what a row above it showed.
+ */
+export function fillsItself(section: ProductsSection): boolean {
+  return section.source !== ProductRowSource.Picked;
+}
+
+/** SB-32: "সব প্রোডাক্ট" -- the cards the rows above did not show. */
+export interface AllProducts {
+  /** The first page. */
+  shown: ProductCard[];
+  /** What the read held past the first page, shown before the list is read further. */
+  queued: ProductCard[];
+  /** Where the list goes on; null at its end. */
+  cursor: string | null;
+  /** Every card on the page or queued, by `cardKey`, so a later page skips them. */
+  seen: string[];
+  /** The products the rows above show, by ID, for the button's "আরও Nটি". */
+  above: string[];
+}
+
 /** What the home's reads came back with, by section where a section has its own. */
 export interface DesignedHomeReads {
-  /** Each product row's products, by section ID; a row reading nothing is left out. */
+  /** Each product row's products as it shows them, by section ID; a row with nothing to show is left out. */
   rows: ReadonlyMap<string, ProductCard[]>;
+  /** SB-32: "সব প্রোডাক্ট". */
+  all: AllProducts;
   /** SB-9, BL-3: each auto hero's products, by section ID. */
   heroes: ReadonlyMap<string, ProductCard[]>;
   /** BL-12, BL-13: each collection's products, by `collectionKey`, the ones read in an empty one's place included. */
@@ -108,10 +144,80 @@ export interface HomeReadPlan {
   /** BL-3, BL-9: the collections the heroes' tiles and the auto banners show, once each. */
   collections: StorefrontCollection[];
   methods: boolean;
+  /** SB-32: "সব প্রোডাক্ট", in the shop's own order: its first page and as many again as the rows above may show. */
+  all: ProductQuery;
 }
 
-export function homeReadPlan(design: PublicStorefrontDesign): HomeReadPlan {
-  const plan: HomeReadPlan = { rows: [], heroes: [], collections: [], methods: false };
+/** What the plan knows of the shop before the home is drawn: its answer's sale and its products (SB-16, SB-32). */
+export type ShopFacts = Pick<PublicShop, 'sale' | 'productCount'>;
+
+/**
+ * SB-16 as amended 2026-11-26: whether every one of a seller's own slides or banners may be hidden once the home is
+ * drawn -- its photo gone, or its link leading where nothing is now (`linkShows`). A category's count is known only
+ * then, so a category's link may be. When all may, the hero's own source or the banners' collections are read too, in
+ * the same call, so the hero fills itself and the banners fall back to the collections rather than leave a hole.
+ */
+export function mayAllHide(
+  items: readonly { photo: { mediaId: string }; link: StorefrontLink }[],
+  design: Pick<PublicStorefrontDesign, 'images' | 'offers'>,
+  shop: ShopFacts,
+): boolean {
+  const facts = {
+    categories: [],
+    sale: shop.sale ?? { products: 0 },
+    productCount: shop.productCount,
+  };
+  return items.every(
+    (item) =>
+      !(item.photo.mediaId in design.images) ||
+      item.link.kind === StorefrontLinkKind.Category ||
+      !linkShows(item.link, design, facts),
+  );
+}
+
+/** SB-32 as amended (the owner, 2026-11-26, "yes to all"): the rows that fill themselves from the shop's own lists. */
+const FROM_LISTS: ReadonlySet<ProductRowSource> = new Set([
+  ProductRowSource.Newest,
+  ProductRowSource.OnSale,
+  ProductRowSource.BestSellers,
+  ProductRowSource.Category,
+]);
+
+/**
+ * SB-32 as amended: a row of newest, on sale, best sellers or one category -- the rows whose grid ends on a full line,
+ * and the ones the design editor says are not showing. A row picked by hand or an offer's always shows all it has.
+ */
+export function fillsFromLists(section: Pick<ProductsSection, 'source'>): boolean {
+  return FROM_LISTS.has(section.source);
+}
+
+/** SB-32 as amended: how many of a row's cards it shows -- such a grid whole lines of four, the rest in "সব প্রোডাক্ট". */
+export function rowShows(
+  section: Pick<ProductsSection, 'source' | 'layout'>,
+  available: number,
+): number {
+  // A carousel has no lines.
+  if (section.layout !== ProductRowLayout.Grid || !fillsFromLists(section)) {
+    return available;
+  }
+  return storefrontGridLines(available);
+}
+
+/** SB-32: a list asked for its own count and as many again as the rows above may show, so it fills after skipping them. */
+function withRoom(count: number, above: number): number {
+  return Math.min(PUBLIC_PAGE_SIZE_MAX, count + above);
+}
+
+export function homeReadPlan(design: PublicStorefrontDesign, shop: ShopFacts = {}): HomeReadPlan {
+  const plan: HomeReadPlan = {
+    rows: [],
+    heroes: [],
+    collections: [],
+    methods: false,
+    all: { sort: 'featured', limit: STOREFRONT_ALL_PRODUCTS_PAGE },
+  };
+  // SB-32: how many cards the product rows read so far may show.
+  let above = 0;
   const want = (collections: readonly StorefrontCollection[]): void => {
     for (const collection of collections) {
       const key = collectionKey(collection);
@@ -124,17 +230,28 @@ export function homeReadPlan(design: PublicStorefrontDesign): HomeReadPlan {
     switch (section.kind) {
       case StorefrontSectionKind.Products: {
         const query = rowQuery(section, design);
-        if (query) plan.rows.push({ sectionId: section.id, query });
+        if (query) {
+          plan.rows.push({
+            sectionId: section.id,
+            query: fillsItself(section)
+              ? { ...query, limit: withRoom(section.count, above) }
+              : query,
+          });
+          above += section.count;
+        }
         break;
       }
       case StorefrontSectionKind.Hero:
-        if (section.fill === StorefrontFill.Auto) {
+        // SB-16 as amended: an own hero whose every slide may hide reads its source too, to fill itself.
+        if (section.fill === StorefrontFill.Auto || mayAllHide(section.slides, design, shop)) {
           plan.heroes.push({ sectionId: section.id, ...heroQuery(section.source) });
         }
         if (hasTiles(section, design)) want(section.tiles);
         break;
       case StorefrontSectionKind.OfferBanners:
-        if (section.fill === StorefrontFill.Auto) want(section.collections);
+        if (section.fill === StorefrontFill.Auto || mayAllHide(section.banners, design, shop)) {
+          want(section.collections);
+        }
         break;
       case StorefrontSectionKind.Trust:
         plan.methods = true;
@@ -143,7 +260,59 @@ export function homeReadPlan(design: PublicStorefrontDesign): HomeReadPlan {
         break;
     }
   }
+  plan.all = { sort: 'featured', limit: withRoom(STOREFRONT_ALL_PRODUCTS_PAGE, above) };
   return plan;
+}
+
+/**
+ * SB-32 Q1: where "সব প্রোডাক্ট" goes on every home, the seller's own included: the index of the section it goes before
+ * (`storefrontAllProductsAt`, which the design editor's locked row follows too).
+ */
+export function allProductsAt(sections: readonly StorefrontSection[]): number {
+  return storefrontAllProductsAt(sections);
+}
+
+/**
+ * SB-32: what the rows and "সব প্রোডাক্ট" show, from what they read. Top to bottom, a row that fills itself skips the
+ * cards a row above it showed and takes its count of the rest; one left short of its fill shows nothing, and its cards
+ * come in "সব প্রোডাক্ট" (Q6). A picked row shows as chosen. "সব প্রোডাক্ট" holds every card not shown above.
+ */
+export function homeLayout(
+  design: Pick<PublicStorefrontDesign, 'sections'>,
+  rows: ReadonlyMap<string, readonly ProductCard[]>,
+  all: ProductPage,
+): { rows: Map<string, ProductCard[]>; all: AllProducts } {
+  const seen = new Set<string>();
+  const above = new Set<string>();
+  const shown = new Map<string, ProductCard[]>();
+  for (const section of design.sections) {
+    if (section.kind !== StorefrontSectionKind.Products) continue;
+    const read = rows.get(section.id) ?? [];
+    const cards = fillsItself(section)
+      ? read.filter((card) => !seen.has(cardKey(card))).slice(0, section.count)
+      : [...read];
+    if (cards.length === 0) continue;
+    // The owner, 2026-11-26: a row picked by hand or an offer's always shows, however few are left.
+    if (fillsFromLists(section) && cards.length < storefrontRowFill(section)) continue;
+    // SB-32 as amended: a grid filling itself ends on a full line; the cards past it come in "সব প্রোডাক্ট".
+    const lines = cards.slice(0, rowShows(section, cards.length));
+    for (const card of lines) {
+      seen.add(cardKey(card));
+      above.add(card.id);
+    }
+    shown.set(section.id, lines);
+  }
+  const rest = all.products.filter((card) => !seen.has(cardKey(card)));
+  return {
+    rows: shown,
+    all: {
+      shown: rest.slice(0, STOREFRONT_ALL_PRODUCTS_PAGE),
+      queued: rest.slice(STOREFRONT_ALL_PRODUCTS_PAGE),
+      cursor: all.nextCursor,
+      seen: [...seen, ...rest.map(cardKey)],
+      above: [...above],
+    },
+  };
 }
 
 /**

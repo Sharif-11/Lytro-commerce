@@ -8,7 +8,7 @@ import { openShop, seedArea } from './support/shop';
 // nowhere; the shopper's own `?v=` link and area are applied in the browser, and one product's charge is asked in the
 // form the edge keeps. The tests read the headers the storefront sends; Cloudflare itself is proven on the server.
 
-const PRODUCT = '/v1/catalogue/products/cotton-panjabi';
+const PRODUCT = '/v1/catalogue/products/panjabi';
 const EDGE = 'cloudflare-cdn-cache-control';
 const tagsOf = (headers: Record<string, string>) => (headers['cache-tag'] ?? '').split(',');
 
@@ -17,7 +17,7 @@ test.describe("a shop's pages kept at the edge", () => {
     page,
   }) => {
     const shop = await openShop(page, () => ({}), 'bn');
-    const answer = await page.goto(shop.url('/p/cotton-panjabi?fbclid=IwAR0abc'));
+    const answer = await page.goto(shop.url('/p/panjabi?fbclid=IwAR0abc'));
     expect(answer?.status()).toBe(200);
     const headers = answer?.headers() ?? {};
     expect(headers[EDGE]).toBe('max-age=300, stale-while-revalidate=600, stale-if-error=86400');
@@ -34,6 +34,25 @@ test.describe("a shop's pages kept at the edge", () => {
       new RegExp(`^tags lytro s:${shop.slug} p:panjabi`),
     );
     await expect(page.locator('h1').first()).toBeVisible();
+  });
+
+  // The owner, 2026-11-25: a link made by a product's slug before is led to its ID's. The edge keeps a product page
+  // whatever its query, so a kept redirect would hand one link's `?v=` to every other: it is kept nowhere.
+  test("a slug link is led for good to the ID's page, which is kept; the redirect is not", async ({
+    page,
+  }) => {
+    const shop = await openShop(page, () => ({}), 'bn');
+    const answer = await page.goto(shop.url('/p/cotton-panjabi?fbclid=IwAR0abc&v=x'));
+    const redirect = await answer?.request().redirectedFrom()?.response();
+    expect(redirect?.status()).toBe(308);
+    expect(redirect?.headers()[EDGE]).toBeUndefined();
+    expect(new URL(redirect?.headers()['location'] ?? '', shop.url('/')).toString()).toBe(
+      shop.url('/p/panjabi?fbclid=IwAR0abc&v=x'),
+    );
+    expect(answer?.status()).toBe(200);
+    expect(answer?.headers()[EDGE]).toBe(
+      'max-age=300, stale-while-revalidate=600, stale-if-error=86400',
+    );
   });
 
   test('the home, new arrivals and a search list products, so a new one clears them too', async ({
@@ -56,7 +75,7 @@ test.describe("a shop's pages kept at the edge", () => {
 
   test('a page for one shopper is kept nowhere: in English, or signed in', async ({ page }) => {
     const english = await openShop(page);
-    const answer = await page.goto(english.url('/p/cotton-panjabi'));
+    const answer = await page.goto(english.url('/p/panjabi'));
     expect(answer?.status()).toBe(200);
     expect(answer?.headers()[EDGE]).toBeUndefined();
 
@@ -64,7 +83,7 @@ test.describe("a shop's pages kept at the edge", () => {
     await page
       .context()
       .addCookies([{ name: 'lytro-shopper', value: 'token', url: bangla.url('/') }]);
-    const signedIn = await page.goto(bangla.url('/p/cotton-panjabi'));
+    const signedIn = await page.goto(bangla.url('/p/panjabi'));
     expect(signedIn?.headers()[EDGE]).toBeUndefined();
     const cart = await page.goto(bangla.url('/cart'));
     expect(cart?.headers()[EDGE]).toBeUndefined();
@@ -78,7 +97,7 @@ test.describe("a shop's pages kept at the edge", () => {
       () => ({ refusals: [{ path: PRODUCT, status: 429, retryAfter: 12 }] }),
       'bn',
     );
-    const answer = await page.goto(shop.url('/p/cotton-panjabi'));
+    const answer = await page.goto(shop.url('/p/panjabi'));
     expect(answer?.status()).toBe(503);
     expect(answer?.headers()['retry-after']).toBe('12');
     expect(answer?.headers()[EDGE]).toBeUndefined();
@@ -97,7 +116,7 @@ test.describe("a shop's pages kept at the edge", () => {
     const asked = page.waitForResponse(
       (response) => response.url().includes('/api/estimate?') && response.url().includes('a='),
     );
-    const answer = await page.goto(shop.url(`/p/irani-burka?v=${designedVariant(2, 'XL')}`));
+    const answer = await page.goto(shop.url(`/p/designed?v=${designedVariant(2, 'XL')}`));
     // The page as every shopper gets it opens on no design and no area...
     expect(answer?.headers()[EDGE]).toMatch(/^max-age=300,/);
     // ...and this shopper's link chooses the design and size, the gallery on its cover.

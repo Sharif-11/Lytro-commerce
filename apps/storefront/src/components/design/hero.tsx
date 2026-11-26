@@ -15,7 +15,8 @@ import {
 } from '@/lib/design/collections';
 import { money, type Words } from '@/lib/i18n/words';
 import { DesignIcon } from './design-icon';
-import { linkHref } from '@/lib/design/links';
+import { productPath } from '@/lib/design/card-links';
+import { type LinkFacts, linkHref, linkShows } from '@/lib/design/links';
 import { FocusedPhoto } from './design-parts';
 import { HeroRotator } from './hero-rotator';
 
@@ -40,10 +41,15 @@ interface Slide {
   price: { now: string; regular: string | null } | null;
 }
 
-function ownSlides(section: HeroSection, design: PublicStorefrontDesign): Slide[] {
+/** The seller's slides that show: each with its photo, and (SB-16 as amended) its link leading somewhere now. */
+function ownSlides(
+  section: HeroSection,
+  design: PublicStorefrontDesign,
+  facts: LinkFacts,
+): Slide[] {
   return section.slides.flatMap((slide): Slide[] => {
     const image = design.images[slide.photo.mediaId];
-    if (!image) return [];
+    if (!image || !linkShows(slide.link, design, facts)) return [];
     return [
       {
         image,
@@ -72,7 +78,7 @@ function productSlides(products: readonly ProductCard[], words: Words): Slide[] 
         headline: product.name,
         description: null,
         button: words.t('buy_now'),
-        href: `/p/${product.slug}`,
+        href: productPath(product.id),
         badge: saving > 0 ? `−${String(saving)}%` : null,
         price: { now: money(product.minPrice), regular: product.minRegularPrice ?? null },
       },
@@ -173,8 +179,9 @@ export function Hero({
   collections: CollectionFacts;
   words: Words;
 }) {
-  const own = section.fill === StorefrontFill.Own ? ownSlides(section, design) : [];
-  // An own hero whose every photo has gone fills itself again, so the home never opens on a hole (SB-16).
+  const own = section.fill === StorefrontFill.Own ? ownSlides(section, design, collections) : [];
+  // An own hero whose every photo has gone, or (SB-16 as amended) every link leads where nothing is now, fills itself
+  // again from its source, read for it (`mayAllHide`), so the home never opens on a hole.
   const slides = own.length > 0 ? own : productSlides(products, words);
   const [first] = slides;
   if (!first) return null;

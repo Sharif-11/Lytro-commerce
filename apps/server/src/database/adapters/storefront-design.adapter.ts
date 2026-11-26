@@ -12,7 +12,7 @@ import { MediaKind } from '@lytronix/validators';
 import type { StorefrontDesignStore } from '../../modules/storefront-design/ports/storefront-design-store';
 import type {
   StorefrontDesignRecord,
-  StorefrontSale,
+  StorefrontFigures,
   StorefrontTarget,
 } from '../../modules/storefront-design/types/storefront-design';
 import { DatabaseService } from '../database.service';
@@ -64,12 +64,17 @@ export class DrizzleStorefrontDesignStore implements StorefrontDesignStore {
     return this.designs.targets(tx, tenantId, categoryIds, productIds);
   }
 
-  firstFilledCategories(tx: Transaction, tenantId: string, limit: number): Promise<string[]> {
-    return this.designs.firstFilledCategories(tx, tenantId, limit);
+  firstFilledCategories(
+    tx: Transaction,
+    tenantId: string,
+    limit: number,
+    fill: number,
+  ): Promise<string[]> {
+    return this.designs.firstFilledCategories(tx, tenantId, limit, fill);
   }
 
-  sale(tx: Transaction, tenantId: string): Promise<StorefrontSale> {
-    return this.designs.sale(tx, tenantId);
+  figures(tx: Transaction, tenantId: string): Promise<StorefrontFigures> {
+    return this.designs.figures(tx, tenantId);
   }
 
   designCards(tx: Transaction, tenantId: string): Promise<boolean> {

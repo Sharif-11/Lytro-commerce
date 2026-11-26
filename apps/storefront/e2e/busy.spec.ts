@@ -6,7 +6,8 @@ import { openShop, seedArea, signIn } from './support/shop';
 // 503) says so the way the offline page does and loads itself again after the server's wait; a delivery charge the
 // server was too busy to work out says so in its place, with Try again; any other fault keeps the error page.
 
-const PRODUCT = '/v1/catalogue/products/cotton-panjabi';
+// The product's link names it by its ID (the owner, 2026-11-25), as the API is asked for it.
+const PRODUCT = '/v1/catalogue/products/panjabi';
 const ESTIMATE = '/v1/delivery-estimate';
 
 const busyHeading = (page: Page) =>
@@ -24,7 +25,7 @@ test.describe('a page the shop is too busy to give (p910-busy)', () => {
     const shop = await openShop(page, () => ({
       refusals: [{ path: PRODUCT, status: 429, retryAfter: 12 }],
     }));
-    const answer = await page.goto(shop.url('/p/cotton-panjabi'));
+    const answer = await page.goto(shop.url('/p/panjabi'));
     expect(answer?.status()).toBe(200);
     await expect(busyHeading(page)).toBeVisible();
     await expect(
@@ -53,7 +54,7 @@ test.describe('a page the shop is too busy to give (p910-busy)', () => {
     const shop = await openShop(page, () => ({
       refusals: [{ path: PRODUCT, status: 503, retryAfter: 5 }],
     }));
-    await page.goto(shop.url('/p/cotton-panjabi'));
+    await page.goto(shop.url('/p/panjabi'));
     await expect(page.getByText('The page tries again by itself in 5 seconds')).toBeVisible();
     await page.clock.fastForward('00:02');
     await expect(page.getByText('The page tries again by itself in 3 seconds')).toBeVisible();
@@ -68,17 +69,17 @@ test.describe('a page the shop is too busy to give (p910-busy)', () => {
 
   test('Try again loads the same page at once', async ({ page }) => {
     const shop = await openShop(page, () => ({ refusals: [{ path: PRODUCT, status: 429 }] }));
-    await page.goto(shop.url('/p/cotton-panjabi'));
+    await page.goto(shop.url('/p/panjabi'));
     await expect(page.getByText('The page tries again by itself in 30 seconds')).toBeVisible();
     await shop.refuse([]);
     await page.getByRole('button', { name: 'Try again' }).click();
     await expect(page.locator('.pricerow')).toBeVisible();
-    expect(new URL(page.url()).pathname).toBe('/p/cotton-panjabi');
+    expect(new URL(page.url()).pathname).toBe('/p/panjabi');
   });
 
   test('says it in Bangla, the wait in Bangla digits', async ({ page }) => {
     const shop = await openShop(page, () => ({ refusals: [{ path: PRODUCT, status: 429 }] }), 'bn');
-    await page.goto(shop.url('/p/cotton-panjabi'));
+    await page.goto(shop.url('/p/panjabi'));
     await expect(page.getByRole('heading', { name: 'শপটি এই মুহূর্তে খুব ব্যস্ত' })).toBeVisible();
     await expect(
       page.getByText('এক মিনিট পরে আবার চেষ্টা করুন। আপনার কার্টে রাখা জিনিস ঠিক থাকবে।'),
@@ -109,7 +110,7 @@ test.describe('a page the shop is too busy to give (p910-busy)', () => {
 
   test('any other fault keeps the error page', async ({ page }) => {
     const shop = await openShop(page, () => ({ refusals: [{ path: PRODUCT, status: 500 }] }));
-    const answer = await page.goto(shop.url('/p/cotton-panjabi'));
+    const answer = await page.goto(shop.url('/p/panjabi'));
     expect(answer?.status()).toBe(500);
     await expect(busyHeading(page)).toHaveCount(0);
     await expect(page.getByText('The page tries again by itself', { exact: false })).toHaveCount(0);
@@ -125,7 +126,7 @@ test.describe('a delivery charge the server is too busy to work out (p910-busy-d
     }));
     await seedArea(page, shop, THANA.mirpur);
     const refused = page.waitForResponse(isEstimate);
-    await page.goto(shop.url('/p/cotton-panjabi'));
+    await page.goto(shop.url('/p/panjabi'));
     const answer = await refused;
     // The storefront passes the server's refusal on as it came, never as its own 500.
     expect(answer.status()).toBe(429);
@@ -152,7 +153,7 @@ test.describe('a delivery charge the server is too busy to work out (p910-busy-d
       'bn',
     );
     await seedArea(page, shop, THANA.mirpur);
-    await page.goto(shop.url('/p/cotton-panjabi'));
+    await page.goto(shop.url('/p/panjabi'));
     await expect(page.locator('.line', { hasText: /^ডেলিভারি চার্জ/ })).toHaveText(
       'ডেলিভারি চার্জ: এখন দেখা যাচ্ছে না · আবার চাপুন',
     );
@@ -161,7 +162,7 @@ test.describe('a delivery charge the server is too busy to work out (p910-busy-d
   test('a broken estimate stays a fault the storefront answers itself', async ({ page }) => {
     const shop = await openShop(page, () => ({ refusals: [{ path: ESTIMATE, status: 500 }] }));
     const failed = page.waitForResponse(isEstimate);
-    await page.goto(shop.url('/p/cotton-panjabi'));
+    await page.goto(shop.url('/p/panjabi'));
     expect((await failed).status()).toBe(500);
     await expect(page.getByText("can't be shown right now")).toHaveCount(0);
   });
@@ -174,7 +175,7 @@ test.describe('a delivery charge the server is too busy to work out (p910-busy-d
     const shop = await openShop(page, () => ({ refusals: [{ path: ESTIMATE, status: 502 }] }));
     await seedArea(page, shop, THANA.mirpur);
     const refused = page.waitForResponse(isEstimate);
-    await page.goto(shop.url('/p/cotton-panjabi'));
+    await page.goto(shop.url('/p/panjabi'));
     const answer = await refused;
     expect(answer.status()).toBe(503);
     expect(answer.headers()['retry-after']).toBe('5');

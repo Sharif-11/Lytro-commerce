@@ -33,7 +33,7 @@ import type { ImageView } from '@/types/me';
 import type { StorefrontEditor } from '@/types/storefront-design';
 import { DesignCardsCard } from './design-cards-card';
 import { BrandCard, LeaveWhileSaving, SectionsCard, ThemeCard } from './design-parts';
-import { AddSheet, PublishSheet } from './design-sheets';
+import { AddSheet, AllProductsSheet, PublishSheet } from './design-sheets';
 import {
   addSection,
   canAddSection,
@@ -52,7 +52,7 @@ import type { Known, Names } from './pickers';
 import { SectionEditor, type EditorTarget } from './section-editor';
 import { EditorIcon } from './editor-icon';
 import { FullPreview, PreviewPane } from './preview-pane';
-import { useDraftPreview } from './use-draft-preview';
+import { useDraftPreviewAndLayout } from './use-draft-preview';
 import { useDraftDesign } from './use-draft';
 import { useDragOrder } from './use-drag-order';
 
@@ -93,12 +93,13 @@ function DesignPage({ editor }: { editor: StorefrontEditor }): React.JSX.Element
   const settings = useShopSettings();
   const draft = useDraftDesign(editor);
   const { design, change } = draft;
-  const preview = useDraftPreview(draft.saved);
+  // SB-32 as amended: the preview, and what the saved draft's home leaves out (asked again after each save).
+  const { src: preview, left } = useDraftPreviewAndLayout(draft.saved);
   const publish = usePublishDesign();
   const back = useBackDesign();
   const discard = useDiscardDraft();
   const toast = useToast();
-  const [sheet, setSheet] = useState<'add' | 'publish' | null>(null);
+  const [sheet, setSheet] = useState<'add' | 'publish' | 'all' | null>(null);
   const [target, setTarget] = useState<EditorTarget | null>(null);
   // What the sheets learn while open: pictures uploaded, and the names of what the pickers read.
   const [uploads, setUploads] = useState<Record<string, ImageView>>({});
@@ -244,6 +245,10 @@ function DesignPage({ editor }: { editor: StorefrontEditor }): React.JSX.Element
           />
           <SectionsCard
             editor={editor}
+            left={left}
+            onAll={() => {
+              setSheet('all');
+            }}
             design={held ?? design}
             disabled={busy}
             drag={drag}
@@ -326,6 +331,12 @@ function DesignPage({ editor }: { editor: StorefrontEditor }): React.JSX.Element
           {t('sdPublish')}
         </Button>
       </ActionBar>
+      <AllProductsSheet
+        open={sheet === 'all'}
+        onClose={() => {
+          setSheet(null);
+        }}
+      />
       <AddSheet
         open={sheet === 'add'}
         full={!canAddSection(design)}
@@ -355,6 +366,7 @@ function DesignPage({ editor }: { editor: StorefrontEditor }): React.JSX.Element
       />
       {target ? (
         <SectionEditor
+          left={left}
           key={target.mode === 'edit' ? target.section.id : target.id}
           target={target}
           design={design}

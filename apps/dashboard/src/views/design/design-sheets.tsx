@@ -128,3 +128,25 @@ export function PublishSheet({
     </Sheet>
   );
 }
+
+/**
+ * SB-32 as amended (the owner, 2026-11-26, sketch `de-all-info`): "সব প্রোডাক্ট" tapped -- what it holds and why it
+ * never moves, hides or goes. Read only; there is nothing to change here.
+ */
+export function AllProductsSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { t } = useTranslation('menu');
+  return (
+    <Sheet
+      open={open}
+      title={t('sdAll')}
+      onClose={onClose}
+      footer={<Button onClick={onClose}>{t('sdDone')}</Button>}
+    >
+      <div className="flex flex-col gap-2.5 text-[14px] leading-[1.55]">
+        <p>{t('sdAllWhat')}</p>
+        <p>{t('sdAllWhy')}</p>
+        <NoteLine>{t('sdAllHow')}</NoteLine>
+      </div>
+    </Sheet>
+  );
+}

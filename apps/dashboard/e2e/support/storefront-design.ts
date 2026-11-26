@@ -12,6 +12,7 @@ import {
   StorefrontSectionKind,
   StorefrontThemeKey,
   startingDesign,
+  type PreviewLayout,
   type StorefrontDesign,
   type StorefrontSection,
 } from '@lytronix/validators';
@@ -35,9 +36,17 @@ export interface DesignFixture {
   icon: ImageFixture | null;
   /** The sections naming something gone or hidden. */
   broken: string[];
+  /**
+   * SB-32 as amended (sketch `de-*`): what the storefront says the saved draft's home leaves out (/preview/layout);
+   * unset, nothing; null, the storefront could not be asked.
+   */
+  layout?: PreviewLayout | null;
 }
 
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+
+/** The drawn design's sections a test names by ID (`sketchedSections`). */
+export const DRAWN = { hero: id(2), newest: id(4), banners: id(5), best: id(6) } as const;
 const photo = (n: number) => ({ mediaId: id(500 + n), focusX: 50, focusY: 40 });
 
 /** Where the mock serves the sketch's own sample photos (docs/brand/sample-photos/builder). */

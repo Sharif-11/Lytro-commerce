@@ -37,7 +37,17 @@ export function slugOfSegment(segment: string): string {
   }
 }
 
-/** A product's or category's own address, for a redirect: a Location header takes ASCII only, so the slug is encoded. */
-export function pathOfSlug(prefix: '/p' | '/l' | '/c', slug: string): string {
-  return `${prefix}/${encodeURIComponent(slug)}`;
+/**
+ * The query string a moved link keeps: all of it -- `?v=`, a design card's `?d=`, an ad's click ID -- so the redirect
+ * lands on the same variant or design and the visit stays the ad's.
+ */
+export function keptQuery(query: Record<string, string | string[] | undefined>): string {
+  const kept = new URLSearchParams();
+  for (const [name, value] of Object.entries(query)) {
+    for (const each of value === undefined ? [] : Array.isArray(value) ? value : [value]) {
+      kept.append(name, each);
+    }
+  }
+  const text = kept.toString();
+  return text === '' ? '' : `?${text}`;
 }

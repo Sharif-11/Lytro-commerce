@@ -4625,13 +4625,8 @@ function editorPairs(): Pair[] {
         await page.getByRole('dialog').getByLabel('নাম', { exact: true }).fill('শার্ট');
       },
     }),
-    // §7.4c: Change the link is in More settings now; the sheet no longer picks a variant.
-    one('sh-link', '/products/p-1/edit', {
-      then: async (page) => {
-        await page.getByRole('main').getByText('আরও সেটিংস').click();
-        await tap('লিংক বদলান')(page);
-      },
-    }),
+    // `sh-link` is retired (the owner, 2026-11-26): links carry the product's ID, so the editor has no Change the link
+    // sheet; a product's link is shared from its page (`pd-share`, `pl-share-sheet`).
     one('sh-delete', '/products/p-1/edit', {
       then: async (page) => {
         await page.getByRole('main').getByText('আরও সেটিংস').click();

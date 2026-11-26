@@ -9,7 +9,7 @@ import type { PublicOffer } from '@/lib/api/storefront-api';
 import { listParams } from '@/lib/catalogue/browse';
 import { spreadsDesigns } from '@/lib/design/card-links';
 import { pageTheme } from '@/lib/design/design-look';
-import { offerPath } from '@/lib/design/links';
+import { offerPath, showsOffers } from '@/lib/design/links';
 import { money, type Words } from '@/lib/i18n/words';
 import { slugOfSegment } from '@/lib/request-path';
 import { loadFrame, loadShopPage, storefrontApi } from '@/lib/storefront';
@@ -81,7 +81,10 @@ export default withBusyPage(async function OfferPage({ params, searchParams }: P
               <div className="of-ended" role="status">
                 <b>{words.t('of_ended')}</b>
                 <span>{words.t('of_ended_line')}</span>
-                <a href="/offers">{words.t('of_on_sale_now')} →</a>
+                {/* The owner, 2026-11-25: no way to On sale while nothing is. */}
+                {showsOffers(page.info) ? (
+                  <a href="/offers">{words.t('of_on_sale_now')} →</a>
+                ) : null}
               </div>
             ) : null}
           </div>

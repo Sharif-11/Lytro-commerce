@@ -152,10 +152,10 @@ describe('what the page opens with (PD-4, PD-12, PD-24)', () => {
 });
 
 describe('design cards in the lists (STOREFRONT-BUILDER-PLAN DC-1 to DC-3)', () => {
-  it("links a design's card to its product with the design named, and keeps a product's own card as before", () => {
-    expect(cardHref({ slug: 'irani-burka', designId: 'd2' })).toBe('/p/irani-burka?d=d2');
-    expect(cardHref({ slug: 'irani-burka', designId: null })).toBe('/p/irani-burka');
-    expect(cardHref({ slug: 'irani-burka' })).toBe('/p/irani-burka');
+  it("links a design's card to its product with the design named, and keeps a product's own card as before, by the product's ID", () => {
+    expect(cardHref({ id: 'p1', designId: 'd2' })).toBe('/p/p1?d=d2');
+    expect(cardHref({ id: 'p1', designId: null })).toBe('/p/p1');
+    expect(cardHref({ id: 'p1' })).toBe('/p/p1');
     // One product's cards are told apart in a list.
     expect(cardKey({ id: 'p1', designId: 'd2' })).not.toBe(cardKey({ id: 'p1', designId: 'd1' }));
     expect(cardKey({ id: 'p1' })).toBe(cardKey({ id: 'p1', designId: null }));

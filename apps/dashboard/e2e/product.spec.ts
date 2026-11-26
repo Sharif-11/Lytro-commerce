@@ -6,7 +6,7 @@ import { closeSaved } from './support/quick-add';
 
 // TENANT-DASHBOARD-DESIGN §7.4, Slice 11.7a: the product editor -- Basics with the category picker and New category,
 // one Save that sends only what changed, a new product in one request, the question before leaving unsaved, the
-// link's change (its card is on the product's page, §7.4c), Duplicate, Archive and Delete, an archived product's Restore, and the limit (Part 13). Each test runs on
+// link's card gone to the product's page (§7.4c) and its change gone with ID links, Duplicate, Archive and Delete, an archived product's Restore, and the limit (Part 13). Each test runs on
 // a phone and on a desktop (playwright.config.ts).
 
 async function open(page: Page, path: string, state: ShopState = {}): Promise<ApiLog> {
@@ -67,8 +67,8 @@ test('opens a product with its Basics and link, and one Save sends only what cha
     '100% cotton, pre-shrunk. Keeps its size after washing.',
   );
   await expect(main(page).getByText('In stock')).toBeVisible();
-  // §7.4c: the link card moved to the product's page; the editor keeps Change the link in More settings.
-  await expect(main(page).getByText('megh.lytro.app/l/cotton-t-shirt')).toBeHidden();
+  // §7.4c: the link card moved to the product's page.
+  await expect(main(page).getByText('megh.lytro.app/l/p-1')).toBeHidden();
   await expectAccessible(page);
 
   await main(page).getByLabel('Price', { exact: true }).fill('470');
@@ -258,26 +258,15 @@ test('a refused field is said under it, and Save counts what is left to fix', as
   await expect(save(page)).toHaveText('Fix 1 thing to save');
 });
 
-test('More settings changes the link; the old one redirects', async ({ page }) => {
-  const log = await open(page, 'p-1', {
-    products: { ...drawnProducts(), refuse: { slug: 'taken' } },
-  });
+// The owner, 2026-11-26: the link names the product by its ID, so "Change the link" (its slug) is gone from the editor;
+// the server keeps the route, and an old slug link still opens.
+test('More settings no longer changes the link', async ({ page }) => {
+  const log = await open(page, 'p-1');
   await moreSettings(page);
-  await main(page).getByRole('button', { name: 'Change the link' }).click();
-  await expect(sheet(page).getByTestId('link-now')).toHaveText('megh.lytro.app/l/cotton-t-shirt');
-  // §7.4c (the owner, 2026-11-25): no variant link any more; a design's link is on the share sheet.
-  await expect(sheet(page).getByRole('combobox')).toHaveCount(0);
-  await expectAccessible(page);
-  await sheet(page).getByLabel('Link name').fill('taken');
-  await sheet(page).getByRole('button', { name: 'Change the link' }).click();
-  await expect(sheet(page).getByText('Another product has that link.')).toBeVisible();
-  await sheet(page).getByLabel('Link name').fill('cotton-tee');
-  await sheet(page).getByRole('button', { name: 'Change the link' }).click();
-  await expect(toast(page)).toHaveText('Link changed');
-  expect(log.sent('PUT', '/products/p-1/slug')).toEqual({ slug: 'cotton-tee' });
-  await expect(sheet(page).getByTestId('link-now')).toHaveText('megh.lytro.app/l/cotton-tee');
-  await sheet(page).getByRole('button', { name: 'Done' }).click();
-  await expect(sheet(page)).toHaveCount(0);
+  await expect(main(page).getByRole('button', { name: 'Duplicate' })).toBeVisible();
+  await expect(main(page).getByRole('button', { name: 'Change the link' })).toHaveCount(0);
+  await expect(main(page).getByText('cotton-t-shirt')).toHaveCount(0);
+  expect(log.sent('PUT', '/products/p-1/slug')).toBeUndefined();
 });
 
 test('Duplicate opens the copy, and at the limit says so first', async ({ page }) => {

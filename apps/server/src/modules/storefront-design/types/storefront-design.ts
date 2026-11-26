@@ -1,5 +1,6 @@
 import type {
   SelectStorefrontDesign,
+  StorefrontFigures as StorefrontFiguresRow,
   StorefrontSaleSummary,
   StorefrontTargetRow,
 } from '@lytronix/db';
@@ -16,6 +17,7 @@ import type { ImageView } from '../../../common/media-links';
 export type StorefrontDesignRecord = SelectStorefrontDesign;
 export type StorefrontTarget = StorefrontTargetRow;
 export type StorefrontSale = StorefrontSaleSummary;
+export type StorefrontFigures = StorefrontFiguresRow;
 
 /** SB-16: a category or product a design's link or row names, as shoppers reach it. */
 export interface StorefrontTargetView {

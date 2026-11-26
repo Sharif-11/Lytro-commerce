@@ -670,11 +670,12 @@ export class ProductRepository {
    * its own sells at the product's). SB-10, SB-21: with them, the regular price struck through beside the lowest
    * price (the lowest of those its variants at that price are on sale from; null when none is on sale), and the
    * biggest saving of any variant in whole percent rounded down (`discountPercent`; 0 for none). A variant is on sale
-   * when that saving is at least 1%; one without a regular price of its own takes the product's.
+   * when that saving is at least 1%; one without a regular price of its own takes the product's. Answers whether the
+   * product went on sale or came off it (the storefront's অফার link shows only while something is on sale).
    */
-  async refreshPriceRange(tx: Transaction, tenantId: string, productId: string): Promise<void> {
+  async refreshPriceRange(tx: Transaction, tenantId: string, productId: string): Promise<boolean> {
     await this.transactions.setTenantContext(tx, tenantId);
-    await tx.execute(sql`
+    const result = await tx.execute<{ flipped: boolean }>(sql`
       WITH priced AS (
         SELECT coalesce(v.price, pp.base_price) AS price,
           coalesce(v.regular_price, pp.regular_price) AS regular
@@ -689,12 +690,16 @@ export class ProductRepository {
         FROM priced
       ), r AS (
         SELECT min(price) AS low, max(price) AS high, coalesce(max(discount), 0) AS discount FROM e
+      ), was AS (
+        SELECT best_discount FROM tenant.products WHERE tenant_id = ${tenantId} AND id = ${productId}
       )
       UPDATE tenant.products p SET
         min_price = r.low, max_price = r.high,
         min_regular_price = (SELECT min(e.regular) FROM e WHERE e.price = r.low AND e.discount >= 1),
         best_discount = r.discount
-      FROM r
-      WHERE p.tenant_id = ${tenantId} AND p.id = ${productId}`);
+      FROM r, was
+      WHERE p.tenant_id = ${tenantId} AND p.id = ${productId}
+      RETURNING (was.best_discount > 0) <> (p.best_discount > 0) AS flipped`);
+    return result.rows[0]?.flipped === true;
   }
 }

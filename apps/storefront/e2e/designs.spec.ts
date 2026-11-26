@@ -100,7 +100,7 @@ test.describe('choosing a design by its photo (PD-4, PD-5, PD-17)', () => {
       // The one product page (SB-31): ordering before choosing shakes them too.
       await page.getByRole('button', { name: 'Confirm order' }).click();
       await expect(page.locator('.pcards')).toHaveClass(/\bnudge\b/);
-      expect(new URL(page.url()).pathname).toBe('/p/irani-burka');
+      expect(new URL(page.url()).pathname).toBe('/p/designed');
     }
     expect(await cartLines(page)).toEqual([]);
   });

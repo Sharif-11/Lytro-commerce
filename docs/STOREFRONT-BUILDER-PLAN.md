@@ -130,6 +130,206 @@ photo's shape but is never taller than square, nor than the screen less the head
 name and the order bar; a photo the cap shortens shows whole (`object-fit: contain`) on the gallery's soft background.
 The computer's grid is unchanged.
 
+**SB-32: every product on the home page. The owner's ask, 2026-11-26** ("the main principal is, we need to populate
+products in home page also, both categorized and uncategorized. but how to do this nicely so that the website looks like
+a reputed page and busy shop"). **APPROVED 2026-11-26** ("use সব প্রোডাক্ট. point 1: yes, point 2 and 3: yes, 4: not
+now, 5: accept, 6: drop it."). It is drawn as the builder sketch's `ha-*` screens:
+- `ha-now` is the home as built;
+- `ha-mixed`, `ha-more`, `ha-no-categories`, `ha-small` and `ha-desktop` are the design;
+- `ha-cat-rotate` is the owner's addition, described below.
+
+**Why it's needed.** Quick add (#446) puts the category in more settings, so most new products arrive without one.
+Every row on the home page reads on its own. In a 35-product shop with 23 uncategorised products (`ha-now`):
+- the home shows 15 products;
+- 18 of the 23 uncategorised products, and 2 categorised ones, appear nowhere on it;
+- 5 cards show twice;
+- the saree row holds 2 cards, which is half empty on a computer.
+
+| # | Decision | Decided |
+|---|---|---|
+| SB-32 | **"সব প্রোডাক্ট" on the home page.** | **The new section.** After the page's last row of products (where SB-30 puts its rows), a section "সব প্রোডাক্ট · 35টি" with See all. It holds every active product the rows above did not show, categorised or not, in the shop's own order (§5), with sold-out products last. There's no "অন্যান্য" label or chip: an uncategorised product is just a product. On a phone it is 2 across, on a computer 4, 12 at a time. "আরও Nটি প্রোডাক্ট দেখুন" adds the next 12 in place; the button goes once everything is in.<br>**Nothing shows twice.** The product rows read top to bottom, and each skips what a row above it showed.<br>**No row that cannot fill.** An automatic row (newest, on sale, best sellers, a category) shows only when it can fill itself: a grid needs 4 and a carousel 5, because a computer shows 5 at once. If it can't, its products come in "সব প্রোডাক্ট". A running offer's row always shows, however few of its products are left (the owner, 2026-11-26), and still skips what a row above it showed.<br>**SB-30** takes the first three categories that can still fill a row.<br>**Cards** are unchanged: the built "নতুন" (PRODUCT_NEW_DAYS, 14 days), "সেরা বিক্রি" (SB-22), "N বার অর্ডার হয়েছে" (SB-23) and "মাত্র Nটি বাকি" (SB-24). There are no made-up signals: no invented sold counts and no "someone just ordered" pop-ups. |
+
+**The words.** The owner chose "সব প্রোডাক্ট" ("use সব প্রোডাক্ট", then "yes change spelling"). It is the shopper
+storefront's word everywhere "সব পণ্য" was: this section, the header chip, the menu, the footer link and the all-products
+page. The dashboard's own words are unchanged. The count uses Latin digits ("35টি"), as the built cards do ("মাত্র 12টি
+বাকি"). The heading counts every product the shop shows, which is what See all opens. The grid under it holds only
+those not already shown above.
+
+**The owner's answers, 2026-11-26:**
+1. **Q1. Homes the seller has designed and published: yes.** "সব প্রোডাক্ট" goes on these too, automatically, after
+   their last row of products. With no product row, it goes before the trust strip, or at the end. A seller can't
+   remove it, since a home that hides products is what this fixes.
+2. **Q2. Which rows the rules cover: yes, automatic rows only.** Newest, on sale, best sellers, a category and a running
+   offer skip what an earlier row showed, and all but the offer must fill. **The owner, 2026-11-26 ("follow your
+   recommendation"): a running offer's row always shows**, however few of its products are left. A row the seller picked
+   by hand (SB-29) always shows as chosen;
+   the automatic rows below it skip its products.
+3. **Q3. "নতুন": yes, keep 14 days** (PRODUCT_NEW_DAYS, already built); nothing to build.
+4. **Q4. A dashboard nudge, "Xটা প্রোডাক্টের ক্যাটাগরি নেই": not now.**
+5. **Q5. The cost: accepted.**
+   - Each home render makes one more catalogue read ("সব প্রোডাক্ট", 12 plus the cards above, at most 60). Today a
+     starting page makes about 5 to 7 (hero, newest, on sale, up to 3 categories, the banners).
+   - The rows skip repeats by asking for their count plus what is above, which adds no reads.
+   - Choosing the categories that can fill reads at most 6 candidates instead of 3.
+   - The home page is page-cached, so these reads happen only when the cache refreshes.
+   - Each "আরও দেখুন" tap is one read from the shopper's browser, like paging a category.
+   - All of these count toward the shop's request allowance, as category pages do.
+6. **Q6. A row that loses cards to the rows above: drop it.** In `ha-mixed`, the panjabis have 4, but one is already in
+   On sale. The row drops, its 3 come in "সব প্রোডাক্ট", and its tile stays under "ক্যাটাগরি অনুযায়ী কিনুন".
+
+**The categories rotate when they don't fit.** The owner's addition, 2026-11-26: "category must be rotated
+automatically along horizontal axis if applicable. if the category completely fitted then not necessary", and "i am
+not talking about category chips, i am talking about category under first banner". **APPROVED 2026-11-26**, with the
+picture rule below. The sketch is `ha-cat-rotate` and `ha-cat-noimage`.
+- **Where.** The home's categories section under the hero ("ক্যাটাগরি অনুযায়ী কিনুন"), in every tile style. The category
+  chips under the header never move.
+- **Only when they overflow.** The strip rotates only while its tiles overflow it, measured live, and again after a
+  resize or a turn of the phone. When every tile fits (usually on a computer, where the tiles wrap), nothing moves.
+- **How it moves.** One tile every 3 seconds, with a smooth ease. After the last tile the first ones follow: copies of
+  the first tiles, hidden from screen readers and out of the tab order, rather than a jump back to the start.
+- **When it holds.** While the shopper touches, drags, hovers over or focuses a tile, and for 4 idle seconds after.
+  Swiping by hand works as before.
+- **When it never moves.** Off-screen (IntersectionObserver), in a hidden tab, or with reduced motion.
+- **Cost.** No new requests and no layout shifts: transform or scroll only, and no new library.
+- **Only categories with a picture** (the owner, 2026-11-26: "if a category has no image then skip it from this section
+  and we have category chip after header already"). The section shows a category only when it has its own picture or
+  the SB-9 cover, the product photo the server lends. A category that would draw an empty tile is left out of this
+  section; the header chips, the menu and its own page keep it. With none left, the section hides. The overflow check
+  counts only the tiles shown. The filter is in the storefront's render; the public category list is unchanged.
+
+**`ha-small`, 7 products.** Each product shows once and no row is half empty. "সব প্রোডাক্ট" can end on one card, as a
+category page does. That is the end of a list, not an empty row.
+
+**SB-33: the empty states. The owner's ask, 2026-11-26** ("we need to design an empty product ui/ux for showing no
+products"). This covers every page where a shopper can land on no products. It is drawn as the builder sketch's `em-*`
+screens. `em-home-now` is the home as built; the rest is the proposal. Captures of the built pages are in
+`Lytro screenshots/empty-states/live-*.png`.
+
+**What's built today.**
+- **The home with no products.** The hero, categories and product rows each draw nothing at 0. What's left is the
+  announcement, the header, the trust strip and the footer, with nothing between them, so a shopper can't tell whether
+  the shop is open.
+- **List pages** (all products, a category, /offers): a title, the "শুধু স্টকে আছে" switch, and one grey line,
+  "কিছু পাওয়া যায়নি".
+- **Search:** "কিছু পাওয়া যায়নি", a hint, and a "ক্যাটাগরি দেখুন" button.
+- **A gone product:** a bare page with the logo, "এই প্রোডাক্টটি আর নেই", and "দোকানে যান".
+- **A category with no products** still has its header chip, so shoppers are led to the empty page.
+
+| # | Decision | Proposed |
+|---|---|---|
+| SB-33 | **No dead ends, no empty headings.** | Every empty page has one calm message with a line icon in the theme's colours, then a next step:<br>- if the shop has other products, 4 of them (in stock first) and "সব প্রোডাক্ট দেখুন";<br>- if it has none, the ways to reach it.<br>Empty sections stay hidden, as built. A footer with no categories has no Categories column, and the empty "কিছু পাওয়া যায়নি" line goes. The words carry nothing technical and no blame: never "the seller hasn't added products". |
+
+**The pages:**
+- **`em-home-empty`: the home with no products.**
+  - In the hero's place, in the shop's own colours: its mark, "নতুন কালেকশন শিগগিরই আসছে", its name and its
+    tagline.
+  - Below: a card, "কিছু খুঁজছেন? মেসেজ করুন, কী আছে আর কী আসছে জানিয়ে দেব।", with the shop's contacts.
+  - The cart shows no count. The floating WhatsApp button is off on this page, because the card carries WhatsApp.
+  - `em-home-empty-desktop` is the same page at 1280 px.
+- **`em-list-empty`: "সব প্রোডাক্ট" with no products.**
+  - The switch and the grey line go. The home's words and contacts appear instead.
+  - When products exist but "শুধু স্টকে আছে" empties the list, it says "স্টকে থাকা কোনো প্রোডাক্ট নেই", with
+    "সবগুলো দেখুন" to lift the filter.
+- **`em-category-empty`: a category with none, while the shop has others.**
+  - "এই ক্যাটাগরিতে নতুন প্রোডাক্ট শিগগিরই আসছে। ততক্ষণ শপের অন্য প্রোডাক্টগুলো দেখুন।"
+  - Then "এই শপের আরও প্রোডাক্ট": the newest 4, in stock first.
+- **`em-search-none`.**
+  - "“লাল জামদানি” পাওয়া যায়নি" and the built hint.
+  - The categories that have products appear as chips, in the button's place.
+  - Then "জনপ্রিয় প্রোডাক্ট": the 4 most ordered.
+  - The search page's white look and its bar stay.
+- **`em-offers-none`: /offers with nothing on sale.**
+  - "এখন কোনো অফার চলছে না। নতুন অফার এলে এখানেই দেখাবে।", then "নতুন এসেছে", the newest 4.
+  - With no offer, "অফার" is gone from the header and the footer (this PR's other half).
+  - A named offer's ended page (`o-ended`) is unchanged.
+- **`em-product-gone`: a removed or hidden product's link.**
+  - The answer stays HTTP 404, but the page has the shop's header, "এই প্রোডাক্টটি এখন আর নেই। শপের অন্য
+    প্রোডাক্টগুলো দেখুন।", and the newest 4.
+  - With the storefront off (only /l/ is served), it stays today's bare page, worded "শপ".
+  - A sold-out product is not this page: its own page shows it sold out (`pp-out`).
+
+**Contact, by plan** (the public API already filters it, PYG-29):
+- **A paid plan, or any shop while fair use is off.** The card shows only what the shop set:
+  - WhatsApp as the big button;
+  - Messenger and call side by side;
+  - "ফেসবুক পেজে দেখুন" as a link.
+
+  With Facebook alone, Facebook is the big button.
+- **Pay as you go with fair use on** (`em-home-empty-payg`). The server gives no phone, WhatsApp or Messenger, only the
+  address and the Facebook page. So the card offers Facebook only, and there's no floating WhatsApp button.
+- **No contact at all.** The card says "শিগগিরই আবার আসুন। আমরা শপ সাজাচ্ছি। কিছুদিন পর নতুন প্রোডাক্ট দেখতে
+  পাবেন।", with no button.
+
+**The owner's answers, 2026-11-26** ("follow your recommendation"):
+1. **Q1. The empty home shows contact buttons, by plan as above: yes.**
+2. **Q2. A removed product keeps its HTTP 404: yes.**
+3. **Q3. This joins the same PR as the product ID links and SB-32: yes.** It touches the same list and home pages.
+
+4. **Q4. Categories with no products leave the header chips, the menu, the footer and search's suggestions: yes**
+   ("follow your recommendation"). The test is the category's product count, which includes its subcategories and
+   counts out-of-stock products, so a category with only sold-out products stays, and so does a parent whose
+   subcategories hold products. The category's own page stays for old links (`em-category-empty`). A category page's
+   own subcategory chips skip the empty ones too.
+
+**APPROVED 2026-11-26** ("sketch is approved"). Built in the same branch as the dashboard's shop-name link. The build
+matches the built storefront where the sketch drew sample data:
+- the band has no tagline, because a shop has none;
+- the trust strip stays the home's own (inner pages go to the footer, as built);
+- the built storefront has no floating WhatsApp button, so there is none to hide.
+
+**The banners, full lines and the design editor.** The owner, 2026-11-26, asked "do seller changes this appearance in
+theme design section" and "What about banner", then answered "yes to all" to three proposals. They join the same pull
+request.
+
+1. **A seller's own slide or banner hides while its link leads where nothing is now** (SB-16 as amended; built). It
+   covers the seller's own hero slides, offer banners and the wide banner. The hero's tiles and the automatic banners
+   already leave when their collection is empty (BL-12, BL-13).
+
+   | The link leads to | Hidden while |
+   |---|---|
+   | On sale | nothing is on sale (the shop answer's `sale`, the count the অফার chip and the announcement bar use) |
+   | An offer | that offer is not running |
+   | A category | the category holds no product, its subcategories' included (the public category list's `productCount`), or shoppers can't reach it |
+   | Just in, Best sellers | the shop shows no product at all (`productCount`) |
+   | A product | never: a product gone already leads home (SB-16) |
+
+   - **It comes back by itself.** An offer starting or ending, or a product going on or off sale, clears every page of
+     the shop. A product made, archived, restored, shown, hidden or moved purges the shop's `listing` pages, the home
+     among them, at the edge and in the page cache alike.
+   - **The fallbacks stay.** With every own slide hidden, the hero fills itself from its source, as with every photo
+     gone. With every own banner hidden, the automatic banners show. A hidden wide banner takes its section with it.
+   - **Reads.** The hero's own source, or the banners' collections, are read only when every own slide or banner may be
+     hidden: its photo gone, its link a category's (whose count is known only when the page is drawn), or the shop
+     answer already showing it leads nowhere. They go in the same call as the rows, so no request is added. This also
+     mends an own hero whose every photo had gone: its source was never read, so it drew nothing.
+2. **An automatic grid ends on a full line** (built). A grid of newest, on sale, best sellers or one category shows
+   whole lines of four: the most it can of 4, 8 or 12. The cards past the last full line come in "সব প্রোডাক্ট".
+   - A grid of 8 with 6 products shows 4.
+   - A grid saved at 6 shows 4, since 6 is a carousel's count.
+   - Rows the seller picked by hand, offer rows and carousels are never cut.
+   - Below 4, the fill rule above already leaves the row out.
+3. **The design editor says what the home does by itself** (proposal, sketch `de-*`; built after the owner approves).
+   - **"সব প্রোডাক্ট" in the section list** (`de-sections`, `de-all-info`). It sits after the last row of products,
+     with a lock in place of the switch: "সব সময় শেষে থাকে, বাকি সব প্রোডাক্ট এখানে". It can't be dragged, switched
+     off or removed. Tapping it opens a short, read-only explanation.
+   - **A row not showing** (`de-list-hidden`, `de-row-hidden`). When the live shop leaves an automatic row out for lack
+     of products, the list says "এখন দেখাচ্ছে না" under it. Its sheet opens on "এই সারি এখন দেখাচ্ছে না — ৪টার কম
+     প্রোডাক্ট থাকলে এই সারি দেখাবে না; প্রোডাক্টগুলো 'সব প্রোডাক্ট'-এ যাবে।", or "৫টার কম" for a carousel. The
+     note shows only then; the switch stays on, since the seller didn't turn it off.
+   - **How many** (`de-row-grid`). A grid offers 4, 8 and 12, with the hint "গ্রিড ৪টি করে পুরো লাইনে দেখায়।". A
+     carousel keeps 4, 6, 8 and 12. A grid saved at 6 shows as 4.
+   - **A banner not showing** (`de-banner-hidden`, `de-wide-empty`). The list says "১টি এখন দেখাচ্ছে না" or "এখন
+     দেখাচ্ছে না". The sheet opens on the reason: "অফার শেষ — অফার চালু হলে আবার দেখাবে।" or "এই ক্যাটাগরিতে এখন
+     প্রোডাক্ট নেই — প্রোডাক্ট এলে আবার দেখাবে।".
+   - **How the editor knows** (the cheapest correct way). The storefront already decides it, in the same code that draws
+     the home (`homeLayout`, `linkShows`), repeats and fills included. A small JSON route beside the live preview's
+     (`/preview/layout`, signed by the same short-lived preview link) runs the home's reads for the draft and answers
+     which rows, slides and banners it leaves out. The editor asks it on opening and after each change it saves, as
+     the preview reloads.
+     - It is the same two batched calls a home render makes, and nothing more.
+     - It works on a phone, where the preview opens only on demand.
+     - The dashboard can't guess it itself: a row can also drop for the cards a row above it showed.
+
 ---
 
 ## 3. Requirement changes (`SRS-detailed.md`)

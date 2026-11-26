@@ -1,9 +1,15 @@
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { StockState, StorefrontThemeKey } from '@lytronix/validators';
+import {
+  previewLayoutSchema,
+  StockState,
+  StorefrontLinkKind,
+  StorefrontSectionKind,
+  StorefrontThemeKey,
+} from '@lytronix/validators';
 import { type Browser, expect, type Page, test } from '@playwright/test';
 import { builderShop, type SketchShop } from './support/builder-fixtures';
-import type { Language } from './support/fixtures';
+import { idOf, type Language } from './support/fixtures';
 import { GOOD_PREVIEW } from './support/mock-server';
 import { openShop } from './support/shop';
 
@@ -74,11 +80,18 @@ test.describe('the designed home (SB-8 to SB-10)', () => {
       'Up to 18% off on 3 products',
     );
     await expect(home.locator('.sb-hero h1')).toHaveText('Discover your signature scent');
-    await expect(home.locator('.sb-cat')).toHaveCount(shops.royal.cats.length);
-    // Best sellers, most ordered first; then the biggest saving first.
+    // SB-32: the copies a moving strip adds are hidden from screen readers and not counted.
+    await expect(home.locator('.sb-cat:not(.sb-copy)')).toHaveCount(shops.royal.cats.length);
+    // Best sellers, most ordered first. SB-32: the three on sale are all in it, so the on-sale carousel can't fill and
+    // leaves; the two products neither row shows come in "সব প্রোডাক্ট".
     const rows = home.locator('.sb-sec:has(.sb-card)');
+    await expect(rows).toHaveCount(2);
     await expect(rows.nth(0).locator('.sb-nm').first()).toHaveText('Oud Royale, 100 ml');
-    await expect(rows.nth(1).locator('.sb-nm').first()).toHaveText('Oud Royale, 100 ml');
+    await expect(rows.nth(1).locator('h2')).toHaveText('All products· 6');
+    await expect(rows.nth(1).locator('.sb-nm')).toHaveText([
+      'Discovery set (4 vials)',
+      'Blanc, 100 ml',
+    ]);
     await expect(home.locator('.sb-trust .sb-it')).toHaveCount(4);
     const asked = (await shop.sent()).listRequests;
     expect(asked).toContainEqual(expect.stringContaining('sort=best_selling'));
@@ -173,7 +186,8 @@ test.describe('the designed home (SB-8 to SB-10)', () => {
     await expect(oud.locator('.sb-tag.sb-best')).toHaveText('Best seller');
     await expect(oud.locator('.sb-pr s')).toHaveText('৳5,500');
     await expect(oud.locator('.sb-sold')).toHaveText('Ordered 64 times');
-    await expect(oud).toHaveAttribute('href', '/p/oud-royale-100-ml');
+    // The owner, 2026-11-25: a card's link names its product by its ID.
+    await expect(oud).toHaveAttribute('href', `/p/${idOf('product-Oud Royale, 100 ml')}`);
   });
 
   test('lists what is on sale at /offers, the biggest saving first', async ({ page, browser }) => {
@@ -252,6 +266,41 @@ test.describe("every page in the theme's header, footer and card (SB-8, SB-17, S
     await expect(page.locator('footer.foot')).toHaveCount(0);
   });
 
+  // The owner, 2026-11-25: no অফার link while nothing is on sale; it comes back when something is.
+  test('names Offers only while something is on sale; /offers itself still opens', async ({
+    page,
+    browser,
+  }) => {
+    const shops = await sketchShops(browser);
+    const nothing = { products: 0, bestDiscount: 0 };
+    const shop = await openShop(page, (language) => {
+      const made = builderShop(StorefrontThemeKey.Bold, shops.bold, language);
+      if (!made.info) throw new Error('the builder shop has no info');
+      return { ...made, info: { ...made.info, sale: nothing } };
+    });
+    const offers = (where: string) => page.locator(`${where} a[href="/offers"]`);
+    await page.goto(shop.url('/'));
+    await expect(page.locator('.sfb-bar .sb-hd .sb-nav a').first()).toHaveText('All products');
+    await expect(offers('.sfb-bar .sb-hd .sb-nav')).toHaveCount(0);
+    await expect(offers('.sfb-foot .sb-ft')).toHaveCount(0);
+    if (test.info().project.name === 'phone') {
+      await page.getByRole('button', { name: 'Menu' }).click();
+      const drawer = page.getByRole('dialog', { name: 'Menu' });
+      await expect(drawer.getByRole('link', { name: 'All products' })).toBeVisible();
+      await expect(drawer.getByRole('link', { name: 'Offers' })).toHaveCount(0);
+    }
+    expect((await page.goto(shop.url('/offers')))?.status()).toBe(200);
+
+    // The same shop with its sketch's sale prices.
+    const onSale = await openShop(page, (language) =>
+      builderShop(StorefrontThemeKey.Bold, shops.bold, language),
+    );
+    expect(onSale.fixture.info.sale?.products).toBeGreaterThan(0);
+    await page.goto(onSale.url('/'));
+    await expect(offers('.sfb-bar .sb-hd .sb-nav')).toHaveText('Offers');
+    await expect(offers('.sfb-foot .sb-ft')).toHaveText('Offers');
+  });
+
   test('strikes the regular price through on the product page, with its saving', async ({
     page,
     browser,
@@ -304,6 +353,63 @@ test.describe("the draft's preview (SB-12)", () => {
     await page.goto(shop.url('/preview?t=ended'));
     await expect(page.locator('h1')).toHaveText('Preview ended');
     await expect(page.locator('.sfb')).toHaveCount(0);
+  });
+
+  // SB-32 as amended (the owner, 2026-11-26, sketch `de-*`): what the draft's home leaves out, for the design editor.
+  test('answers the dashboard what the draft leaves out, never kept, and nothing on an ended link', async ({
+    page,
+    browser,
+  }) => {
+    const shops = await sketchShops(browser);
+    const made = (language: Language) => {
+      const draft = builderShop(StorefrontThemeKey.Soft, shops.soft, language);
+      // Nothing on sale: the shop's own banners, each leading to On sale, lead nowhere now.
+      return {
+        ...draft,
+        draft: draft.info?.design,
+        info: { ...(draft.info as object), sale: { products: 0, bestDiscount: 0 } },
+      } as typeof draft;
+    };
+    const shop = await openShop(page, made);
+    const banners = made('en').draft?.sections.find(
+      (section) => section.kind === StorefrontSectionKind.OfferBanners,
+    );
+    const own = banners?.kind === StorefrontSectionKind.OfferBanners ? banners.banners : [];
+    expect(own.length).toBeGreaterThan(0);
+
+    // Node's own requests can't resolve the shop's *.localhost name, as the browser does: the storefront is asked at
+    // 127.0.0.1, named by its Host header, as the edge asks it.
+    const ask = (path: string, origin?: string) => {
+      const url = new URL(shop.url(path));
+      const host = url.host;
+      url.hostname = '127.0.0.1';
+      return page.request.get(url.href, { headers: { host, ...(origin ? { origin } : {}) } });
+    };
+    const dashboard = 'http://localhost:5173';
+    const answer = await ask(`/preview/layout?t=${GOOD_PREVIEW}`, dashboard);
+    expect(answer.status()).toBe(200);
+    expect(answer.headers()['cache-control']).toContain('no-store');
+    expect(answer.headers()['access-control-allow-origin']).toBe(dashboard);
+    const layout = previewLayoutSchema.parse(await answer.json());
+    expect(layout.items).toEqual(
+      expect.arrayContaining(
+        own.map((_, index) => ({
+          sectionId: banners?.id,
+          index,
+          link: StorefrontLinkKind.OnSale,
+        })),
+      ),
+    );
+
+    // Another site's page gets no leave to read it.
+    const other = await ask(`/preview/layout?t=${GOOD_PREVIEW}`, 'https://evil.example');
+    expect(other.headers()['access-control-allow-origin']).toBeUndefined();
+    // An ended link answers nothing; a missing or overlong one is refused.
+    const ended = await ask('/preview/layout?t=ended');
+    expect(ended.status()).toBe(404);
+    expect(ended.headers()['cache-control']).toContain('no-store');
+    expect((await ask('/preview/layout')).status()).toBe(400);
+    expect((await ask(`/preview/layout?t=${'x'.repeat(513)}`)).status()).toBe(400);
   });
 });
 

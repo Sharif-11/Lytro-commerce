@@ -71,15 +71,16 @@ export class PublicCatalogueController {
     return this.send(response, await this.catalogue.list(shopOf(request), query, langOf(request)));
   }
 
-  @Get('products/:slug')
+  @Get('products/:id')
   @ResponseMessage('ProductRetrieved')
   @ApiOperation({
     summary:
-      'An active product by its link; an old link answers with the current one, to redirect to (PRD-09, LND-04)',
+      'An active product by its ID, as its links name it; its slug, current or old, answers too, for links made ' +
+      'before (PRD-09, LND-04)',
   })
   @ZodResponse({ type: PublicProductDetailDto })
   async product(
-    @Param('slug') slug: string,
+    @Param('id') link: string,
     @Query(new ZodValidationPipe(PublicCatalogueVersionedDto.schema))
     _query: PublicCatalogueVersionedDto,
     @Req() request: PublicApiRequest,
@@ -87,7 +88,7 @@ export class PublicCatalogueController {
   ): Promise<PublicProductDetail> {
     return this.send(
       response,
-      await this.catalogue.product(shopOf(request), slug, langOf(request)),
+      await this.catalogue.product(shopOf(request), link, langOf(request)),
     );
   }
 

@@ -26,6 +26,7 @@ import {
   moveSectionTo,
   newSection,
   removeSection,
+  rowCount,
   sectionName,
   sectionRows,
   sectionSummary,
@@ -47,9 +48,45 @@ describe('the section list (SB-8)', () => {
     });
     expect(rows[1]).toEqual({ kind: 'fixed', key: 'header' });
     expect(rows.at(-1)).toEqual({ kind: 'fixed', key: 'footer' });
-    expect(rows).toHaveLength(start.sections.length + 2);
+    // SB-32 as amended: and "সব প্রোডাক্ট".
+    expect(rows).toHaveLength(start.sections.length + 3);
     const noAnnouncement = { ...start, sections: start.sections.slice(1) };
     expect(sectionRows(noAnnouncement)[0]).toEqual({ kind: 'fixed', key: 'header' });
+  });
+
+  it('puts "সব প্রোডাক্ট" after the last row of products shown, else before the trust strip, else last (de-sections)', () => {
+    const kindsOf = (design: typeof start) =>
+      sectionRows(design).map((row) =>
+        row.kind === 'section' ? row.section.kind : row.kind === 'all' ? 'all' : row.key,
+      );
+    const kinds = kindsOf(start);
+    const lastRow = kinds.lastIndexOf(StorefrontSectionKind.Products);
+    expect(kinds[lastRow + 1]).toBe('all');
+    // Every row of products switched off: before the trust strip.
+    const hidden = {
+      ...start,
+      sections: start.sections.map((section) =>
+        section.kind === StorefrontSectionKind.Products ? { ...section, visible: false } : section,
+      ),
+    };
+    const off = kindsOf(hidden);
+    expect(off[off.indexOf(StorefrontSectionKind.Trust) - 1]).toBe('all');
+    // No row and no trust strip: last, before the footer.
+    const bare = {
+      ...start,
+      sections: start.sections.filter(
+        (section) =>
+          section.kind !== StorefrontSectionKind.Products &&
+          section.kind !== StorefrontSectionKind.Trust,
+      ),
+    };
+    expect(kindsOf(bare).slice(-2)).toEqual(['all', 'footer']);
+  });
+
+  it('counts a grid in whole lines of four (SB-32 as amended)', () => {
+    expect(rowCount({ layout: ProductRowLayout.Grid, count: 6 })).toBe(4);
+    expect(rowCount({ layout: ProductRowLayout.Grid, count: 8 })).toBe(8);
+    expect(rowCount({ layout: ProductRowLayout.Carousel, count: 6 })).toBe(6);
   });
 
   it('names a row by its title, else by what it lists, and says what each section fills itself with', () => {

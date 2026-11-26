@@ -30,8 +30,9 @@ import {
 // made for it, so tests run side by side; `GET /__orders/:slug` says what that shop was sent. Its pricing is a small
 // copy of the server's rule, for the numbers a page shows; the real rule is proven by the server's own tests.
 
-export const MOCK_PORT = 4181;
-export const STOREFRONT_PORT = 4180;
+// A run beside another worktree's may name its own ports.
+export const MOCK_PORT = Number(process.env['E2E_MOCK_PORT'] ?? 4181);
+export const STOREFRONT_PORT = Number(process.env['E2E_STOREFRONT_PORT'] ?? 4180);
 /** D9-33: a second storefront, with the page cache's Redis (REDIS_TEST_URL), for e2e/page-cache.spec.ts alone. */
 export const PAGE_CACHE_PORT = 4182;
 
@@ -687,8 +688,11 @@ function listPage(fixture: ShopFixture, params: URLSearchParams) {
   const offerName = params.get('offer');
   const offer =
     offerName === null ? null : (fixture.offers ?? []).find((each) => each.slug === offerName);
+  // CCH-12: a search matches a product by its name, as the server's does at its simplest.
+  const search = params.get('search')?.toLowerCase() ?? null;
   let rows = fixture.products.filter(
     (row) =>
+      (search === null || row.card.name.toLowerCase().includes(search)) &&
       (offerName === null || (offer?.productIds.includes(row.card.id) ?? false)) &&
       (category === null || row.product.categoryIds.includes(category)) &&
       (params.get('inStock') !== 'true' || row.card.stockState !== StockState.Out) &&
@@ -710,7 +714,13 @@ function listPage(fixture: ShopFixture, params: URLSearchParams) {
   // As the server does since 2026-11-25: every order lists the sold-out cards last, each part in its own order.
   const soldOut = (row: (typeof rows)[number]) => (row.card.stockState === StockState.Out ? 1 : 0);
   rows = [...rows].sort((a, b) => soldOut(a) - soldOut(b));
-  return { products: rows.slice(0, limit).map((row) => row.card), nextCursor: null };
+  // A page and where the next starts, as the server's keyset cursor does (here, the place in the list).
+  const from = Number(params.get('cursor') ?? 0);
+  const end = from + limit;
+  return {
+    products: rows.slice(from, end).map((row) => row.card),
+    nextCursor: end < rows.length ? String(end) : null,
+  };
 }
 
 async function publicApi(
@@ -785,9 +795,12 @@ async function publicApi(
   }
   const product = /^\/v1\/catalogue\/products\/(.+)$/.exec(path);
   if (product?.[1]) {
-    const slug = decodeURIComponent(product[1]);
-    const current = fixture.moved[slug] ?? slug;
-    const row = fixture.products.find((each) => each.product.slug === current);
+    // As the API: by the product's ID, or a slug from a link made before, current or old.
+    const link = decodeURIComponent(product[1]);
+    const current = fixture.moved[link] ?? link;
+    const row =
+      fixture.products.find((each) => each.product.id === link) ??
+      fixture.products.find((each) => each.product.slug === current);
     if (!row) {
       fail(response, 404, 'not_found');
       return;

@@ -60,12 +60,12 @@ test.describe("a shop's pages kept in the storefront's Redis", () => {
     page,
   }) => {
     const shop = await shopOf(page, 'en');
-    const first = await page.goto(shop.url('/p/cotton-panjabi'));
+    const first = await page.goto(shop.url('/p/panjabi'));
     expect(first?.status()).toBe(200);
     expect(first?.headers()[CACHE]).toBe('miss');
     await expect(page.locator('h1').first()).toContainText('Cotton Panjabi');
 
-    const again = await page.goto(shop.url('/p/cotton-panjabi?fbclid=IwAR0abc&v=x'));
+    const again = await page.goto(shop.url('/p/panjabi?fbclid=IwAR0abc&v=x'));
     expect(again?.headers()[CACHE]).toBe('hit');
     // English is kept from no one at the edge: its cookie skips Cloudflare's cache, and the page says nothing to it.
     expect(again?.headers()[EDGE]).toBeUndefined();
@@ -77,7 +77,7 @@ test.describe("a shop's pages kept in the storefront's Redis", () => {
     page,
   }) => {
     const shop = await shopOf(page, 'en');
-    await page.goto(shop.url('/p/cotton-panjabi'));
+    await page.goto(shop.url('/p/panjabi'));
     const renamed = structuredClone(shop.fixture);
     for (const each of renamed.products) {
       if (each.product.slug === 'cotton-panjabi') {
@@ -87,12 +87,12 @@ test.describe("a shop's pages kept in the storefront's Redis", () => {
     }
     await shop.sendShop(renamed);
 
-    const kept = await page.goto(shop.url('/p/cotton-panjabi'));
+    const kept = await page.goto(shop.url('/p/panjabi'));
     expect(kept?.headers()[CACHE]).toBe('hit');
     await expect(page.locator('h1').first()).not.toContainText('eid edition');
 
     await purge(`s:${shop.slug}`);
-    const fresh = await page.goto(shop.url('/p/cotton-panjabi'));
+    const fresh = await page.goto(shop.url('/p/panjabi'));
     expect(fresh?.headers()[CACHE]).toBe('miss');
     await expect(page.locator('h1').first()).toContainText('Cotton Panjabi, eid edition');
   });
@@ -125,7 +125,7 @@ test.describe("a shop's pages kept in the storefront's Redis", () => {
     await page
       .context()
       .addCookies([{ name: 'lytro-shopper', value: 'token', url: shop.url('/') }]);
-    for (const path of ['/p/cotton-panjabi', '/p/cotton-panjabi', '/cart']) {
+    for (const path of ['/p/panjabi', '/p/panjabi', '/cart']) {
       const answer = await page.goto(shop.url(path));
       expect(answer?.headers()[CACHE], path).toBeUndefined();
     }
@@ -137,8 +137,8 @@ test.describe("a shop's pages kept in the storefront's Redis", () => {
     const shop = await shopOf(page, 'en', (slug) =>
       meghShop('en', { slug, products: [designed('en'), panjabi('en')] }),
     );
-    await page.goto(shop.url('/p/irani-burka'));
-    const linked = await page.goto(shop.url(`/p/irani-burka?v=${designedVariant(2, 'XL')}`));
+    await page.goto(shop.url('/p/designed'));
+    const linked = await page.goto(shop.url(`/p/designed?v=${designedVariant(2, 'XL')}`));
     expect(linked?.headers()[CACHE]).toBe('hit');
     await expect(page.locator('.pcards .pcard').nth(1)).toHaveAttribute('aria-checked', 'true');
   });

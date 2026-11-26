@@ -49,12 +49,12 @@ export class DrizzlePublicCatalogueStore implements PublicCatalogueStore {
     return this.catalogue.versions(tx, tenantId);
   }
 
-  findBySlug(
+  findByLink(
     tx: Transaction,
     tenantId: string,
-    slug: string,
+    link: string,
   ): Promise<{ productId: string; slug: string } | null> {
-    return this.catalogue.findBySlug(tx, tenantId, slug);
+    return this.catalogue.findByLink(tx, tenantId, link);
   }
 
   listCategories(tx: Transaction, tenantId: string): Promise<CategoryRecord[]> {

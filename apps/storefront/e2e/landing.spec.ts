@@ -69,7 +69,8 @@ test.describe('the order', () => {
     await expect(
       page.getByRole('heading', { name: 'Thank you! Your order is placed' }),
     ).toBeVisible();
-    expect(page.url()).toBe(shop.url('/l/cotton-panjabi'));
+    // The slug's link was led to the ID's (the owner, 2026-11-25), and the order is placed there.
+    expect(page.url()).toBe(shop.url('/l/panjabi'));
     await expect(
       page.getByText('Order #261031-0047. The shop will call 01711223344 to confirm it.'),
     ).toBeVisible();

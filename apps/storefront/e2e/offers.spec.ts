@@ -49,7 +49,12 @@ const openOfferShop = (page: Page, design: PublicStorefrontDesign | null = null)
   openShop(page, (language) => ({
     products: [SAREE, SCARF, KURTI],
     offers: offers(),
-    ...(design ? { info: { ...meghShop(language).info, design } } : {}),
+    // The Eid offer runs, so the shop has something on sale (the Offers link shows only then).
+    info: {
+      ...meghShop(language).info,
+      sale: { products: 2, bestDiscount: 20 },
+      ...(design ? { design } : {}),
+    },
   }));
 
 test.describe("an offer's page (OF-8, OF-12)", () => {
@@ -122,9 +127,43 @@ test.describe("an offer's page (OF-8, OF-12)", () => {
     };
     const shop = await openOfferShop(page, design);
     await page.goto(shop.url('/'));
-    const row = page.locator('.sb-sec:has(.sb-card)');
+    const row = page.locator('.sb-sec:has(.sb-card)').first();
     await expect(row.locator('h2')).toHaveText('Eid offer');
     await expect(row.locator('.sb-card')).toHaveCount(2);
     await expect(row.locator('.sb-all')).toHaveAttribute('href', '/offers/eid-offer');
+  });
+
+  // SB-32 (the owner, 2026-11-26): a running offer's row always shows, however few of its products are left; "সব
+  // প্রোডাক্ট" holds the rest and none of the row's.
+  test('a 2-product offer row still shows, its cards not again in All products', async ({
+    page,
+  }) => {
+    const shop = await openOfferShop(page, {
+      theme: StorefrontThemeKey.Studio,
+      palette: 0,
+      sections: [
+        {
+          id: 'eid-row',
+          visible: true,
+          kind: StorefrontSectionKind.Products,
+          source: ProductRowSource.Offer,
+          categoryId: null,
+          offerId: OFFER_ID,
+          productIds: [],
+          title: null,
+          layout: ProductRowLayout.Grid,
+          count: 4,
+        },
+      ],
+      images: {},
+      categories: [],
+      products: [],
+      offers: [{ id: OFFER_ID, slug: 'eid-offer', name: 'Eid offer' }],
+      preview: false,
+    });
+    await page.goto(shop.url('/'));
+    const row = page.locator('.sb-sec', { has: page.locator('h2', { hasText: 'Eid offer' }) });
+    await expect(row.locator('.sb-card')).toHaveCount(2);
+    await expect(page.locator('#all-products .sb-card')).toHaveCount(1);
   });
 });

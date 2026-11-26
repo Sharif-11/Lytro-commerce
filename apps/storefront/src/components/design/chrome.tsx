@@ -2,6 +2,7 @@ import { headers } from 'next/headers';
 import { phoneShown } from '@lytronix/validators';
 import type { PublicShop } from '@/lib/api/storefront-api';
 import type { PageTheme } from '@/lib/design/design-look';
+import { showsOffers } from '@/lib/design/links';
 import { firstLetter } from '@/lib/design/marks';
 import { type Language, Words } from '@/lib/i18n/words';
 import { STOREFRONT_PATH_HEADER } from '@/lib/request-path';
@@ -62,6 +63,7 @@ export async function DesignedHeader({
   const words = new Words(language);
   const path = (await headers()).get(STOREFRONT_PATH_HEADER) ?? '/';
   const on = lit(path, nav.current);
+  const offers = showsOffers(shop);
   return (
     <header className={`sb-hd sb-${theme.header}`}>
       <div className="sb-wrap sb-row">
@@ -74,6 +76,7 @@ export async function DesignedHeader({
             language={language}
             variables={theme.variables}
             current={on}
+            offers={offers}
           />
         ) : (
           <a className="sb-menu" href={backHref} aria-label={words.t('back')}>
@@ -115,9 +118,11 @@ export async function DesignedHeader({
         <a href="/new" className={on === 'all' ? 'sb-on' : undefined}>
           {words.t('sb_all')}
         </a>
-        <a href="/offers" className={on === 'offers' ? 'sb-on' : undefined}>
-          {words.t('sb_offers')}
-        </a>
+        {offers ? (
+          <a href="/offers" className={on === 'offers' ? 'sb-on' : undefined}>
+            {words.t('sb_offers')}
+          </a>
+        ) : null}
         {nav.categories.slice(0, NAV_CATEGORIES).map((category) => (
           <a
             key={category.id}
@@ -232,9 +237,11 @@ export function DesignedFooter({
               <li>
                 <a href="/new">{words.t('sb_all')}</a>
               </li>
-              <li>
-                <a href="/offers">{words.t('sb_offers')}</a>
-              </li>
+              {showsOffers(shop) ? (
+                <li>
+                  <a href="/offers">{words.t('sb_offers')}</a>
+                </li>
+              ) : null}
               <li>
                 <a href="/best">{words.t('sb_best_sellers')}</a>
               </li>

@@ -19,11 +19,11 @@ export interface PublicCatalogueStore {
   run<T>(work: (tx: Transaction) => Promise<T>): Promise<T>;
   /** The shop's catalogue version and the platform library's. */
   versions(tx: Transaction, tenantId: string): Promise<CatalogueVersions>;
-  /** The active product a link names, by its current slug or an old one, with its current slug. */
-  findBySlug(
+  /** The active product a link names, by its ID or its current slug or an old one, with its current slug. */
+  findByLink(
     tx: Transaction,
     tenantId: string,
-    slug: string,
+    link: string,
   ): Promise<{ productId: string; slug: string } | null>;
   listCategories(tx: Transaction, tenantId: string): Promise<CategoryRecord[]>;
   /** CMB-09: every allowed variant of these combos' parts, with its stock and its product's first photo. */

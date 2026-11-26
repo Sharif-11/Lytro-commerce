@@ -98,10 +98,10 @@ test('a row opens the product page; its share icon opens the share sheet (pl-sha
   await main(page).getByRole('button', { name: 'Share the link of Cotton T-shirt' }).click();
   await expect(page).toHaveURL(`/${SLUG}/products`);
   const share = page.getByRole('dialog', { name: 'Share the link' });
-  await expect(share.getByTestId('share-link')).toHaveText('megh.lytro.app/l/cotton-t-shirt');
+  await expect(share.getByTestId('share-link')).toHaveText('megh.lytro.app/l/p-1');
   await expect(share.getByRole('link', { name: 'See the page' })).toHaveAttribute(
     'href',
-    'https://megh.lytro.app/l/cotton-t-shirt',
+    'https://megh.lytro.app/l/p-1',
   );
   // No designs, so no design links; the shop's own link below.
   await expect(share.getByRole('radiogroup')).toHaveCount(0);
@@ -119,7 +119,7 @@ test('Copy says Copied for a moment with a toast; with no phone share, WhatsApp,
   await share.getByRole('button', { name: 'Copy link' }).click();
   await expect(share.getByRole('button', { name: 'Copied' })).toBeVisible();
   await expect(toast(page)).toHaveText('Link copied');
-  expect(await copied(page)).toEqual(['https://megh.lytro.app/l/cotton-t-shirt']);
+  expect(await copied(page)).toEqual(['https://megh.lytro.app/l/p-1']);
   // SUP-01: a copy ticks the checklist's "link shared".
   await expect
     .poll(() =>
@@ -132,7 +132,7 @@ test('Copy says Copied for a moment with a toast; with no phone share, WhatsApp,
   const fallback = share.getByTestId('share-fallback');
   await expect(fallback.getByRole('link', { name: 'WhatsApp' })).toHaveAttribute(
     'href',
-    `https://wa.me/?text=${encodeURIComponent('https://megh.lytro.app/l/cotton-t-shirt')}`,
+    `https://wa.me/?text=${encodeURIComponent('https://megh.lytro.app/l/p-1')}`,
   );
   await expect(fallback.getByRole('link', { name: 'Facebook' })).toBeVisible();
   await expect(fallback.getByRole('link', { name: 'Messenger' })).toBeVisible();
@@ -145,7 +145,7 @@ test('the phone’s own share gets the link and the name', async ({ page }) => {
   await share.getByRole('button', { name: 'Share', exact: true }).click();
   await expect
     .poll(() => shared(page))
-    .toEqual([{ title: 'Cotton T-shirt', url: 'https://megh.lytro.app/l/cotton-t-shirt' }]);
+    .toEqual([{ title: 'Cotton T-shirt', url: 'https://megh.lytro.app/l/p-1' }]);
   await expect(share.getByTestId('share-fallback')).toHaveCount(0);
 });
 
@@ -176,15 +176,15 @@ test('a product with designs shares the whole product or one design (pl-share-de
     'aria-checked',
     'true',
   );
-  await expect(share.getByTestId('share-link')).toHaveText('megh.lytro.app/l/irani-burka');
+  await expect(share.getByTestId('share-link')).toHaveText('megh.lytro.app/l/p-burka');
   await designs.getByRole('radio', { name: 'Stripe' }).click();
   await expect(designs.getByRole('radio', { name: 'Stripe' })).toHaveAttribute(
     'aria-checked',
     'true',
   );
-  await expect(share.getByTestId('share-link')).toHaveText('megh.lytro.app/l/irani-burka?d=d-2');
+  await expect(share.getByTestId('share-link')).toHaveText('megh.lytro.app/l/p-burka?d=d-2');
   await share.getByRole('button', { name: 'Copy link' }).click();
-  expect(await copied(page)).toEqual(['https://megh.lytro.app/l/irani-burka?d=d-2']);
+  expect(await copied(page)).toEqual(['https://megh.lytro.app/l/p-burka?d=d-2']);
   await expectAccessible(page);
 });
 
@@ -195,7 +195,7 @@ test('a shop not open yet still shows the link, and when it opens (pl-share-paus
   await main(page).getByRole('button', { name: 'Share the link of Cotton T-shirt' }).click();
   const share = page.getByRole('dialog', { name: 'Share the link' });
   await expect(share).toContainText('The link opens once a ৳10 top-up opens the shop.');
-  await expect(share.getByTestId('share-link')).toHaveText('megh.lytro.app/l/cotton-t-shirt');
+  await expect(share.getByTestId('share-link')).toHaveText('megh.lytro.app/l/p-1');
   await share.getByRole('link', { name: 'Top up' }).click();
   await expect(page).toHaveURL(`/${SLUG}/balance?topup=1&amount=10`);
 });
@@ -217,7 +217,7 @@ test('the product page: photos and video, price, stock, recent orders, link and 
     log.calls.some((call) => call.path === '/orders' && call.query.includes('productId=p-1')),
   ).toBe(true);
   await expect(main(page).getByRole('heading', { name: 'Product link' })).toBeVisible();
-  await expect(main(page).getByText('megh.lytro.app/l/cotton-t-shirt')).toBeVisible();
+  await expect(main(page).getByText('megh.lytro.app/l/p-1')).toBeVisible();
   await expect(main(page).getByTestId('pd-sales')).toContainText('pieces sold');
   await expect(main(page).getByRole('link', { name: 'See sales' })).toHaveAttribute(
     'href',
@@ -286,7 +286,7 @@ test('More: Duplicate opens the copy to edit (pd-menu)', async ({ page }) => {
   const menu = page.getByRole('dialog', { name: 'Cotton T-shirt' });
   await expect(menu.getByRole('link', { name: 'See in the shop' })).toHaveAttribute(
     'href',
-    'https://megh.lytro.app/l/cotton-t-shirt',
+    'https://megh.lytro.app/l/p-1',
   );
   await expect(menu.getByRole('button', { name: /Archive/ })).toBeVisible();
   await expectAccessible(page);
@@ -321,7 +321,7 @@ test('Share on the page opens the same sheet (pd-share)', async ({ page }) => {
   await open(page, '/products/p-1', shop());
   await main(page).getByRole('button', { name: 'Share', exact: true }).first().click();
   const share = page.getByRole('dialog', { name: 'Share the link' });
-  await expect(share.getByTestId('share-link')).toHaveText('megh.lytro.app/l/cotton-t-shirt');
+  await expect(share.getByTestId('share-link')).toHaveText('megh.lytro.app/l/p-1');
 });
 
 test('an archived product shows its archived page, with Restore (pd-archived)', async ({

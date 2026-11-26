@@ -181,6 +181,7 @@ export {
   type StorefrontCardKey,
   type StorefrontCardRow,
   type StorefrontDesignValues,
+  type StorefrontFigures,
   type StorefrontSaleSummary,
   type StorefrontTargetRow,
 } from './repositories/brand/storefront-design.repository';

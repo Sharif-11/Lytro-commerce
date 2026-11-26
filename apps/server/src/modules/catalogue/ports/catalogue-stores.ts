@@ -359,7 +359,8 @@ export interface ProductStore {
   ): Promise<void>;
   deleteRedirect(tx: Transaction, tenantId: string, oldSlug: string): Promise<void>;
   listRedirects(tx: Transaction, tenantId: string, productId: string): Promise<string[]>;
-  refreshPriceRange(tx: Transaction, tenantId: string, productId: string): Promise<void>;
+  /** CCH-11, SB-21: the product's price range and saving again; whether it went on sale or came off it. */
+  refreshPriceRange(tx: Transaction, tenantId: string, productId: string): Promise<boolean>;
   listVariants(
     tx: Transaction,
     tenantId: string,

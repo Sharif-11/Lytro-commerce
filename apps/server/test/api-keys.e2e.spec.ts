@@ -235,6 +235,8 @@ describeIfDatabase('public API keys in the dashboard (API-01, API-02, API-21)', 
       // STOREFRONT-BUILDER-PLAN SB-5, SB-9: no icon of its own, nothing on sale.
       icon: null,
       sale: { products: 0, bestDiscount: 0 },
+      // SB-32: no products yet.
+      productCount: 0,
       contact: {
         phone: null,
         email: null,
@@ -287,6 +289,8 @@ describeIfDatabase('the public API host (API-03 to API-05, API-08, API-14, API-2
       // STOREFRONT-BUILDER-PLAN SB-5, SB-9: no icon of its own, nothing on sale.
       icon: null,
       sale: { products: 0, bestDiscount: 0 },
+      // SB-32: no products yet.
+      productCount: 0,
       contact: {
         phone: null,
         email: null,

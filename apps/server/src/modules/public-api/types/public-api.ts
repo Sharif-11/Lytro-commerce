@@ -80,6 +80,8 @@ export interface PublicShopView {
   design: PublicStorefrontDesign;
   /** SB-9: what is on sale now, for the announcement that writes itself. */
   sale: StorefrontSale;
+  /** SB-32: how many active products it has. */
+  productCount: number;
   /** TEN-30, SFT-21: the contact details it set; each null when unset, and then not shown. */
   contact: {
     phone: string | null;

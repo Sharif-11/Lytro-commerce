@@ -3,6 +3,11 @@ import { expect, test, type Page } from '@playwright/test';
 import { DAY_ONE, mockApi, SLUG, type ApiLog, type ShopState } from './support/mock-api';
 import { openQuickMore } from './support/quick-add';
 
+// The owner, 2026-11-25: a product's landing link names it by its ID (the mock's new ones are p-new-<n>), never its slug.
+const LINK_SHOWN = /^megh\.lytro\.app\/l\/p-new-\d+$/;
+const LINK = /^https:\/\/megh\.lytro\.app\/l\/p-new-\d+$/;
+const ENCODED_LINK = 'https%3A%2F%2Fmegh\\.lytro\\.app%2Fl%2Fp-new-\\d+';
+
 // TENANT-DASHBOARD-DESIGN §7.4b (the sketch's `pq-*`, approved by the owner 2026-11-25): a new product's quick add --
 // photos as designs with each photo's menu, name and price, one stock box shared by default with the split a tap away,
 // no silent 0, sizes from a sheet, আরও সেটিংস under the card, the fee on top, the combo one link away, and after the
@@ -343,11 +348,8 @@ test('pq-saved: the first save shows the landing link to copy and open, the shar
   await expect(saved).toBeVisible();
   await expect(saved).toContainText('Panjabi');
   await expect(saved).toContainText('৳1,250');
-  await expect(saved.getByText('megh.lytro.app/l/panjabi', { exact: true })).toBeVisible();
-  await expect(saved.getByRole('link', { name: 'See the page' })).toHaveAttribute(
-    'href',
-    'https://megh.lytro.app/l/panjabi',
-  );
+  await expect(saved.getByText(LINK_SHOWN)).toBeVisible();
+  await expect(saved.getByRole('link', { name: 'See the page' })).toHaveAttribute('href', LINK);
   await expect(saved.getByRole('link', { name: 'See the page' })).toHaveAttribute(
     'target',
     '_blank',
@@ -355,11 +357,11 @@ test('pq-saved: the first save shows the landing link to copy and open, the shar
   // No share sheet in this browser: WhatsApp, Facebook and Messenger instead (the first two before the shop link's).
   await expect(saved.getByRole('link', { name: 'WhatsApp' }).first()).toHaveAttribute(
     'href',
-    'https://wa.me/?text=https%3A%2F%2Fmegh.lytro.app%2Fl%2Fpanjabi',
+    new RegExp(`^https://wa\\.me/\\?text=${ENCODED_LINK}$`),
   );
   await expect(saved.getByRole('link', { name: 'Facebook' }).first()).toHaveAttribute(
     'href',
-    'https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fmegh.lytro.app%2Fl%2Fpanjabi',
+    new RegExp(`^https://www\\.facebook\\.com/sharer/sharer\\.php\\?u=${ENCODED_LINK}$`),
   );
   await expect(saved.getByRole('link', { name: 'Messenger' })).toBeVisible();
   await expectAccessible(page);
@@ -369,7 +371,7 @@ test('pq-saved: the first save shows the landing link to copy and open, the shar
   await expect(saved.getByRole('button', { name: 'Copied' })).toBeVisible();
   await expect(page.getByRole('status').filter({ hasText: 'Link copied' })).toBeVisible();
   expect(await page.evaluate(() => (window as unknown as { copied: string[] }).copied)).toEqual([
-    'https://megh.lytro.app/l/panjabi',
+    expect.stringMatching(LINK),
   ]);
   await expect(saved.getByRole('button', { name: 'Copy link' })).toBeVisible({ timeout: 3000 });
 
@@ -390,7 +392,7 @@ test('pq-saved: the phone share sheet when there is one, and Go to the product',
   const saved = savedSheet(page);
   await saved.getByRole('button', { name: 'Share' }).click();
   expect(await page.evaluate(() => (window as unknown as { shared: unknown[] }).shared)).toEqual([
-    { title: 'Panjabi', url: 'https://megh.lytro.app/l/panjabi' },
+    { title: 'Panjabi', url: expect.stringMatching(LINK) },
   ]);
   // The fallbacks are for a browser with no share sheet; the shop link keeps its own Facebook and WhatsApp.
   await expect(saved.getByRole('link', { name: 'Messenger' })).toHaveCount(0);
@@ -407,7 +409,7 @@ test('pq-saved-paused: a storefront waiting for its top-up still gets the link, 
   await stockBox(page).fill('8');
   await save(page).click();
   const saved = savedSheet(page);
-  await expect(saved.getByText('megh.lytro.app/l/panjabi', { exact: true })).toBeVisible();
+  await expect(saved.getByText(LINK_SHOWN)).toBeVisible();
   await expect(saved).toContainText('The link opens once a ৳10 top-up opens the shop.');
   await expect(saved.getByRole('link', { name: 'Top up' })).toHaveAttribute(
     'href',
@@ -459,7 +461,7 @@ test("pq-saved: the shop's link under the product's, each copied or shared ticki
   await stockBox(page).fill('8');
   await save(page).click();
   const saved = savedSheet(page);
-  await expect(saved.getByText('megh.lytro.app/l/panjabi', { exact: true })).toBeVisible();
+  await expect(saved.getByText(LINK_SHOWN)).toBeVisible();
   const shop = saved.getByRole('region', { name: 'Your shop link' });
   await expect(shop.getByText('megh.lytro.app', { exact: true })).toBeVisible();
   await expect(shop.getByRole('link', { name: 'WhatsApp' })).toHaveAttribute(
@@ -475,7 +477,7 @@ test("pq-saved: the shop's link under the product's, each copied or shared ticki
   await expect(shop.getByRole('button', { name: 'Copied' })).toBeVisible();
   await expect.poll(marked).toBe(2);
   expect(await page.evaluate(() => (window as unknown as { copied: string[] }).copied)).toEqual([
-    'https://megh.lytro.app/l/panjabi',
+    expect.stringMatching(LINK),
     'https://megh.lytro.app',
   ]);
 });

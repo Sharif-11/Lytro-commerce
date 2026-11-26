@@ -154,13 +154,13 @@ export class PublicCatalogue {
   /** PRD-09, LND-04: an active product's page by its link, current or old. */
   async product(
     shop: ApiShop,
-    slug: string,
+    asked: string,
     lang: Language,
   ): Promise<CatalogueAnswer<PublicProductDetail>> {
-    const link = slug.toLowerCase();
+    const link = asked.toLowerCase();
     const maxAge = await this.seconds(PlatformSettingKey.CatalogueDetailMaxAgeSeconds);
     return this.answer(shop, lang, ['product', link], maxAge, null, async () => {
-      const found = await this.store.run((tx) => this.store.findBySlug(tx, shop.row.id, link));
+      const found = await this.store.run((tx) => this.store.findByLink(tx, shop.row.id, link));
       if (!found) throw new ApiError('not_found', 'ProductNotFound', {});
       const detail = await this.products.get(shop.row.id, found.productId);
       const combo =

@@ -1,3 +1,4 @@
+import { STOREFRONT_CATALOGUE_LISTS_MAX } from '@lytronix/validators';
 import { productQueryString, type ProductPage, type ProductQuery } from './storefront-api';
 
 interface Waiting {
@@ -38,19 +39,23 @@ export class ProductListBatch {
   }
 
   private send(): void {
-    const batch = this.waiting;
+    const waiting = this.waiting;
     this.waiting = [];
-    this.ask(batch.map((each) => each.query)).then(
-      (pages) => {
-        batch.forEach((each, index) => {
-          each.resolve(pages[index] ?? null);
-        });
-      },
-      (reason: unknown) => {
-        batch.forEach((each) => {
-          each.reject(reason);
-        });
-      },
-    );
+    // SB-32: a home with many rows and "সব প্রোডাক্ট" may ask more than one call takes; the rest go in the next calls.
+    for (let at = 0; at < waiting.length; at += STOREFRONT_CATALOGUE_LISTS_MAX) {
+      const batch = waiting.slice(at, at + STOREFRONT_CATALOGUE_LISTS_MAX);
+      this.ask(batch.map((each) => each.query)).then(
+        (pages) => {
+          batch.forEach((each, index) => {
+            each.resolve(pages[index] ?? null);
+          });
+        },
+        (reason: unknown) => {
+          batch.forEach((each) => {
+            each.reject(reason);
+          });
+        },
+      );
+    }
   }
 }

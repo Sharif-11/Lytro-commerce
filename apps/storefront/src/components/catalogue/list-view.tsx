@@ -20,6 +20,7 @@ export function ListView({
   page,
   query,
   theme,
+  empty,
 }: {
   words: Words;
   heading: ReactNode;
@@ -32,7 +33,13 @@ export function ListView({
   query: ProductQuery;
   /** STOREFRONT-BUILDER-PLAN SB-17: a designed shop's card and look; null, the storefront's own. */
   theme?: ListTheme | null;
+  /**
+   * SB-33: what the page shows in place of an empty list (`EmptyList`). The stock switch stays only while it is what
+   * emptied the list; the chips, the sort and the "Nothing found" line go.
+   */
+  empty?: ReactNode;
 }) {
+  const none = page.products.length === 0 && empty !== undefined && empty !== null;
   return (
     <>
       <div
@@ -46,16 +53,18 @@ export function ListView({
         }}
       >
         {heading}
-        <a
-          className={params.inStock ? 'chip on' : 'chip'}
-          href={listHref(path, { ...params, inStock: !params.inStock }, fallback)}
-        >
-          <Icon name="check" />
-          {words.t('instock_only')}
-        </a>
+        {none && !params.inStock ? null : (
+          <a
+            className={params.inStock ? 'chip on' : 'chip'}
+            href={listHref(path, { ...params, inStock: !params.inStock }, fallback)}
+          >
+            <Icon name="check" />
+            {words.t('instock_only')}
+          </a>
+        )}
       </div>
-      {chips}
-      {sortable ? (
+      {none ? null : chips}
+      {sortable && !none ? (
         <div style={{ display: 'flex' }}>
           <SortChip language={words.language} path={path} params={params} fallback={fallback} />
         </div>
@@ -71,6 +80,8 @@ export function ListView({
           now={Date.now()}
           theme={theme}
         />
+      ) : none ? (
+        empty
       ) : (
         <p className="sub">{words.t('no_results')}</p>
       )}

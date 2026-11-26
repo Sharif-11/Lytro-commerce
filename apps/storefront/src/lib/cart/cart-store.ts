@@ -25,6 +25,8 @@ export interface CartAnswer {
 
 export interface CartLine {
   variantId: string;
+  /** The owner, 2026-11-25: the line's link names the product by its ID; a line from before has its slug only. */
+  productId?: string;
   productSlug: string;
   name: string;
   /** The picked options, as the shopper saw them (`M · Navy`). */

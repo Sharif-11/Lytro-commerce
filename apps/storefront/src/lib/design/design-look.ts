@@ -7,6 +7,7 @@ import {
   StorefrontThemeKey,
   storefrontTokens,
   type ProductCardStyle,
+  type SectionHeadStyle,
   type StorefrontHeaderStyle,
   type StorefrontThemeDefinition,
   type StorefrontTokens,
@@ -85,6 +86,8 @@ export function designLook(design: PublicStorefrontDesign, brand: PublicBrand | 
 export interface PageTheme {
   header: StorefrontHeaderStyle;
   card: ProductCardStyle;
+  /** SB-33: how an inner page's section heading is drawn ("More from this shop" on an empty page). */
+  head: SectionHeadStyle;
   variables: Record<string, string>;
 }
 
@@ -95,7 +98,12 @@ export function pageTheme(info: {
 }): PageTheme | null {
   if (!info.design) return null;
   const look = designLook(info.design, info.brand);
-  return { header: look.theme.header, card: look.theme.card, variables: look.variables };
+  return {
+    header: look.theme.header,
+    card: look.theme.card,
+    head: look.theme.head,
+    variables: look.variables,
+  };
 }
 
 /**
