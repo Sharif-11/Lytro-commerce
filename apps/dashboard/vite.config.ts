@@ -58,6 +58,8 @@ export default defineConfig({
       '/api': {
         target: process.env.VITE_API_PROXY_TARGET ?? 'http://localhost:3000',
         changeOrigin: true,
+        // LIVE-CHAT-PLAN LC-3: the chat's live connection, under /api like everything else.
+        ws: true,
       },
     },
   },

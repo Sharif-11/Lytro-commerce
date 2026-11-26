@@ -71,6 +71,8 @@ const NOTIFIERS = [
   exports: [
     Notifications,
     PushSender,
+    // LIVE-CHAT-PLAN LC-4: the console's own chat pushes, with the same keys.
+    PUSH_PROVIDER,
     AccountNotices,
     NotificationPurge,
     NotificationSubscriptions,

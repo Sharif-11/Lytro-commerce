@@ -145,6 +145,14 @@ const DESCRIPTIONS: Record<PlatformSettingKey, string> = {
     "The one top-up, in TK, that opens a pay-as-you-go shop's storefront, landing pages and public key once fair use is on (PF-13).",
   [PlatformSettingKey.PaygApiFreeRequests]:
     "The successful requests a pay-as-you-go shop's own website makes free each cycle, before 1 TK per 1,000 (PF-14).",
+  [PlatformSettingKey.ChatBusyMinutes]:
+    "Minutes a shop's chat message waits unanswered within hours before Lytro's busy line goes (LC-5).",
+  [PlatformSettingKey.ChatHistoryDays]:
+    'Days a live chat message is kept before the nightly clean-up deletes it (LC-11).',
+  [PlatformSettingKey.ChatPhotoDays]:
+    'Days a live chat photo is kept, never longer than the messages (LC-8).',
+  [PlatformSettingKey.ChatMessagesPerMinute]:
+    'Live chat messages one person may send in a minute (LC-25).',
 };
 
 // A positive-int check, the only shape any key needs today; slice 7 extends this map, not a switch, as more
@@ -260,6 +268,10 @@ const VALIDATORS: Record<PlatformSettingKey, (value: unknown) => boolean> = {
   [PlatformSettingKey.PaygFairUse]: isFairUseMode,
   [PlatformSettingKey.PaygActivationTopUp]: isPositiveInt,
   [PlatformSettingKey.PaygApiFreeRequests]: isPositiveInt,
+  [PlatformSettingKey.ChatBusyMinutes]: isPositiveInt,
+  [PlatformSettingKey.ChatHistoryDays]: isPositiveInt,
+  [PlatformSettingKey.ChatPhotoDays]: isPositiveInt,
+  [PlatformSettingKey.ChatMessagesPerMinute]: isPositiveInt,
 };
 
 // D8-77: the help line's two hours, each checked against the other.

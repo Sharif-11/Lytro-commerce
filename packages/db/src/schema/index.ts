@@ -71,6 +71,7 @@ export * from './control/catalog-feeds';
 export * from './control/usage-warnings';
 export * from './control/addons';
 export * from './control/request-errors';
+export * from './control/live-chat';
 export * from './control/shop-days';
 export * from './control/media-costs';
 export * from './control/platform-ad-events';

@@ -22,6 +22,7 @@ import { QueueWorkersModule } from '../modules/shared/queue-workers/queue-worker
 import { PaymentPageModule } from '../modules/payment-page/payment-page.module';
 import { TeamModule } from '../modules/team/team.module';
 import { ShopAppModule } from '../modules/shop-app/shop-app.module';
+import { LiveChatModule } from '../modules/live-chat/live-chat.module';
 import { IdentityModule } from '../modules/identity/identity.module';
 import { OperatorModule } from '../modules/operator/operator.module';
 import { TenancyModule } from '../modules/tenancy/tenancy.module';
@@ -56,6 +57,7 @@ const jobImports = runsJobs(serverRoleOf(process.env)) ? [QueueWorkersModule] : 
     TeamModule,
     PaymentPageModule,
     ShopAppModule,
+    LiveChatModule,
     AuditModule,
     QueueModule,
     ...jobImports,
