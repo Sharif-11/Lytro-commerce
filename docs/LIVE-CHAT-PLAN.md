@@ -1,6 +1,7 @@
 # Live chat between a shop and Lytro — plan
 
-Status: **sketch drawn, awaiting the owner's approval** (2026-11-27). Nothing is built. Sketches: `lc-*` screens in
+Status: **sketch drawn, awaiting the owner's approval** (2026-11-27). Nothing is built. **Two PRs** (LC-26): PR 1 is live chat
+without AI, PR 2 the AI after the owner's separate discussion of what it knows. §11 lists which item is whose. Sketches: `lc-*` screens in
 `docs/brand/lytro-dashboard.html` (the seller's side) and `oc-*` screens in `docs/brand/lytro-operator.html` (Lytro's
 side); PNGs in `Desktop/Lytro screenshots/live-chat/`.
 
@@ -39,6 +40,11 @@ plan): the owner chose live chat instead (2026-11-27, "i prefer live chat for no
 | LC-19 | Point 5 of the earlier list: "every time home opens" | Home's button shows for 5 seconds each time Home opens. |
 | LC-20 | "no sound" for chats the AI fully answered (the coordinator, relaying the owner) | They show in the inbox with a quiet count and the AI mark. The sound plays only when a person is needed: the AI handed over, a draft awaits approval, or the seller asked for a person. |
 | LC-21 | "how to answer via ai with cost optimization, i discuss this with you further"; then: how the AI knows the platform is a separate discussion for later | **To discuss** (§8.6): one placeholder, not designed, not linked to the quick replies. |
+| LC-22 | "all question: your suggestion is ok" (2026-11-27), on the provider | **Gemini first.** The chat AI has its own `chat_ai_provider` and `chat_ai_model` settings, mirroring `address_read_provider` and `address_read_model`, so more providers can join the picker later (§8.1). |
+| LC-23 | "i want dollar cap for international currency" | The monthly AI cap and this month's spend are in **US dollars ($)**, not taka (§8.4). |
+| LC-24 | "all question: your suggestion is ok", on hours | Chat hours **reuse the help line's hours** (§5.4). |
+| LC-25 | "all question: your suggestion is ok", on the flood guard | **20 messages per person per minute** (§6). |
+| LC-26 | Two PRs (the coordinator, relaying the owner, 2026-11-27) | PR 1: live chat without AI. PR 2: the AI, after the owner's separate knowledge discussion (§11). |
 
 ## 3. Who sees what
 
@@ -95,7 +101,8 @@ plan): the owner chose live chat instead (2026-11-27, "i prefer live chat for no
 
 ### 5.4 Outside hours
 
-The help line's hours (`help_opens_hour`, `help_closes_hour`, 9 to 22 by default, D8-68). Outside them the chat still
+Decided (LC-24): the help line's hours (`help_opens_hour`, `help_closes_hour`, 9 to 22 by default, D8-68); the chat has no
+hours of its own. Outside them the chat still
 takes messages; the seller sees "আমরা সকাল ৯টায় উত্তর দেব" (the setting's hour) and, for anything urgent, the WhatsApp
 button. If the AI is on and allowed, it may answer (§8).
 
@@ -126,7 +133,7 @@ device, with the same sound and "সাউন্ড শুনুন".
   open socket, so 100 is about 3 MB; near-zero CPU at rest (a ping every 25 seconds). Even 10 messages per shop per day
   is 1,000 a day, one every 90 seconds. **No VPS upgrade.** For contrast, polling every 5 seconds from 50 open
   dashboards would be 10 requests a second, all day.
-- **Flood guard:** messages per person per minute (a setting), and photo size as the existing upload allows.
+- **Flood guard:** 20 messages per person per minute (LC-25, a setting), and photo size as the existing upload allows.
 
 ## 7. Keeping and deleting (LC-8, LC-11)
 
@@ -139,9 +146,9 @@ device, with the same sound and "সাউন্ড শুনুন".
 
 ### 8.1 Provider and model (LC-14)
 
-Two settings like the address reader's: `chat_ai_provider` and `chat_ai_model`, the model typed as the provider names
-it. **Today Lytro has one AI adapter, Gemini's** (AI-10, D7-4; its key is already on production); another provider
-needs its adapter built first. Which provider the chat AI starts on is an open question (§10).
+Decided (LC-22): **Gemini first.** Two settings of the chat AI's own, like the address reader's: `chat_ai_provider` and
+`chat_ai_model`, the model typed as the provider names it, changeable any time. Today Lytro has one AI adapter, Gemini's
+(AI-10, D7-4; its key is already on production); another provider joins the picker once its adapter is built.
 
 ### 8.2 Caution rules
 
@@ -163,7 +170,8 @@ needs its adapter built first. Which provider the chat AI starts on is an open q
 
 ### 8.4 Cost (LC-17, LC-18)
 
-- `chat_ai_monthly_cap` (in taka or dollars, to settle): this month's spend is shown beside it. At the cap the AI stops
+- `chat_ai_monthly_cap_usd`, in **US dollars** (LC-23): this month's spend is shown beside it, in dollars too, from each
+  reply's recorded cost. At the cap the AI stops
   everywhere until the month turns, and the console says so.
 - `chat_ai_replies_per_shop_per_day`: a number, or unlimited. At it, that shop's chat is human-only for the day.
 - Each AI reply's cost is recorded, so the spend is exact, not estimated.
@@ -191,13 +199,26 @@ The operator's own list of short replies, for Lytro's people only; the AI doesn'
 
 ## 10. Open questions
 
-1. **How the AI knows the platform and answers cheaply** (LC-21): a separate discussion for later (§8.6).
-2. **The chat AI's provider:** Gemini (adapter and key already there) or another, whose adapter would be built first.
-3. **The cap's currency:** taka or dollars.
-4. **Hours:** reuse the help line's hours (recommended), or the chat's own.
-5. **Messages per person per minute:** 20 recommended.
+1. **How the AI knows the platform and answers cheaply** (LC-21): a separate discussion for later (§8.6). It gates PR 2.
 
-## 11. The build, after approval
+Settled 2026-11-27 ("all question: your suggestion is ok, i want dollar cap for international currency"): the provider
+(LC-22), the cap's currency (LC-23), hours (LC-24) and the flood guard (LC-25).
 
-One PR: the server (the feature switches, chat tables, the socket gateway, Redis fan-out, the AI's settings and
-switches, the clean-ups), then the dashboard and the console screens to the sketch. The AI's answer path waits for §8.6.
+## 11. The build, after approval: two PRs (LC-26)
+
+**PR 1: live chat without AI.** LC-1 to LC-13, LC-19, LC-24, LC-25.
+- The server: the chat feature per plan and per shop, the chat tables, the socket gateway with Redis fan-out, the busy
+  line, hours, the flood guard, and the nightly clean-ups of messages and photos.
+- The dashboard: the floating button, the chat, outside hours, the busy line, and the chat sound row.
+- The console: the floating button, the inbox, one chat with the shop's context, quick replies and their editor, My
+  notifications, Settings → Live chat, and the chat switch on the plan editor and the shop page.
+- Without the AI, every new message from a shop plays the operator's sound.
+- Screens: `lc-home-peek`, `lc-home-gone`, `lc-menu`, `lc-unread-any`, `lc-chat`, `lc-chat-desktop`, `lc-offhours`,
+  `lc-busy`, `lc-sound`; `oc-fab`, `oc-inbox`, `oc-chat`, `oc-quick`, `oc-notif`, `oc-settings-chat`, and the chat rows of
+  `oc-plan-features` and `oc-shop-features`. The inbox ships without its AI filters and marks.
+
+**PR 2: the AI, after the owner's knowledge discussion.** LC-14 to LC-18, LC-20 to LC-23.
+- The provider and model settings, the global and per plan and per shop switches, confident-or-draft, the dollar cap and
+  spend, replies per shop, the AI label and "talk to a person", and no sound for a chat the AI fully answered.
+- Screens: `lc-ai`, `oc-draft`, `oc-settings-ai`, the AI rows of `oc-plan-features` and `oc-shop-features`, and the
+  inbox's AI filters and marks ("AI answered", "AI draft to approve", "Wants a person").
