@@ -88,6 +88,10 @@ export const FIELD_LABELS: Readonly<Record<string, Translation | null>> = {
   appKey: { en: 'App key', bn: 'অ্যাপ কী' },
   // Which part of the dashboard opened the payment page: never typed.
   from: null,
+  // SB-32 as amended: the design preview's token and what its layout reports (GET /preview/layout): never typed.
+  t: null,
+  sectionId: null,
+  index: null,
   appSecret: { en: 'App secret', bn: 'অ্যাপ সিক্রেট' },
   keys: { en: 'Push keys', bn: 'পুশ কি' },
   newRate: { en: 'New rate', bn: 'নতুন রেট' },
