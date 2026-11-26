@@ -170,18 +170,18 @@ test('an own banner or slide leading nowhere says why, and the others say nothin
   await open(page, LEFT);
   await main(page).getByRole('button', { name: 'Open Offer banners' }).click();
   const sheet = page.getByRole('dialog').last();
-  await sheet.getByRole('button', { name: /Up to 30% off/ }).click();
+  await sheet.getByRole('button', { name: 'Open Up to 30% off' }).click();
   await expect(sheet.getByRole('status')).toContainText('The offer is over');
   await expect(sheet.getByRole('status')).toContainText('It shows again when an offer starts.');
   await expectAccessible(page);
   await sheet.getByRole('button', { name: 'Back' }).click();
-  await sheet.getByRole('button', { name: /Gift sets/ }).click();
+  await sheet.getByRole('button', { name: 'Open Gift sets' }).click();
   await expect(sheet.getByRole('status')).toHaveCount(0);
   await page.keyboard.press('Escape');
 
   await main(page).getByRole('button', { name: 'Open Hero slides' }).click();
   const hero = page.getByRole('dialog').last();
-  await hero.getByRole('button', { name: /New lipsticks/ }).click();
+  await hero.getByRole('button', { name: 'Open New lipsticks' }).click();
   await expect(hero.getByRole('status')).toContainText('The offer is over');
 });
 

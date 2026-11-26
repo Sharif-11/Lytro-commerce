@@ -426,7 +426,7 @@ const SHOTS: { screen: string; path: string; then?: Steps; state?: ShopState }[]
     then: async (page, say) => {
       await openRow(page, say('অফার ব্যানার খুলুন', 'Open Offer banners'));
       await inSheet(page)
-        .getByRole('button', { name: /Up to 30% off/ })
+        .getByRole('button', { name: say('Up to 30% off খুলুন', 'Open Up to 30% off') })
         .click();
     },
   },
