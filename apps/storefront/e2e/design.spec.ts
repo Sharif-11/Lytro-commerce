@@ -1,6 +1,12 @@
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { StockState, StorefrontThemeKey } from '@lytronix/validators';
+import {
+  previewLayoutSchema,
+  StockState,
+  StorefrontLinkKind,
+  StorefrontSectionKind,
+  StorefrontThemeKey,
+} from '@lytronix/validators';
 import { type Browser, expect, type Page, test } from '@playwright/test';
 import { builderShop, type SketchShop } from './support/builder-fixtures';
 import { idOf, type Language } from './support/fixtures';
@@ -347,6 +353,63 @@ test.describe("the draft's preview (SB-12)", () => {
     await page.goto(shop.url('/preview?t=ended'));
     await expect(page.locator('h1')).toHaveText('Preview ended');
     await expect(page.locator('.sfb')).toHaveCount(0);
+  });
+
+  // SB-32 as amended (the owner, 2026-11-26, sketch `de-*`): what the draft's home leaves out, for the design editor.
+  test('answers the dashboard what the draft leaves out, never kept, and nothing on an ended link', async ({
+    page,
+    browser,
+  }) => {
+    const shops = await sketchShops(browser);
+    const made = (language: Language) => {
+      const draft = builderShop(StorefrontThemeKey.Soft, shops.soft, language);
+      // Nothing on sale: the shop's own banners, each leading to On sale, lead nowhere now.
+      return {
+        ...draft,
+        draft: draft.info?.design,
+        info: { ...(draft.info as object), sale: { products: 0, bestDiscount: 0 } },
+      } as typeof draft;
+    };
+    const shop = await openShop(page, made);
+    const banners = made('en').draft?.sections.find(
+      (section) => section.kind === StorefrontSectionKind.OfferBanners,
+    );
+    const own = banners?.kind === StorefrontSectionKind.OfferBanners ? banners.banners : [];
+    expect(own.length).toBeGreaterThan(0);
+
+    // Node's own requests can't resolve the shop's *.localhost name, as the browser does: the storefront is asked at
+    // 127.0.0.1, named by its Host header, as the edge asks it.
+    const ask = (path: string, origin?: string) => {
+      const url = new URL(shop.url(path));
+      const host = url.host;
+      url.hostname = '127.0.0.1';
+      return page.request.get(url.href, { headers: { host, ...(origin ? { origin } : {}) } });
+    };
+    const dashboard = 'http://localhost:5173';
+    const answer = await ask(`/preview/layout?t=${GOOD_PREVIEW}`, dashboard);
+    expect(answer.status()).toBe(200);
+    expect(answer.headers()['cache-control']).toContain('no-store');
+    expect(answer.headers()['access-control-allow-origin']).toBe(dashboard);
+    const layout = previewLayoutSchema.parse(await answer.json());
+    expect(layout.items).toEqual(
+      expect.arrayContaining(
+        own.map((_, index) => ({
+          sectionId: banners?.id,
+          index,
+          link: StorefrontLinkKind.OnSale,
+        })),
+      ),
+    );
+
+    // Another site's page gets no leave to read it.
+    const other = await ask(`/preview/layout?t=${GOOD_PREVIEW}`, 'https://evil.example');
+    expect(other.headers()['access-control-allow-origin']).toBeUndefined();
+    // An ended link answers nothing; a missing or overlong one is refused.
+    const ended = await ask('/preview/layout?t=ended');
+    expect(ended.status()).toBe(404);
+    expect(ended.headers()['cache-control']).toContain('no-store');
+    expect((await ask('/preview/layout')).status()).toBe(400);
+    expect((await ask(`/preview/layout?t=${'x'.repeat(513)}`)).status()).toBe(400);
   });
 });
 

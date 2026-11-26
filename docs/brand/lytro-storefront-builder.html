@@ -2207,6 +2207,136 @@ Object.assign(EDITOR, {
 });
 /* ---------- end of empty states (proposal) ---------- */
 
+/* ---------- The design editor: what the home now does by itself (proposal 2026-11-26) ----------
+   The owner, 2026-11-26, after SB-32's "সব প্রোডাক্ট" and its rules: "do seller changes this appearance in theme design
+   section", then "What about banner", then "yes to all" to three additions. (1) "সব প্রোডাক্ট" sits in the section
+   list, fixed with a lock, after the last row of products: it can not be dragged, switched off or removed, and a tap
+   says why. (2) A row that fills itself, left out on the live shop for lack of products, says so in its editor; a grid
+   shows whole lines of four, so its count picker offers 4, 8 and 12. (3) A seller's own slide or banner whose link leads
+   where nothing is now (an ended offer, an empty category) is left out until that changes, and its editor says so. */
+document.head.insertAdjacentHTML('beforeend', `<style>
+.de-lock .de-lk{width:30px;height:30px;border-radius:8px;background:#eef2f2;color:#33403f;display:grid;place-items:center;flex:none}
+.de-lock .de-lk .ico{width:16px;height:16px}
+.de-lock .si{background:#eef2f2;color:#33403f}
+.srow .nm .chip.de-hid{display:inline-block;background:#fdecea;color:#8a1c12;font-weight:600;font-style:normal;font-size:11.5px;margin-top:4px}
+.note-line.de-warn{background:#fff4e5;color:#5a3500;margin-bottom:12px}
+.note-line.de-warn b{display:block;margin-bottom:2px}
+.de-explain p{font-size:14px;line-height:1.55;margin:0 0 10px;color:#1f2a29}
+.de-explain .note-line{margin-top:4px}
+</style>`);
+Object.assign(P, { lock: '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>' });
+
+// "সব প্রোডাক্ট" in the list: after the last row of products (Best sellers here), wherever the rows move to.
+const DE_ALL = { key: 'all', icon: 'grid', name: ['সব প্রোডাক্ট', 'All products'], sum: ['সব সময় শেষে থাকে, বাকি সব প্রোডাক্ট এখানে', 'Always last: every other product is here'], lock: true };
+const DE_LIP = { key: 'lip', icon: 'tag', name: ['লিপস্টিক', 'Lipstick'], sum: ['অটো: একটা ক্যাটাগরি · গ্রিড ৪টি', 'Auto: one category · grid of 4'], hidden: ['এখন দেখাচ্ছে না', 'Not showing now'] };
+function deRows(extra = [], change = {}) {
+  const rows = [];
+  for (const row of ED_ROWS) {
+    rows.push(change[row.key] ? { ...row, ...change[row.key] } : row);
+    if (row.key === 'hot') rows.push(...extra, DE_ALL);
+  }
+  return rows;
+}
+function deSectionRows(selected, rows) {
+  return rows.map((r) => {
+    if (!r.lock && !r.hidden) return sectionRows(selected, [r]);
+    const chip = r.hidden ? `<em class="chip de-hid">${T(r.hidden)}</em>` : '';
+    const end = r.lock ? `<span class="de-lk" aria-label="${L('সরানো বা বন্ধ করা যায় না', 'Can not be moved or switched off')}">${ic('lock')}</span>` : '<span class="switch"></span>';
+    return `<div class="srow ${r.lock ? 'fixed de-lock' : ''} ${selected === r.key ? 'sel' : ''}"><span class="hdl">${ic('drag')}</span><span class="grip">${ic('up')}${ic('down')}</span><span class="si">${ic(r.icon)}</span><span class="nm"><b>${T(r.name)}</b><span>${T(r.sum)}</span>${chip}</span>${end}<span class="chev">${ic('chev')}</span></div>`;
+  }).join('');
+}
+// The design page as built (designBody), its section list drawn with the rows above.
+function deBody(selected, rows) {
+  const marker = '</p><button class="dbtn quiet wide"';
+  return designBody(selected, []).replace(marker, `</p>${deSectionRows(selected, rows)}<button class="dbtn quiet wide"`);
+}
+const deWarn = (head, line) => `<div class="note-line de-warn">${ic('info')}<span><b>${head}</b>${line}</span></div>`;
+const DE_DONE = () => `<div class="dock"><button class="dbtn">${L('ঠিক আছে', 'Done')}</button></div>`;
+
+// The product row's sheet as built (e-products): which products, the title, the layout and how many.
+function deRowSheet(source, category, count, warn) {
+  const sources = [
+    [['নতুন এসেছে', 'Just in'], ['সবচেয়ে নতুন পণ্য আগে', 'Newest products first'], 'new'],
+    [['অফার কালেকশন', 'On sale'], ['ছাড়ের পণ্য, বেশি ছাড় আগে', 'Discounted products, biggest first'], 'sale'],
+    [['সবচেয়ে বেশি বিক্রি', 'Best sellers'], ['গত ৩০ দিনের অর্ডার থেকে', 'From the last 30 days of orders'], 'best'],
+    [['একটা ক্যাটাগরির পণ্য', 'One category'], ['যেমন: লিপস্টিক', 'For example: Lipstick'], 'cat'],
+    [['হাতে বাছাই', 'Hand-picked'], ['আপনি যেগুলো বেছে দেবেন', 'The ones you choose'], 'pick'],
+  ];
+  const radios = sources.map(([b, s, k]) => `<div class="radio ${k === source ? 'on' : ''}"><span class="dot"></span><span><b>${T(b)}</b><span>${T(s)}</span></span></div>`).join('');
+  const counts = [4, 8, 12].map((n) => `<span class="${n === count ? 'on' : ''}">${n}</span>`).join('');
+  return `${warn || ''}<div class="field"><label>${L('কোন পণ্য দেখাবে', 'Which products')}</label><div>${radios}</div></div>
+    ${category ? fld(L('ক্যাটাগরি', 'Category'), category, '', { sel: true }) : ''}
+    <div class="field"><label>${L('শিরোনাম', 'Title')}</label><div class="in">${category || L('নতুন এসেছে', 'Just in')}</div></div>
+    <div class="field"><label>${L('দেখানোর ধরন', 'Layout')}</label><div class="seg"><span class="on">${L('গ্রিড', 'Grid')}</span><span>${L('ক্যারোসেল (সোয়াইপ)', 'Carousel (swipe)')}</span></div></div>
+    <div class="field"><label>${L('কয়টি পণ্য', 'How many')}</label><div class="seg">${counts}</div><span class="hint">${L('গ্রিড ৪টি করে পুরো লাইনে দেখায়।', 'A grid shows whole lines of four.')}</span></div>
+    <div class="note-line">${ic('info')}<span>${L('ব্যাজ নিজে থেকে বসে: ছাড়ের %, “নতুন” (১৪ দিনের ভেতরে যোগ করা), “সেরা বিক্রি”, আর স্টক কম হলে “মাত্র ৩টি বাকি”।', 'Badges set themselves: the discount %, “New” (added in the last 14 days), “Best seller”, and “Only 3 left” when stock is low.')}</span></div>`;
+}
+
+const DE_TITLE = () => L('স্টোরফ্রন্ট ডিজাইন', 'Storefront design');
+
+Object.assign(EDITOR, {
+  'de-sections': {
+    label: ['ডিজাইন: সব প্রোডাক্ট তালিকায়', 'Design: All products in the list'],
+    note: ['প্রস্তাব (২০২৬-১১-২৬): হোম পেজের সেকশনের তালিকায় “সব প্রোডাক্ট”, প্রোডাক্টের শেষ সারির পরে, তালার চিহ্নসহ। টেনে সরানো, বন্ধ করা বা মোছা যায় না; সারিগুলো সরালে এটাও শেষ সারির পরে থাকে। চাপলে কেন, সেটা বলে।', 'Proposal (2026-11-26): “All products” in the home page’s section list, after the last row of products, with a lock. It can not be dragged, switched off or removed; when the rows move, it stays after the last one. A tap says why.'],
+    render: (d) => screen(d, DE_TITLE(), DRAFT(), deBody(null, deRows()), dockDesign()),
+  },
+  'de-all-info': {
+    label: ['ডিজাইন: সব প্রোডাক্ট চাপলে', 'Design: All products tapped'],
+    note: ['“সব প্রোডাক্ট” চাপলে ছোট ব্যাখ্যা, শুধু পড়ার জন্য: এখানে বদলানোর কিছু নেই।', 'Tapping “All products”: a short explanation, read only; nothing to change here.'],
+    render: (d) => {
+      const inner = `<div class="de-explain"><p>${L('উপরের সারিগুলোতে যে প্রোডাক্ট দেখানো হয়নি, শপের এমন সব প্রোডাক্ট এখানে, ১২টি করে; ক্রেতা “আরও দেখুন” চাপলে বাকিগুলো আসে।', 'Every product of the shop the rows above did not show is here, twelve at a time; shoppers tap “See more” for the rest.')}</p><p>${L('এটা সব সময় প্রোডাক্টের শেষ সারির পরে থাকে, যাতে হোম পেজে শপের প্রতিটি প্রোডাক্ট থাকে। তাই এটা সরানো, বন্ধ করা বা মোছা যায় না।', 'It always comes after the last row of products, so the home page holds every product of the shop. So it can not be moved, switched off or removed.')}</p><div class="note-line">${ic('info')}<span>${L('কোন প্রোডাক্ট উপরে আসবে, তা ঠিক করুন উপরের সারিগুলো দিয়ে।', 'Choose what shows higher up with the rows above it.')}</span></div></div>`;
+      return screen(d, DE_TITLE(), DRAFT(), deBody('all', deRows()), dockDesign(), sheet(L('সব প্রোডাক্ট', 'All products'), inner, DE_DONE()));
+    },
+  },
+  'de-list-hidden': {
+    label: ['ডিজাইন: কী এখন দেখাচ্ছে না', 'Design: what is not showing now'],
+    note: ['তালিকা এক নজরে: লিপস্টিকের সারি (প্রোডাক্ট কম) আর একটা অফার ব্যানার (অফার শেষ) লাইভ শপে এখন নেই, তাই লাল “এখন দেখাচ্ছে না”। সুইচ চালুই থাকে: এটা বিক্রেতার বন্ধ করা নয়, নিজে থেকে ফিরবে।', 'The list at a glance: the Lipstick row (too few products) and one offer banner (the offer is over) are not on the live shop now, so a red “Not showing now”. The switch stays on: the seller did not turn it off, and it comes back by itself.'],
+    render: (d) => {
+      const rows = deRows([DE_LIP], { banners: { hidden: ['১টি এখন দেখাচ্ছে না', '1 not showing now'] } });
+      return screen(d, DE_TITLE(), DRAFT(), deBody(null, rows), dockDesign());
+    },
+  },
+  'de-row-hidden': {
+    label: ['ডিজাইন: সারি দেখাচ্ছে না', 'Design: a row not showing'],
+    note: ['নিজে থেকে ভরা সারি (এখানে লিপস্টিক, গ্রিড ৪টি) লাইভ শপে প্রোডাক্টের অভাবে দেখাচ্ছে না: তালিকায় “এখন দেখাচ্ছে না”, শিটের উপরে কারণ। শুধু তখনই দেখায়; প্রোডাক্ট এলে নিজে থেকে চলে যায়। ক্যারোসেলে লেখা “৫টার কম” (কম্পিউটার একবারে ৫টি দেখায়)। হাতে বাছাই আর অফারের সারি সব সময় দেখায়, তাই এদের এই লেখা নেই। গ্রিডে ৪, ৮ বা ১২; ক্যারোসেলে আগের মতো ৪, ৬, ৮, ১২; আগে সেভ করা ৬টির গ্রিড এখানে ৪ দেখায়।', 'A row filling itself (Lipstick here, a grid of 4) not showing on the live shop for lack of products: “Not showing now” in the list, the reason atop its sheet. Only then; it goes by itself when products come. A carousel says “fewer than 5” (a computer shows 5 at once). Hand-picked and offer rows always show, so they never say it. A grid counts 4, 8 or 12; a carousel 4, 6, 8 or 12 as before; a grid saved at 6 shows 4 here.'],
+    render: (d) => {
+      const warn = deWarn(L('এই সারি এখন দেখাচ্ছে না', 'This row is not showing now'), L('৪টার কম প্রোডাক্ট থাকলে এই সারি দেখাবে না; প্রোডাক্টগুলো ‘সব প্রোডাক্ট’-এ যাবে।', 'With fewer than 4 products this row does not show; its products go to ‘All products’.'));
+      const inner = deRowSheet('cat', L('লিপস্টিক', 'Lipstick'), 4, warn);
+      return screen(d, DE_TITLE(), DRAFT(), deBody('lip', deRows([DE_LIP])), dockDesign(), sheet(L('প্রোডাক্টের সারি', 'Product row'), inner, DOCK_SECTION()), 'latest');
+    },
+  },
+  'de-row-grid': {
+    label: ['ডিজাইন: গ্রিডে কয়টি', 'Design: how many in a grid'],
+    note: ['সারিটা দেখাচ্ছে, তাই কোনো সতর্কতা নেই। গ্রিডে ৪, ৮ বা ১২: সব সময় পুরো লাইনে শেষ হয়। ৮টির গ্রিডে ৬টি প্রোডাক্ট থাকলে ৪টি দেখায়, বাকি ২টি “সব প্রোডাক্ট”-এ।', 'The row shows, so no warning. A grid of 4, 8 or 12: it always ends on a full line. A grid of 8 with 6 products shows 4; the other 2 go to “All products”.'],
+    render: (d) => {
+      const inner = deRowSheet('new', null, 8, '');
+      const rows = deRows([], { latest: { sum: ['অটো: নতুন ৮টি পণ্য · গ্রিড', 'Auto: 8 newest · grid'] } });
+      return screen(d, DE_TITLE(), DRAFT(), deBody('latest', rows), dockDesign(), sheet(L('প্রোডাক্টের সারি', 'Product row'), inner, DOCK_SECTION()), 'latest');
+    },
+  },
+  'de-banner-hidden': {
+    label: ['ডিজাইন: অফার শেষ, ব্যানার লুকানো', 'Design: offer over, banner hidden'],
+    note: ['নিজের ব্যানার “অফার কালেকশন”-এ নেয়, কিন্তু এখন কিছুতে ছাড় নেই: লাইভ শপে ব্যানারটা নেই, অফার চালু হলে নিজে থেকে ফেরে। তালিকায় “১টি এখন দেখাচ্ছে না”। একই নিয়ম হিরো স্লাইড আর বড় ব্যানারে; সব স্লাইড লুকালে হিরো শপের প্রোডাক্ট দিয়ে নিজে ভরে, সব ব্যানার লুকালে অটো ব্যানার আসে।', 'An own banner leads to “On sale”, but nothing is discounted now: the live shop leaves it out, and it comes back by itself when an offer starts. The list says “1 not showing now”. The same goes for hero slides and the wide banner; with every slide hidden the hero fills itself from the shop’s products, with every banner hidden the automatic banners show.'],
+    render: (d) => {
+      const warn = deWarn(L('অফার শেষ', 'The offer is over'), L('অফার চালু হলে আবার দেখাবে।', 'It shows again when an offer starts.'));
+      const inner = warn + bannerInner('beauty-3-wide', L('স্কিন কেয়ারে', 'On skin care'), L('২০% ছাড়', '20% off'), L('দেখুন', 'Shop'), L('অফার কালেকশন', 'On sale'));
+      const rows = deRows([], { banners: { hidden: ['১টি এখন দেখাচ্ছে না', '1 not showing now'] } });
+      return screen(d, DE_TITLE(), DRAFT(), deBody('banners', rows), dockDesign(), sheet(L('ব্যানার ১', 'Banner 1'), inner, DOCK_ITEM()), 'banners');
+    },
+  },
+  'de-wide-empty': {
+    label: ['ডিজাইন: ক্যাটাগরি খালি, ব্যানার লুকানো', 'Design: category empty, banner hidden'],
+    note: ['বড় ব্যানার “পারফিউম” ক্যাটাগরিতে নেয়, যেখানে এখন কোনো প্রোডাক্ট নেই: লাইভ শপে সেকশনটা নেই, ক্যাটাগরিতে প্রোডাক্ট এলে ফেরে। “নতুন এসেছে” বা “বেশি বিক্রি”-তে নেওয়া ব্যানার লুকায় শুধু শপে কোনো প্রোডাক্টই না থাকলে; একটা প্রোডাক্টে নেওয়া ব্যানার সব সময় দেখায়।', 'The wide banner leads to the Perfume category, which has no product now: the live shop leaves the section out, and it comes back when the category gets products. A banner leading to Just in or Best sellers hides only when the shop has no product at all; one leading to a product always shows.'],
+    render: (d) => {
+      const warn = deWarn(L('এই ক্যাটাগরিতে এখন প্রোডাক্ট নেই', 'This category has no products now'), L('প্রোডাক্ট এলে আবার দেখাবে।', 'It shows again when it gets products.'));
+      const inner = warn + bannerInner('beauty-1-wide', L('নতুন কালেকশন', 'New collection'), L('ঈদের সুবাস', 'A scent for Eid'), L('এখনই কিনুন', 'Shop now'), L('ক্যাটাগরি: পারফিউম', 'Category: Perfume'));
+      const wide = { key: 'wide', icon: 'wide', name: ['বড় ব্যানার', 'Wide banner'], sum: ['ঈদের সুবাস · ক্যাটাগরি: পারফিউম', 'A scent for Eid · Category: Perfume'], hidden: ['এখন দেখাচ্ছে না', 'Not showing now'] };
+      return screen(d, DE_TITLE(), DRAFT(), deBody('wide', deRows([wide])), dockDesign(), sheet(L('বড় ব্যানার', 'Wide banner'), inner, DOCK_SECTION()));
+    },
+  },
+});
+/* ---------- end of the design editor's notes (proposal) ---------- */
+
 function render() {
   const theme = THEMES[STATE.screen];
   const ed = EDITOR[STATE.screen];

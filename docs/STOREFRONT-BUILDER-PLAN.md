@@ -277,6 +277,59 @@ matches the built storefront where the sketch drew sample data:
 - the trust strip stays the home's own (inner pages go to the footer, as built);
 - the built storefront has no floating WhatsApp button, so there is none to hide.
 
+**The banners, full lines and the design editor.** The owner, 2026-11-26, asked "do seller changes this appearance in
+theme design section" and "What about banner", then answered "yes to all" to three proposals. They join the same pull
+request.
+
+1. **A seller's own slide or banner hides while its link leads where nothing is now** (SB-16 as amended; built). It
+   covers the seller's own hero slides, offer banners and the wide banner. The hero's tiles and the automatic banners
+   already leave when their collection is empty (BL-12, BL-13).
+
+   | The link leads to | Hidden while |
+   |---|---|
+   | On sale | nothing is on sale (the shop answer's `sale`, the count the অফার chip and the announcement bar use) |
+   | An offer | that offer is not running |
+   | A category | the category holds no product, its subcategories' included (the public category list's `productCount`), or shoppers can't reach it |
+   | Just in, Best sellers | the shop shows no product at all (`productCount`) |
+   | A product | never: a product gone already leads home (SB-16) |
+
+   - **It comes back by itself.** An offer starting or ending, or a product going on or off sale, clears every page of
+     the shop. A product made, archived, restored, shown, hidden or moved purges the shop's `listing` pages, the home
+     among them, at the edge and in the page cache alike.
+   - **The fallbacks stay.** With every own slide hidden, the hero fills itself from its source, as with every photo
+     gone. With every own banner hidden, the automatic banners show. A hidden wide banner takes its section with it.
+   - **Reads.** The hero's own source, or the banners' collections, are read only when every own slide or banner may be
+     hidden: its photo gone, its link a category's (whose count is known only when the page is drawn), or the shop
+     answer already showing it leads nowhere. They go in the same call as the rows, so no request is added. This also
+     mends an own hero whose every photo had gone: its source was never read, so it drew nothing.
+2. **An automatic grid ends on a full line** (built). A grid of newest, on sale, best sellers or one category shows
+   whole lines of four: the most it can of 4, 8 or 12. The cards past the last full line come in "সব প্রোডাক্ট".
+   - A grid of 8 with 6 products shows 4.
+   - A grid saved at 6 shows 4, since 6 is a carousel's count.
+   - Rows the seller picked by hand, offer rows and carousels are never cut.
+   - Below 4, the fill rule above already leaves the row out.
+3. **The design editor says what the home does by itself** (proposal, sketch `de-*`; built after the owner approves).
+   - **"সব প্রোডাক্ট" in the section list** (`de-sections`, `de-all-info`). It sits after the last row of products,
+     with a lock in place of the switch: "সব সময় শেষে থাকে, বাকি সব প্রোডাক্ট এখানে". It can't be dragged, switched
+     off or removed. Tapping it opens a short, read-only explanation.
+   - **A row not showing** (`de-list-hidden`, `de-row-hidden`). When the live shop leaves an automatic row out for lack
+     of products, the list says "এখন দেখাচ্ছে না" under it. Its sheet opens on "এই সারি এখন দেখাচ্ছে না — ৪টার কম
+     প্রোডাক্ট থাকলে এই সারি দেখাবে না; প্রোডাক্টগুলো 'সব প্রোডাক্ট'-এ যাবে।", or "৫টার কম" for a carousel. The
+     note shows only then; the switch stays on, since the seller didn't turn it off.
+   - **How many** (`de-row-grid`). A grid offers 4, 8 and 12, with the hint "গ্রিড ৪টি করে পুরো লাইনে দেখায়।". A
+     carousel keeps 4, 6, 8 and 12. A grid saved at 6 shows as 4.
+   - **A banner not showing** (`de-banner-hidden`, `de-wide-empty`). The list says "১টি এখন দেখাচ্ছে না" or "এখন
+     দেখাচ্ছে না". The sheet opens on the reason: "অফার শেষ — অফার চালু হলে আবার দেখাবে।" or "এই ক্যাটাগরিতে এখন
+     প্রোডাক্ট নেই — প্রোডাক্ট এলে আবার দেখাবে।".
+   - **How the editor knows** (the cheapest correct way). The storefront already decides it, in the same code that draws
+     the home (`homeLayout`, `linkShows`), repeats and fills included. A small JSON route beside the live preview's
+     (`/preview/layout`, signed by the same short-lived preview link) runs the home's reads for the draft and answers
+     which rows, slides and banners it leaves out. The editor asks it on opening and after each change it saves, as
+     the preview reloads.
+     - It is the same two batched calls a home render makes, and nothing more.
+     - It works on a phone, where the preview opens only on demand.
+     - The dashboard can't guess it itself: a row can also drop for the cards a row above it showed.
+
 ---
 
 ## 3. Requirement changes (`SRS-detailed.md`)

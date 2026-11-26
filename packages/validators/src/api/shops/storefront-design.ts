@@ -109,6 +109,34 @@ export function storefrontRowFill(row: { layout: ProductRowLayout; count: number
   );
 }
 
+/** SB-32 as amended (the owner, 2026-11-26, "yes to all"): what a grid's editor offers -- whole lines of four. */
+export const STOREFRONT_GRID_COUNTS = [4, 8, 12] as const;
+
+/**
+ * SB-32 as amended: the whole lines of four in `cards` -- what an automatic grid shows of what it has, and what a grid
+ * saved at 6 (a carousel's count) shows: 4.
+ */
+export function storefrontGridLines(cards: number): number {
+  return Math.floor(cards / STOREFRONT_GRID_FILL) * STOREFRONT_GRID_FILL;
+}
+
+/**
+ * SB-32 Q1: where "সব প্রোডাক্ট" goes on every home, the seller's own included -- after the page's last row of
+ * products; with none, before the trust strip, else at the end. The index of the section it goes before. The design
+ * editor draws its locked row in the same place.
+ */
+export function storefrontAllProductsAt(
+  sections: readonly { kind: StorefrontSectionKind }[],
+): number {
+  let last = -1;
+  sections.forEach((section, index) => {
+    if (section.kind === StorefrontSectionKind.Products) last = index;
+  });
+  if (last >= 0) return last + 1;
+  const trust = sections.findIndex((section) => section.kind === StorefrontSectionKind.Trust);
+  return trust >= 0 ? trust : sections.length;
+}
+
 // SB-8's limits. Every text has a longest length (SEC-12).
 export const STOREFRONT_SECTIONS_MAX = 12;
 export const STOREFRONT_HERO_SLIDES_MAX = 3;
@@ -736,3 +764,38 @@ export const publicShopQuerySchema = z.object({
   preview: z.string().min(1).max(STOREFRONT_PREVIEW_TOKEN_MAX).optional(),
 });
 export type PublicShopQuery = z.infer<typeof publicShopQuerySchema>;
+
+/**
+ * SB-32 as amended (the owner, 2026-11-26, sketch `de-*`): what the home drawn from the draft leaves out, for the design
+ * editor's notes. Asked of the shop's own address beside its preview, with the preview's signed link:
+ * `GET /preview/layout?t=<token>`. The storefront answers from the very reads and code that draw the home.
+ */
+export const PREVIEW_LAYOUT_PATH = '/preview/layout';
+export const previewLayoutQuerySchema = z
+  .object({ t: z.string().min(1).max(STOREFRONT_PREVIEW_TOKEN_MAX) })
+  .strict();
+
+export const previewLayoutSchema = z
+  .object({
+    /** Rows filling themselves from the shop's lists that the home leaves out: short of `fill` once repeats are skipped. */
+    rows: z
+      .array(z.object({ sectionId: z.guid(), fill: z.number().int().min(1) }).strict())
+      .max(STOREFRONT_SECTIONS_MAX),
+    /**
+     * A seller's own hero slides, offer banners and wide banner left out because their link leads where nothing is now,
+     * by the section and their place in it (the wide banner's is 0), with the kind of link that hid them.
+     */
+    items: z
+      .array(
+        z
+          .object({
+            sectionId: z.guid(),
+            index: z.number().int().min(0).max(STOREFRONT_OFFER_BANNERS_MAX),
+            link: z.enum(StorefrontLinkKind),
+          })
+          .strict(),
+      )
+      .max(STOREFRONT_SECTIONS_MAX * STOREFRONT_OFFER_BANNERS_MAX),
+  })
+  .strict();
+export type PreviewLayout = z.infer<typeof previewLayoutSchema>;

@@ -2,9 +2,14 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { StorefrontSectionKind, StorefrontThemeKey } from '@lytronix/validators';
+import {
+  StorefrontLinkKind,
+  StorefrontSectionKind,
+  StorefrontThemeKey,
+  type PreviewLayout,
+} from '@lytronix/validators';
 import { mockApi, SLUG, type ApiLog, type Language, type ShopState } from './support/mock-api';
-import { PREVIEW_TOKEN, startingOnly } from './support/storefront-design';
+import { DRAWN, drawnDesign, PREVIEW_TOKEN, startingOnly } from './support/storefront-design';
 
 // STOREFRONT-BUILDER-PLAN SB-5, SB-7 to SB-13 (PR 3a): Settings > Storefront > Design -- the theme and its colour sets,
 // the logo and icon, the home page's sections shown, hidden, moved, added and removed, each change saved to the draft;
@@ -17,11 +22,14 @@ const PAGE = '/settings/storefront/design';
 async function open(page: Page, path = PAGE, state: ShopState = {}): Promise<ApiLog> {
   const log = await mockApi(page, { language: 'en', ...state });
   // The preview is the real storefront at the shop's own address; here, a page that says what it was asked for.
-  await page.route('https://*.lytro.app/preview**', (route) =>
-    route.fulfill({
-      contentType: 'text/html',
-      body: `<!doctype html><title>preview</title><p>${route.request().url()}</p>`,
-    }),
+  // SB-32 as amended: /preview itself; what it leaves out (/preview/layout) is the mock's own (mockApi).
+  await page.route(
+    (url) => url.hostname.endsWith('.lytro.app') && url.pathname === '/preview',
+    (route) =>
+      route.fulfill({
+        contentType: 'text/html',
+        body: `<!doctype html><title>preview</title><p>${route.request().url()}</p>`,
+      }),
   );
   await page.goto(`/${SLUG}${path}`);
   return log;
@@ -80,6 +88,8 @@ test('Storefront has the Design line, which opens the design page with its theme
     /Just in\s*Auto: the 6 newest · carousel/,
     /Offer banners\s*3 banners · big \+ two/,
     /Best sellers\s*Auto: top 4 · grid/,
+    // SB-32 as amended (`de-sections`): locked after the last row of products.
+    /All products\s*Always last: every other product is here/,
     /Testimonials\s*3 quotes/,
     /Trust strip\s*Auto: cash on delivery, fees, payment/,
     /About the shop\s*Off/,
@@ -371,8 +381,55 @@ const openRow = async (page: Page, name: string) => {
 };
 const inSheet = (page: Page) => page.getByRole('dialog').last();
 
-const SHOTS: { screen: string; path: string; then?: Steps }[] = [
+/** SB-32 as amended (`de-*`): the drawn design, with what the storefront says its home leaves out. */
+const leaving = (layout: PreviewLayout): ShopState => ({ design: { ...drawnDesign(), layout } });
+const LEFT_OUT: PreviewLayout = {
+  rows: [{ sectionId: DRAWN.best, fill: 4 }],
+  items: [{ sectionId: DRAWN.banners, index: 0, link: StorefrontLinkKind.OnSale }],
+};
+
+const SHOTS: { screen: string; path: string; then?: Steps; state?: ShopState }[] = [
   { screen: 'e-home', path: PAGE },
+  // SB-32 as amended (the owner, 2026-11-26): the editor says what the home does by itself.
+  { screen: 'de-sections', path: PAGE },
+  {
+    screen: 'de-all-info',
+    path: PAGE,
+    then: async (page, say) => {
+      await openRow(page, say('সব প্রোডাক্ট খুলুন', 'Open All products'));
+    },
+  },
+  { screen: 'de-list-hidden', path: PAGE, state: leaving(LEFT_OUT) },
+  {
+    screen: 'de-row-hidden',
+    path: PAGE,
+    state: leaving(LEFT_OUT),
+    then: async (page, say) => {
+      await openRow(page, say('সবচেয়ে বেশি বিক্রি খুলুন', 'Open Best sellers'));
+    },
+  },
+  {
+    screen: 'de-row-grid',
+    path: PAGE,
+    then: async (page, say) => {
+      await openRow(page, say('নতুন এসেছে খুলুন', 'Open Just in'));
+      await inSheet(page)
+        .getByRole('radio', { name: say('গ্রিড', 'Grid') })
+        .click();
+      await inSheet(page).getByRole('radio', { name: '8' }).click();
+    },
+  },
+  {
+    screen: 'de-banner-hidden',
+    path: PAGE,
+    state: leaving(LEFT_OUT),
+    then: async (page, say) => {
+      await openRow(page, say('অফার ব্যানার খুলুন', 'Open Offer banners'));
+      await inSheet(page)
+        .getByRole('button', { name: say('Up to 30% off খুলুন', 'Open Up to 30% off') })
+        .click();
+    },
+  },
   { screen: 'e-themes', path: `${PAGE}/themes` },
   { screen: 'e-brand', path: `${PAGE}/brand` },
   {
@@ -606,7 +663,7 @@ test.describe('beside the sketch', () => {
             isMobile: device === 'phone',
             hasTouch: device === 'phone',
           });
-          await open(app, shot.path, { language });
+          await open(app, shot.path, { language, ...shot.state });
           await app.waitForLoadState('networkidle');
           await app.evaluate(() => document.fonts.ready);
           if (shot.then) await shot.then(app, (bn, en) => (language === 'bn' ? bn : en));

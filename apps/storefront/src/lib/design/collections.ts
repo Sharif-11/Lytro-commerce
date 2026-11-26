@@ -7,6 +7,7 @@ import type {
   PublicCategory,
 } from '../api/storefront-api';
 import { money, type Words } from '../i18n/words';
+import { categoryOf, type LinkFacts } from './links';
 
 // STOREFRONT-BUILDER-PLAN BL-3, BL-9, BL-12, BL-13: a collection of the shop's -- on sale, just in, best sellers or one
 // category -- as a hero's tile or a banner that fills itself draws it: words and a photo from the shop's own data, and
@@ -62,8 +63,8 @@ export interface CollectionView {
   href: string;
 }
 
-/** What the collections are drawn from. */
-export interface CollectionFacts {
+/** What the collections are drawn from; the facts a seller's own slide or banner is shown by among them (SB-16). */
+export interface CollectionFacts extends LinkFacts {
   /** Each collection's products, by `collectionKey`. */
   lists: ReadonlyMap<string, readonly ProductCard[]>;
   /** The shop's categories, for a category's picture, name, count and page. */
@@ -71,15 +72,6 @@ export interface CollectionFacts {
   /** SB-9: what is on sale now. */
   sale: { products: number; bestDiscount: number };
   words: Words;
-}
-
-function categoryOf(tree: readonly PublicCategory[], id: string): PublicCategory | null {
-  for (const category of tree) {
-    if (category.id === id) return category;
-    const found = categoryOf(category.children, id);
-    if (found) return found;
-  }
-  return null;
 }
 
 function viewOf(

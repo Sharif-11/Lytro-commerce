@@ -13,6 +13,8 @@ import {
   STOREFRONT_THEMES,
   StorefrontFill,
   StorefrontSectionKind,
+  storefrontAllProductsAt,
+  storefrontGridLines,
   type AnnouncementItem,
   type HeroSource,
   type StorefrontDesign,
@@ -57,22 +59,41 @@ export function wordsText(t: TFunction, words: Words): string {
   return t(words.key, params);
 }
 
-/** A row of the section list: one of the design's sections, or the fixed header or footer. */
+/** A row of the section list: one of the design's sections, the fixed header or footer, or "সব প্রোডাক্ট" (SB-32). */
 export type SectionRow =
   | { kind: 'fixed'; key: 'header' | 'footer' }
+  | { kind: 'all' }
   | { kind: 'section'; section: StorefrontSection; index: number };
 
-/** The rows as shoppers see the page: an announcement first sits over the header, then the rest, then the footer. */
+/**
+ * The rows as shoppers see the page: an announcement first sits over the header, then the rest, then the footer. SB-32
+ * as amended (sketch `de-sections`): "সব প্রোডাক্ট" where the home puts it among the sections shown
+ * (`storefrontAllProductsAt`) -- after the last row of products shown, wherever the rows move to.
+ */
 export function sectionRows(design: StorefrontDesign): SectionRow[] {
   const rows: SectionRow[] = design.sections.map((section, index) => ({
     kind: 'section',
     section,
     index,
   }));
+  const shown = design.sections.filter((section) => section.visible);
+  const before = shown[storefrontAllProductsAt(shown)];
+  const at = before
+    ? rows.findIndex((row) => row.kind === 'section' && row.section === before)
+    : -1;
+  if (at >= 0) rows.splice(at, 0, { kind: 'all' });
+  else rows.push({ kind: 'all' });
   const leading = design.sections[0]?.kind === StorefrontSectionKind.Announcement ? 1 : 0;
   rows.splice(leading, 0, { kind: 'fixed', key: 'header' });
   rows.push({ kind: 'fixed', key: 'footer' });
   return rows;
+}
+
+/** SB-32 as amended: how many a row shows of its count -- a grid whole lines of four (one saved at 6 shows 4). */
+export function rowCount(section: { layout: ProductRowLayout; count: number }): number {
+  return section.layout === ProductRowLayout.Grid
+    ? storefrontGridLines(section.count)
+    : section.count;
 }
 
 const ROW_ICONS: Readonly<Record<ProductRowSource, SectionIcon>> = {
@@ -222,18 +243,18 @@ export function sectionSummary(
       const layout = { key: section.layout === ProductRowLayout.Grid ? 'sdGrid' : 'sdCarousel' };
       if (section.source === ProductRowSource.Category) {
         const name = editor.categories.find((row) => row.id === section.categoryId)?.name ?? '';
-        return { key: 'sdSumRowCategory', params: { name, count: section.count, layout } };
+        return { key: 'sdSumRowCategory', params: { name, count: rowCount(section), layout } };
       }
       if (section.source === ProductRowSource.Picked) {
         return { key: 'sdSumRowPicked', params: { count: section.productIds.length, layout } };
       }
       if (section.source === ProductRowSource.Offer) {
         const name = (section.offerId ? editor.offers?.get(section.offerId) : undefined) ?? '';
-        return { key: 'sdSumRowOffer', params: { name, count: section.count, layout } };
+        return { key: 'sdSumRowOffer', params: { name, count: rowCount(section), layout } };
       }
       return {
         key: `sdSum${section.source === ProductRowSource.Newest ? 'Newest' : section.source === ProductRowSource.OnSale ? 'OnSale' : 'Best'}`,
-        params: { count: section.count, layout },
+        params: { count: rowCount(section), layout },
       };
     }
     case StorefrontSectionKind.OfferBanners: {

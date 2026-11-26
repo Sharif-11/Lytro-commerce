@@ -22,6 +22,7 @@ import {
   STOREFRONT_PICKED_PRODUCTS_MAX,
   STOREFRONT_PLACE_MAX,
   STOREFRONT_QUOTE_MAX,
+  STOREFRONT_GRID_COUNTS,
   STOREFRONT_ROW_COUNTS,
   STOREFRONT_TESTIMONIALS_MAX,
   STOREFRONT_THEMES,
@@ -52,6 +53,7 @@ import {
   HERO_SOURCE_WORDS,
   HERO_WORDS,
   isShown,
+  rowCount,
   sectionName,
   sectionSummary,
   wordsText,
@@ -77,17 +79,21 @@ import {
 // a banner and a quote -- as the sketch draws them, in the dashboard's own fields.
 
 type Products = Extract<StorefrontSection, { kind: StorefrontSectionKind.Products }>;
+type RowCount = Products['count'];
 
 /** The sketch's `.seg`: two to four choices in a pale track, the chosen one on white. */
 function Seg<T extends string | number>({
   label,
   value,
   choices,
+  hint,
   onChange,
 }: {
   label: string;
   value: T;
   choices: readonly { value: T; label: ReactNode }[];
+  /** A line under the choices, as a field's hint. */
+  hint?: string;
   onChange: (value: T) => void;
 }) {
   return (
@@ -113,6 +119,7 @@ function Seg<T extends string | number>({
           </button>
         ))}
       </div>
+      {hint ? <span className="text-[12.5px] text-fg-muted">{hint}</span> : null}
     </div>
   );
 }
@@ -1229,6 +1236,7 @@ function ProductsForm({
   onProducts: () => void;
 }) {
   const { t } = useTranslation('menu');
+  const grid = section.layout === ProductRowLayout.Grid;
   const all = useCategories({ enabled: section.source === ProductRowSource.Category });
   // OF-22: only a running offer can be picked; the one the row names stays listed whatever it is now.
   const offers = useOffers();
@@ -1349,16 +1357,25 @@ function ProductsForm({
           { value: ProductRowLayout.Carousel, label: t('ssCarousel') },
         ]}
         onChange={(layout) => {
-          onChange({ ...section, layout });
+          // SB-32 as amended: a grid takes whole lines of four, so a carousel's 6 becomes 4.
+          onChange({
+            ...section,
+            layout,
+            count: rowCount({ layout, count: section.count }) as RowCount,
+          });
         }}
       />
       {section.source === ProductRowSource.Picked ? null : (
         <Seg
           label={t('ssHowMany')}
-          value={section.count}
-          choices={STOREFRONT_ROW_COUNTS.map((value) => ({ value, label: String(value) }))}
+          value={rowCount(section)}
+          choices={(grid ? STOREFRONT_GRID_COUNTS : STOREFRONT_ROW_COUNTS).map((value) => ({
+            value,
+            label: String(value),
+          }))}
+          hint={grid ? t('ssGridLines') : undefined}
           onChange={(value) => {
-            onChange({ ...section, count: value });
+            onChange({ ...section, count: value as RowCount });
           }}
         />
       )}

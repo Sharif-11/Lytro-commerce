@@ -717,6 +717,19 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
   await page.route('https://*.lytro.app/**', (route: Route) =>
     route.fulfill({ status: 200, contentType: 'text/html', body: '<p>storefront</p>' }),
   );
+  // SB-32 as amended (sketch `de-*`): what the storefront beside the preview says the draft's home leaves out, which
+  // the dashboard, another site, reads under the storefront's CORS leave.
+  await page.route('https://*.lytro.app/preview/layout**', (route: Route) => {
+    const layout = (state.design ??= drawnDesign()).layout;
+    return layout === null
+      ? route.fulfill({ status: 503, headers: { 'access-control-allow-origin': '*' }, body: '' })
+      : route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          headers: { 'access-control-allow-origin': '*' },
+          body: JSON.stringify(layout ?? { rows: [], items: [] }),
+        });
+  });
   await page.route('**/api/v1/**', async (route: Route) => {
     const request = route.request();
     const url = new URL(request.url());

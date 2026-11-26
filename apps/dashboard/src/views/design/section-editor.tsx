@@ -5,7 +5,9 @@ import {
   STARTING_BANNER_COLLECTIONS,
   StorefrontSectionKind,
   storefrontPhotoRefs,
+  type PreviewLayout,
   type StorefrontCollection,
+  type StorefrontLink,
   type StorefrontDesign,
   type StorefrontSection,
 } from '@lytronix/validators';
@@ -17,6 +19,7 @@ import type { ProductSummary } from '@/types/catalogue';
 import type { StorefrontEditor } from '@/types/storefront-design';
 import { NoteLine } from './design-parts';
 import { sectionName, wordsText } from './design-words';
+import { ItemLeftOut, RowLeftOut } from './left-notes';
 import { CollectionStep, LinkStep, ProductsStep, type Known, type Names } from './pickers';
 import { ItemForm, LineForm, MainForm, QuoteForm } from './section-forms';
 import {
@@ -71,6 +74,7 @@ export function SectionEditor({
   target,
   design,
   editor,
+  left,
   images,
   names,
   known,
@@ -85,6 +89,8 @@ export function SectionEditor({
   target: EditorTarget;
   design: StorefrontDesign;
   editor: Pick<StorefrontEditor, 'categories' | 'broken'>;
+  /** SB-32 as amended: what the saved draft's home leaves out now; null until the storefront has said. */
+  left: PreviewLayout | null;
   images: Record<string, ImageView>;
   names: Names;
   known: Known;
@@ -506,6 +512,25 @@ export function SectionEditor({
     );
 
   const linkNames = names;
+  // SB-32 as amended (`de-banner-hidden`, `de-wide-empty`): a saved slide's or banner's link, to say when it leads
+  // nowhere now.
+  const saved = target.mode === 'edit' ? target.section : null;
+  const savedLink = (at: number | null): StorefrontLink | null => {
+    if (at === null || !saved) return null;
+    if (saved.kind === StorefrontSectionKind.WideBanner) return saved.banner.link;
+    if (saved.kind === StorefrontSectionKind.Hero) return saved.slides[at]?.link ?? null;
+    if (saved.kind === StorefrontSectionKind.OfferBanners) return saved.banners[at]?.link ?? null;
+    return null;
+  };
+  const itemNote = (draft: ItemDraft, at: number | null) => (
+    <ItemLeftOut
+      left={left}
+      sectionId={saved?.id ?? null}
+      index={at}
+      saved={savedLink(at)}
+      link={draft.link}
+    />
+  );
   const itemForm = (draft: ItemDraft, kind: ItemKind) => (
     <ItemForm
       draft={draft}
@@ -562,45 +587,58 @@ export function SectionEditor({
   } else if (step.kind === 'line' && line !== null) {
     body = <LineForm text={line} tried={tried} onChange={setLine} />;
   } else if (step.kind === 'item' && item) {
-    body = itemForm(item, itemKind);
+    body = (
+      <>
+        {itemNote(item, step.at)}
+        {itemForm(item, itemKind)}
+      </>
+    );
   } else if (step.kind === 'quote' && quote) {
     body = <QuoteForm draft={quote} tried={tried} onChange={setQuote} />;
   } else if (wide && item) {
-    body = itemForm(item, 'banner');
+    body = (
+      <>
+        {itemNote(item, 0)}
+        {itemForm(item, 'banner')}
+      </>
+    );
   } else if (working) {
     body = (
-      <MainForm
-        section={working}
-        design={design}
-        language={language}
-        editor={editor}
-        images={images}
-        names={names}
-        tried={tried}
-        onChange={setWorking}
-        onSource={(source) => {
-          if (working.kind !== StorefrontSectionKind.Products) return;
-          setWorking(withSource(working, source, kept.current));
-        }}
-        onCategory={(categoryId) => {
-          if (working.kind !== StorefrontSectionKind.Products) return;
-          kept.current = { ...kept.current, categoryId };
-          setWorking({ ...working, categoryId });
-        }}
-        onOffer={(offerId) => {
-          if (working.kind !== StorefrontSectionKind.Products) return;
-          kept.current = { ...kept.current, offerId };
-          setWorking({ ...working, offerId });
-        }}
-        onOpenItem={openItem}
-        onOpenQuote={openQuote}
-        onOpenCollection={openCollection}
-        onOpenLine={openLine}
-        onProducts={() => {
-          push({ kind: 'products' });
-        }}
-        onUploaded={uploaded}
-      />
+      <>
+        <RowLeftOut left={left} saved={saved} working={working} />
+        <MainForm
+          section={working}
+          design={design}
+          language={language}
+          editor={editor}
+          images={images}
+          names={names}
+          tried={tried}
+          onChange={setWorking}
+          onSource={(source) => {
+            if (working.kind !== StorefrontSectionKind.Products) return;
+            setWorking(withSource(working, source, kept.current));
+          }}
+          onCategory={(categoryId) => {
+            if (working.kind !== StorefrontSectionKind.Products) return;
+            kept.current = { ...kept.current, categoryId };
+            setWorking({ ...working, categoryId });
+          }}
+          onOffer={(offerId) => {
+            if (working.kind !== StorefrontSectionKind.Products) return;
+            kept.current = { ...kept.current, offerId };
+            setWorking({ ...working, offerId });
+          }}
+          onOpenItem={openItem}
+          onOpenQuote={openQuote}
+          onOpenCollection={openCollection}
+          onOpenLine={openLine}
+          onProducts={() => {
+            push({ kind: 'products' });
+          }}
+          onUploaded={uploaded}
+        />
+      </>
     );
   }
 
