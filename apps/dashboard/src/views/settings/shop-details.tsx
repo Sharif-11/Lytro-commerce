@@ -251,6 +251,12 @@ export function ShopDetailsView(): React.JSX.Element {
               onChange={(event) => {
                 setMessenger(event.target.value);
               }}
+              // A pasted link turns into the name it holds as the seller leaves the box, so "m.me/" in front of it
+              // reads as the very link shoppers will open (the owner, 2026-11-27: keep m.me/, tidy the paste).
+              onBlur={() => {
+                const name = messengerUsernameOf(messenger);
+                if (name !== null && name !== messenger) setMessenger(name);
+              }}
             />
             <Field
               label={t('ux2.fbL')}
