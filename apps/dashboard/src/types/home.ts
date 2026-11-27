@@ -1,4 +1,4 @@
-import type { BillingPaymentState, PlanPaymentKind } from '@lytronix/validators';
+import type { BillingPaymentState, PlanPaymentKind, TutorialsHead } from '@lytronix/validators';
 
 /**
  * Mirrors `homeViewSchema` in apps/server/src/modules/team/dto/home-response.dto.ts (GET /home,
@@ -49,4 +49,6 @@ export interface HomeView {
     listenerPhone: boolean;
     apiKey: boolean;
   } | null;
+  /** §7.49a: the set-up card's videos for the owner -- the next one large, one line once the four are watched, or none. */
+  tutorialsHead: TutorialsHead | null;
 }

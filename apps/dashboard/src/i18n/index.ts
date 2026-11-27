@@ -16,13 +16,15 @@ import shellBn from './locales/shell/bn.json';
 import shellEn from './locales/shell/en.json';
 import shopBn from './locales/shop/bn.json';
 import shopEn from './locales/shop/en.json';
+import tutorialsBn from './locales/tutorials/bn.json';
+import tutorialsEn from './locales/tutorials/en.json';
 
 // I18N-01: Bangla by default, an English toggle that changes every visible label. I18N-02: the choice
 // persists per device (localStorage), not per account — no backend call needed for this.
 // TENANT-DASHBOARD-DESIGN §11: one namespace per hub, from the prototype's own words, as each is rebuilt; `shell`
 // holds the frame's (the bars, the rail, the side column, banners, search and the + menu); `home` Home's; `money` the
 // Money hub's, with the Renew and Unavailable pages; `menu` the Menu hub's; `shop` the Shop hub's (from Slice 11.7);
-// `orders` the Orders hub's (from Slice 4.8a);
+// `orders` the Orders hub's (from Slice 4.8a); `tutorials` the tutorial videos' rows, player, list and Home head (§7.49);
 // `onboarding` the sign-in and sign-up steps outside a shop. The first build's screens keep the default `translation` namespace until their own pull request rebuilds them.
 startLanguage(
   i18n,
@@ -37,6 +39,7 @@ startLanguage(
       shop: shopBn,
       orders: ordersBn,
       onboarding: onboardingBn,
+      tutorials: tutorialsBn,
     },
     en: {
       translation: en,
@@ -47,6 +50,7 @@ startLanguage(
       shop: shopEn,
       orders: ordersEn,
       onboarding: onboardingEn,
+      tutorials: tutorialsEn,
     },
   },
 );

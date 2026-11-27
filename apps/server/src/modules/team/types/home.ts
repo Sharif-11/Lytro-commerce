@@ -1,3 +1,4 @@
+import type { TutorialsHead } from '@lytronix/validators';
 import type { OrderHomeView } from '../../orders/types/orders';
 import type { PaymentNeedingAttention } from '../../payments/types/plan-payment';
 
@@ -55,4 +56,9 @@ export interface HomeView {
   /** RTE-12: this cycle's last fast-spend alert -- keys:manage; null also when there was none. */
   fastSpendAlertedAt: Date | null;
   checklist: SetupChecklist | null;
+  /**
+   * TENANT-DASHBOARD-DESIGN §7.49a: the head of the set-up card -- the next video large, or one line once the first four
+   * are watched -- for the owner while the card is open and the shop has had no order; null otherwise.
+   */
+  tutorialsHead: TutorialsHead | null;
 }

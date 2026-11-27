@@ -2734,3 +2734,19 @@ now", 2026-11-27). `docs/LIVE-CHAT-PLAN.md` holds the decisions (LC-1 to LC-21).
 5. **The AI answer path is not decided** (LC-21). The SRS has no requirement for it; it joins the SRS only if the owner
    wants it there.
 6. **The privacy policy** needs a line that shop support messages may be processed by an AI provider, once the AI is on.
+
+## 153. `TENANT-DASHBOARD-DESIGN §7.49`, `OPERATOR-CONSOLE-DESIGN §10h`: what the in-app tutorial videos leave open — found 2026-11-27, open
+
+The tutorial videos were built in one PR on the owner's approval ("all point agreed", 2026-11-27). What they leave:
+
+1. **A publish answers once the file is stored.** The console's request waits while the server reads the upload from
+   the temporary bucket, re-wraps it and writes it to the public bucket. An 80 MB file over a slow link to R2 could pass
+   Cloudflare's 100-second limit on a proxied request: the console then shows an error although the server finishes and
+   the next read of the page shows the part live. A job with a "processing" state would remove the wait.
+2. **The cover is the first frame.** A video that opens on black gets a black cover; the owner's exports open on their
+   title frame. A cover chosen in the console is not built.
+3. **The wallet step's bKash and Nagad chips** (§7.49a) wait for those videos and a drawing of two chips on one step.
+4. **A removed or replaced file stays in Cloudflare's cache** after its 7 days, until Cloudflare drops it: nothing links
+   to its name any more, so no one is served it.
+5. **Watched marks and hidden screens are not in the shop's data export**: they are each person's own viewing marks,
+   not the shop's records.

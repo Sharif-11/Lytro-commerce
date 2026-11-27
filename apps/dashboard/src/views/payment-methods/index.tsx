@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { PaymentWay, RateKey } from '@lytronix/validators';
+import { PaymentWay, RateKey, TutorialScreen } from '@lytronix/validators';
 import { useCurrentRates } from '@/api/balance';
 import { useListenerPhones } from '@/api/listener';
 import {
@@ -105,7 +105,7 @@ export function PaymentMethodsView(): React.JSX.Element {
   const sheetRow = open && open.kind !== 'phone' ? rowOf(open.method) : undefined;
 
   return (
-    <ShellPage>
+    <ShellPage tutorials={TutorialScreen.PaymentMethods}>
       {/* With no controls, staff have nothing else to land on, so the keyboard could not scroll the page to read it. */}
       <div className="flex max-w-[640px] flex-col gap-3.5" tabIndex={owner ? undefined : 0}>
         <p className="text-[14px] text-fg-muted">{t('pmLead')}</p>

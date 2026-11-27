@@ -661,6 +661,9 @@ export enum QueueName {
   // SB-10 (the owner, 2026-11-20): every minute, the shops whose cards' "ordered" and best-seller facts are due are
   // worked out again and kept, so a product list reads them instead of going through the shop's orders.
   CardFactsTick = 'card_facts_tick',
+  // TENANT-DASHBOARD-DESIGN §7.49, OPERATOR-CONSOLE-DESIGN §10h: each night, the tutorial files replaced or removed
+  // 7 days ago deleted from the public media bucket.
+  TutorialFilesTick = 'tutorial_files_tick',
 }
 
 // Who performed the action (AUD-02). `system` is the platform itself (a scheduled job); `platform_support` is an
@@ -796,6 +799,11 @@ export enum PlatformAuditAction {
   // LIVE-CHAT-PLAN LC-2 (the owner, 2026-11-27): an operator set a shop's own plan feature -- live chat -- on, off or to
   // follow its plan.
   ShopFeatureSet = 'shop_feature_set',
+  // OPERATOR-CONSOLE-DESIGN §10h (the owner, 2026-11-27): a tutorial video uploaded, replaced by its next version, or
+  // removed. The playlist link is a setting, written as settings_changed.
+  TutorialUploaded = 'tutorial_uploaded',
+  TutorialReplaced = 'tutorial_replaced',
+  TutorialRemoved = 'tutorial_removed',
 }
 
 // DAT-51, D9-16 (Phase 9 Slice 9.5): what became of a courier's message kept as it arrived. `received` is stored and not yet
@@ -1027,6 +1035,9 @@ export enum PlatformSettingKey {
   ChatHistoryDays = 'chat_history_days',
   ChatPhotoDays = 'chat_photo_days',
   ChatMessagesPerMinute = 'chat_messages_per_minute',
+  // OPERATOR-CONSOLE-DESIGN §10h: the optional YouTube playlist Menu › Tutorials ends with; empty, the line is not shown.
+  // Set on the console's Tutorials page, not among the other settings.
+  TutorialsPlaylistUrl = 'tutorials_playlist_url',
 }
 
 // PYG-30: pay-as-you-go fair use, off or on.

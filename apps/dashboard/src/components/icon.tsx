@@ -267,6 +267,13 @@ const ICONS = {
       <circle cx="12" cy="10" r="3" />
     </>
   ),
+  // §7.49: the tutorial player's pause, as the sketch draws it.
+  pause: (
+    <>
+      <path d="M7 4h3v16H7z" />
+      <path d="M14 4h3v16h-3z" />
+    </>
+  ),
   play: <polygon points="6 3 20 12 6 21 6 3" />,
   plus: (
     <>

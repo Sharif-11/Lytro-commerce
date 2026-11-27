@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
-import { Permission, TenantState } from '@lytronix/validators';
+import { Permission, TenantState, TutorialScreen } from '@lytronix/validators';
 import { useCategories, useProductList, useProductRoom } from '@/api/catalogue';
 import { BalanceNote } from '@/components/balance-note';
 import { ErrorBanner, LoadFailed } from '@/components/error-banner';
@@ -157,7 +157,7 @@ export function ProductsView({
   }
 
   return (
-    <ShellPage actions={addProduct(true)}>
+    <ShellPage actions={addProduct(true)} tutorials={TutorialScreen.Products}>
       {mayManage && short ? (
         <BalanceNote id="product-balance" short={short} what={shell('bgWhatProduct')} />
       ) : null}

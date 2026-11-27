@@ -1,3 +1,4 @@
+import { TutorialsModule } from '../tutorials/tutorials.module';
 import { Module } from '@nestjs/common';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { AuditModule } from '../audit/audit.module';
@@ -199,6 +200,8 @@ import { NoticesModule } from '../notices/notices.module';
     ListenerModule,
     ListenerReceiptsModule,
     AddressReadsModule,
+    // §7.49a: Home's set-up card head; also the tutorials' own routes.
+    TutorialsModule,
     FraudChecksModule,
     MediaCostsModule,
     ReconciliationModule,

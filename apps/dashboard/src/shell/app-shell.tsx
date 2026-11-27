@@ -33,6 +33,7 @@ import { Splash } from './splash';
 import { useShopManifest } from './use-shop-manifest';
 import { NotificationAlerts } from '@/views/notifications/notification-alerts';
 import { ChatLauncher } from '@/views/chat/chat-launcher';
+import { TutorialPlayerProvider } from '@/views/tutorials/player-context';
 import { Unavailable } from '@/views/unavailable';
 import { ImportantPrompt, NoticeBands } from '@/views/notices/notice-bands';
 
@@ -266,37 +267,40 @@ function ShellFrame({ slug, me, tenant, children }: ShellFrameProps): React.JSX.
 
   return (
     <ShellContext.Provider value={shell}>
-      {/* Item 1.2: the shell is fixed to the screen, so the page scrolls inside `main` and the tab bar never moves with it,
+      {/* §7.49: Lytro's own tutorial player, over any screen a row, a chip or Menu opens it from. */}
+      <TutorialPlayerProvider>
+        {/* Item 1.2: the shell is fixed to the screen, so the page scrolls inside `main` and the tab bar never moves with it,
           on a browser without dynamic viewport units too, and whatever the browser's own bars do. */}
-      <div className="fixed inset-0 flex flex-col overflow-hidden bg-page font-ui text-[14px] leading-[1.45] text-fg">
-        <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-          <Rail />
-          <SideColumn />
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-            <AppBar canSearch={canSearch} canAdd={canAdd} />
-            <DeskHeader canSearch={canSearch} canAdd={canAdd} />
-            <NoticeBands summary={notices.data} />
-            <NetBar />
-            <NotificationAlerts />
-            <main className="min-h-0 flex-1 overflow-auto [-webkit-overflow-scrolling:touch]">
-              {screen?.legacy ? <LegacyPage>{children}</LegacyPage> : allowed ? children : null}
-            </main>
-            <TabBar />
+        <div className="fixed inset-0 flex flex-col overflow-hidden bg-page font-ui text-[14px] leading-[1.45] text-fg">
+          <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+            <Rail />
+            <SideColumn />
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+              <AppBar canSearch={canSearch} canAdd={canAdd} />
+              <DeskHeader canSearch={canSearch} canAdd={canAdd} />
+              <NoticeBands summary={notices.data} />
+              <NetBar />
+              <NotificationAlerts />
+              <main className="min-h-0 flex-1 overflow-auto [-webkit-overflow-scrolling:touch]">
+                {screen?.legacy ? <LegacyPage>{children}</LegacyPage> : allowed ? children : null}
+              </main>
+              <TabBar />
+            </div>
           </div>
+          <PlusMenu
+            open={plusOpen}
+            onClose={() => {
+              setPlusOpen(false);
+            }}
+          />
+          {notices.data && notices.data.prompts.length > 0 ? (
+            <ImportantPrompt prompts={notices.data.prompts} />
+          ) : null}
+          {/* LIVE-CHAT-PLAN §5: the chat with Lytro, for a shop that has it. */}
+          <ChatLauncher />
+          <ToastStack toasts={toast.toasts} onDismiss={toast.dismiss} />
         </div>
-        <PlusMenu
-          open={plusOpen}
-          onClose={() => {
-            setPlusOpen(false);
-          }}
-        />
-        {notices.data && notices.data.prompts.length > 0 ? (
-          <ImportantPrompt prompts={notices.data.prompts} />
-        ) : null}
-        {/* LIVE-CHAT-PLAN §5: the chat with Lytro, for a shop that has it. */}
-        <ChatLauncher />
-        <ToastStack toasts={toast.toasts} onDismiss={toast.dismiss} />
-      </div>
+      </TutorialPlayerProvider>
     </ShellContext.Provider>
   );
 }

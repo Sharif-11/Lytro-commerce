@@ -2761,6 +2761,181 @@ that rule:
    real product). Proposed: the website only; the products stay the sample's, so the page never shows a stranger's data
    when a staff member screenshots it.
 
+### 7.49 In-app tutorial videos (sketch 2026-11-27)
+
+The owner, 2026-11-27: "After current tutorial is done i need to attach coresponding tutorial to corresponding screen.
+but how to do it", then "most of the user is from mobile. What if we use 9:16" and "now do i need a seperate bucket for
+tutorial"; the plan below was approved in principle ("yes please"). Drawn in `brand/lytro-dashboard.html`'s group "In-app
+tutorial videos (sketch 2026-11-27)": `tv-products-empty`, `tv-products`, `tv-quick-add`, `tv-categories`,
+`tv-shopdetails`, `tv-delivery`, `tv-share-sheet`, `tv-meta`, `tv-couriers`, `tv-dismissed`, `tv-player`,
+`tv-player-end`, `tv-menu`, `tv-list`. Lytro's side is OPERATOR-CONSOLE-DESIGN §10h.
+
+**Job.** A seller stuck on a screen can watch the short Bangla video for that exact screen without leaving the app, and
+a new seller can follow the whole series in order from the Menu.
+
+**The series.** Fixed order, set in code with the screens each video shows on. Part 6 is two videos, so the list has 14
+rows.
+
+| Part | Name | Length | Shows on |
+|---|---|---|---|
+| ১ | শপ সাজানো | ১:৩৭ | শপের তথ্য, ডেলিভারি |
+| ২ | ক্যাটাগরি ম্যানেজমেন্ট | ১:৪৭ | ক্যাটাগরি |
+| ৩ | প্রোডাক্ট যোগ | ৩:১২ | প্রোডাক্ট (most useful while the list is empty), quick add |
+| ৪ | লিংক শেয়ার | ১:২৭ | the share sheet; the shop link card in শপের তথ্য |
+| ৫ | Meta Pixel | ১:৪৭ | বিজ্ঞাপন ও ফিড |
+| ৬ক | প্রোডাক্ট বুস্ট | ২:৫১ | বিজ্ঞাপন ও ফিড |
+| ৬খ | অ্যাড ক্যাম্পেইন | not made yet | বিজ্ঞাপন ও ফিড |
+| ৭ | Steadfast | ১:১৫ | কুরিয়ার |
+| ৮ | Pathao আর RedX | not made yet | কুরিয়ার |
+| ৯ | অর্ডার হ্যান্ডলিং | not made yet | অর্ডার |
+| ১০, ১১ | বিকাশ, নগদ | not made yet | পেমেন্ট মেথড |
+| ১২ | থিম | not made yet | storefront design |
+| ১৩ | প্ল্যান | not made yet | প্ল্যান |
+
+**The row on a screen.** Right under the page title, a tinted row: a round play button, "ভিডিও দেখুন: কীভাবে …" (the
+video's own line, for example "কীভাবে প্রোডাক্ট যোগ করবেন"), and under it "পর্ব ৩ · ৩:১২ · আর দেখাবেন না". Tapping
+the row opens the player. The rules:
+
+- **No video, no row.** While a tutorial has no file (the console's "ভিডিও নেই"), its row is not drawn at all, so
+  nothing on a screen points at a video that does not exist. When Lytro uploads one, the row appears by itself.
+- **"আর দেখাবেন না"** hides that row on that screen for that person (not the whole shop: the owner and each staff
+  member decide for themselves). It is kept on the server, so it holds on the phone and the computer alike. A toast
+  says "এই স্ক্রিনে আর দেখাবে না। সব ভিডিও মেনু › টিউটোরিয়ালে আছে।" (`tv-dismissed`). There is no undo on the
+  screen; the video stays in Menu › Tutorials.
+- **A page with more than one video** (বিজ্ঞাপন ও ফিড: parts 5, 6ক and 6খ) gets one card, "এই পেজের ভিডিও", with a
+  row for each video that has a file and one "আর দেখাবেন না" for the card (`tv-meta`).
+- **Inside a card or a sheet** (the shop link card in শপের তথ্য, the share sheet) the row is the same but has no
+  "আর দেখাবেন না": the card already has its own job, and the row stays small. Recommendation, not drawn: such a row
+  goes away by itself once the person has watched that video to the end (open question 1).
+- On শপের তথ্য both appear: part 1 under the title, part 4 inside the shop link card (the sketch's card is titled
+  "শপের ঠিকানা"; the built app calls it "শপের লিংক"). On কুরিয়ার, part 8's row joins part 7's once it has a file.
+
+**The player** (`tv-player`, `tv-player-end`). Lytro's own, never YouTube: full screen and black, the 9:16 video
+filling the height. At the top a close button and "পর্ব ৩ · প্রোডাক্ট যোগ" with its length. The controls sit on the
+video: pause or play, the time so far, a bar to drag, the length. At the end the video dims under two buttons, "আবার
+দেখুন" and "পরের ভিডিও: পর্ব ৪ · লিংক শেয়ার" (the next part that has a file). Under the video, always: "পরের ভিডিও"
+and "সব টিউটোরিয়াল". On a computer the same player sits in the middle at 420 px wide over a dark backdrop. Closing it
+returns to the screen it was opened from. A video counts as watched once it has played to the end (or past 90 percent).
+
+**Menu › টিউটোরিয়াল** (`tv-menu`, `tv-list`, `/tutorials`). A Menu row right under নোটিশ: "টিউটোরিয়াল" with a
+"৫টি নতুন" chip (videos with a file that this person has not watched) and "ভিডিও দেখে লিট্রো শিখুন". The page opens
+with "ছোট ছোট ভিডিওতে ধাপে ধাপে লিট্রো চালানো শিখুন। ক্রম অনুযায়ী দেখলে সবচেয়ে সহজ হয়।", then every part in the
+series' order: its cover (the video's first frame), "পর্ব ৩ · প্রোডাক্ট যোগ", the length, and "✓ দেখা হয়েছে" or
+"নতুন".
+
+- **Decision: parts without a video are shown, not hidden.** They are greyed, with a clock and "শিগগিরই" in place of
+  the length, and cannot be tapped. The seller sees the whole course and what is coming; the screens themselves never
+  show them (above).
+- The page ends with "সব ভিডিও YouTube-এ দেখুন", opening the playlist
+  (https://www.youtube.com/playlist?list=PLOcfDXgUTCdc) outside the app. The line shows only while the console has a
+  playlist link (it is optional there).
+
+**The files.** No separate bucket: the public media bucket, under Lytro's own prefix rather than a shop's,
+`platform/tutorials/<key>-v<N>.mp4`, with its cover beside it as `<key>-v<N>.jpg` (for example
+`platform/tutorials/03-add-product-v2.mp4`). Every upload or replacement gets the next version's name, because
+media.lytro.app tells Cloudflare and phones to cache a file for a year: under the same name the old video would keep
+playing. The player streams with range requests, so a seller downloads only as much as they watch. Recommended export:
+9:16 at 1080 × 1920, H.264 at about 1.5 to 2 Mbps with AAC sound, so a three-minute video stays near 35 to 45 MB.
+
+**What the backend must add.**
+
+- The series in code, once (keys, order, the names and lines in both languages, the screens): the dashboard, the
+  console and the server read the same list.
+- `tutorial_videos`: the key, the version, the length in seconds, the file and cover keys, who uploaded it and when.
+  No row means no video.
+- `tutorial_views` (person, key, when watched) and `tutorial_dismissals` (person, screen).
+- `GET /v1/tutorials` for the dashboard: each part with its URL, cover, length and watched mark, plus this person's
+  dismissed screens; `POST` routes to mark one watched and to dismiss a screen.
+- The console's upload, replace and remove (OPERATOR-CONSOLE-DESIGN §10h) and its optional playlist link.
+
+**Decided** (the owner, 2026-11-27, "all point agreed": every recommendation above and below).
+
+1. A row inside a card or the share sheet goes away once that person has watched the video to the end.
+2. Parts without a video stay in Menu › Tutorials, greyed, as "শিগগিরই".
+3. A replaced video keeps everyone's "✓ দেখা হয়েছে"; it does not become "নতুন" again.
+
+**As built** (one PR, 2026-11-27). The series, its screens and the upload limits are `TUTORIAL_SERIES` and its neighbours
+in `@lytronix/validators` (`api/tutorials`). Migration `0156_tutorial_videos`: `control.tutorial_videos` (one row per
+uploaded version; a part's live file is its row published and not retired, so a removed part's next upload still gets
+a new name) and each person's `tenant.tutorial_views` and `tenant.tutorial_dismissals` under row-level security. Routes:
+`GET /tutorials`, `POST /tutorials/:key/watched`, `POST /tutorials/dismissals` (any member, also while the shop is
+read-only); GET `/home` adds `tutorialsHead`. Named decisions of the build:
+
+- The playlist link is the platform setting `tutorials_playlist_url`, set on the console's Tutorials page and written
+  to the audit log as a setting; none is seeded (the doc's link is the owner's to paste). Only an https YouTube link is
+  taken.
+- The rows on the ads card (বিজ্ঞাপন ও ফিড) stay after they are watched: the card is the page's tutorials, with its own
+  "আর দেখাবেন না". Only the in-card rows of the shop link card and the share sheet go once watched.
+- On কুরিয়ার, পেমেন্ট মেথড and any screen with two videos, each row carries "আর দেখাবেন না", and either hides both.
+- Home's head lists the four that have a file (all four will); it counts and shrinks by those.
+- The wallet step's bKash and Nagad chips wait for their videos and a drawing: two chips on one step are not drawn.
+
+#### 7.49a Home: the first four videos for a new seller (sketch 2026-11-27)
+
+The owner, 2026-11-27, after the sketch above ("sketch is very fine"): "i want to route new seller to tutorial so link
+tutorial in home screen for new seller. sketch first". Drawn in the group "Home · the first four videos for a new seller
+(sketch 2026-11-27)": `tv-first-landing`, `tv-home-new`, `tv-home-half`, `tv-home-done`, `tv-home-dismissed`.
+
+**Decision: inside the set-up card, not a second card.** Built Home (`apps/dashboard/src/views/home`) already opens with
+the owner's set-up checklist, "শপ প্রস্তুত করুন" (SUP-01, §7.1): six first steps (the shop, delivery, a first
+product, the link shared, the logo, a wallet number) and then "পরে, দরকার হলে". A separate videos card would compete
+with it for the same first look, so the videos become the head of that card, and each step that a video explains
+carries it. The card is drawn as built (2/6, the logo live), not as the older sketch's four steps.
+
+**The head of the card** (a tinted band above "শপ প্রস্তুত করুন"):
+
+- "ভিডিও দেখে শুরু করুন" with "০/৪ দেখা হয়েছে" and four short segments that fill as videos are watched.
+- **The next video, large:** its 9:16 cover with a big round play button, "প্রথমে এই ভিডিওটা দেখুন" (once one is
+  watched, "এরপর এই ভিডিওটা দেখুন"), "পর্ব ১ · শপ সাজানো", "কীভাবে শপ সাজাবেন · ১:৩৭", and a "ভিডিও দেখুন"
+  button. The next video is the first of the four not yet watched.
+- **The four in order:** ১ শপ সাজানো ১:৩৭ · ২ ক্যাটাগরি ম্যানেজমেন্ট ১:৪৭ · ৩ প্রোডাক্ট যোগ ৩:১২ · ৪ লিংক শেয়ার
+  ১:২৭. A watched one shows a green ✓ and "দেখা হয়েছে"; the next one is highlighted. Any of them can be played.
+- **At its foot:** "সব টিউটোরিয়াল" (Menu › টিউটোরিয়াল) and "আর দেখাবেন না".
+- Every tap plays in the in-app 9:16 player (`tv-player`); closing it returns to Home, with the ✓ added.
+- On a computer (`tv-home-new` and `tv-home-half` at desktop width), the next video and the list of four sit side by
+  side in the card's wide column; the side column is unchanged.
+
+**The steps carry their video.** An open step that a video explains shows a small "▶ ভিডিও · ৩:১২" chip on its second
+line, which plays that video; the row itself still opens the step's screen: প্রথম প্রোডাক্ট যোগ করুন → part 3, শপের
+লিংক শেয়ার করুন → part 4, লোগো আপলোড করুন → part 1, কুরিয়ার কানেক্ট করুন → part 7. The wallet step gets bKash and
+Nagad (parts 10 and 11) once those videos exist. A done step shows no chip.
+
+**The states.**
+
+- (a) **First visit to Home** (`tv-home-new`): the install row (§7.1a) on top, then the card with the videos at its
+  head, so the first thing under the install row is "প্রথমে এই ভিডিওটা দেখুন". Nothing watched: ০/৪.
+- **The first landing itself** (`tv-first-landing`) stays quick add (`?first=1`, §7.4b), as the owner chose for it:
+  the install row, the welcome, then the row for part 3 ("ভিডিও দেখুন: কীভাবে প্রোডাক্ট যোগ করবেন"), as on every
+  quick add (§7.49). The four videos meet the seller on Home, where "পরে করব" and the Home tab lead.
+- (b) **Two watched** (`tv-home-half`): "২/৪ দেখা হয়েছে", two ✓, and part 3 is the next video.
+- (c) **All four watched** (`tv-home-done`). **Decision: the head shrinks, it does not disappear.** It becomes one
+  line at the top of the card, "✓ শুরুর ৪টি ভিডিও দেখা হয়েছে।" with "সব টিউটোরিয়াল", because the rest of the
+  series (couriers, bKash, Nagad, the theme) matches the steps still left. The step chips stay.
+- (d) **"আর দেখাবেন না"** (`tv-home-dismissed`): the head and the step chips go, the card is as it was before, and a
+  toast says "হোমে আর ভিডিও দেখাবে না। সব ভিডিও মেনু › টিউটোরিয়ালে আছে।"
+
+**Who counts as new, and when it goes.** The videos show to the shop's **owner**, as the checklist and the install row
+do; staff members find them in Menu › টিউটোরিয়াল. **Decision:** the head shows while the set-up card is open and the
+shop has had no order yet, and goes at the first of these:
+
+1. **All four watched:** it shrinks to the one line in (c), which stays while the card is open.
+2. **"আর দেখাবেন না":** the head and the chips go for good, for that owner (kept on the server, like §7.49's dismissals).
+3. **The shop's first order:** a shop with an order has a product and has found its way, so it is not new any more.
+4. **The card folds** (its six first steps done): the head lives in the card, so it folds with it.
+
+"Activated" (a first product and a first order) is read as the first order alone, because an order cannot exist
+without a product; the folding card is on the list because the head has nowhere else to live. Shops already selling
+(with orders, or with the card folded) never see it.
+
+**The backend this adds to §7.49's.** GET `/home` returns, for the owner, the four videos with their watched marks and
+whether the head shows (`tutorialsHead: 'full' | 'small' | null`), worked out from the rules above; the dismissal is one
+more `tutorial_dismissals` row (screen `home`).
+
+**Decided** (the owner, 2026-11-27, "all point agreed").
+
+1. Staff never see the head; they have Menu › টিউটোরিয়াল.
+2. The first landing after sign-up stays quick add, with the part 3 row under the welcome.
+
 ## 8. Screens designed for later phases
 
 Kept in the prototype under "Later phases (design only)", exactly as designed on 2026-10-20, so the

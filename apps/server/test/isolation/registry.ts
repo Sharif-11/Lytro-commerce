@@ -62,6 +62,11 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
   'POST /chat/read': "marks only the session person's own read in the session shop",
   'POST /chat/photos': "signs an upload under the session shop's own prefix only",
   'GET /chat/photos/:id': "another shop's photo answers 404",
+  // TENANT-DASHBOARD-DESIGN §7.49, checked in test/tutorials.e2e.spec.ts: the videos are Lytro's, platform-wide, but each
+  // watched mark and hidden screen is the session person's own, in the session shop.
+  'GET /tutorials': "shows the session person's own watched marks and hidden screens only",
+  'POST /tutorials/:key/watched': "marks only the session person's own watch, in the session shop",
+  'POST /tutorials/dismissals': "hides the screen's videos for the session person only",
   // The staff routes: a shop lists, adds and changes only its own staff. Checked in test/staff.e2e.spec.ts.
   'GET /staff': 'lists only the session shop staff and seats',
   'POST /staff': 'creates staff in the session shop only; seats are counted in that shop',

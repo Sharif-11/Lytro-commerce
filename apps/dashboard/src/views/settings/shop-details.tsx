@@ -8,6 +8,7 @@ import {
   MESSENGER_USERNAME_MAX_LENGTH,
   messengerUsernameOf,
   NAME_MAX_LENGTH,
+  TutorialScreen,
 } from '@lytronix/validators';
 import { useSetLogo, useShopSettings, useUpdateShopSettings } from '@/api/shop-settings';
 import { useBusinessType, usePresets, useSetBusinessType } from '@/api/shop-setup';
@@ -26,6 +27,7 @@ import { isImageFile, UploadRefused } from '@/lib/media-upload';
 import { bangladeshiPhone } from '@/lib/phone';
 import { useShell } from '@/shell/shell-context';
 import { ShellPage } from '@/shell/shell-page';
+import { InCardTutorial } from '@/views/tutorials/tutorial-rows';
 
 const blankToNull = (value: string): string | null => (value.trim() === '' ? null : value.trim());
 
@@ -141,7 +143,7 @@ export function ShopDetailsView(): React.JSX.Element {
   const failed = update.error ?? setType.error;
   const bn = i18n.language === 'bn';
   return (
-    <ShellPage>
+    <ShellPage tutorials={TutorialScreen.ShopDetails}>
       {failed && Object.keys(problems).length === 0 ? <ErrorBanner error={failed} /> : null}
       <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[1fr_340px] lg:items-start lg:gap-6">
         <div className="flex flex-col gap-4">
@@ -300,6 +302,8 @@ export function ShopDetailsView(): React.JSX.Element {
         </div>
         <Card className="flex flex-col gap-2">
           <h3 className="mb-1 text-[17px] font-semibold">{t('shopLink')}</h3>
+          {/* §7.49 (`tv-shopdetails`): part 4 inside the shop link card, without a dismiss, until it is watched. */}
+          <InCardTutorial screen={TutorialScreen.ShopLinkCard} />
           <Field
             label={t('shopLink')}
             className="[&>label]:sr-only"

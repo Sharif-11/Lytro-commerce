@@ -4450,6 +4450,154 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 .oc-shopf h3 svg.i{width:18px;height:18px}
 </style>`);
 /* ---------- end of live chat (sketch) ---------- */
+/* ---------- In-app tutorial videos (sketch, 2026-11-27) ----------
+   Lytro's side of the seller app's tutorial rows and Menu › Tutorials: one page under Platform with the series in its fixed
+   order (6 is two videos, 6a and 6b, so 14 rows), each with its status (live / no video), its length, the screens it shows
+   on, and its file. Upload a 9:16 MP4, replace it (a new version, so a new file name: media.lytro.app caches a file for a
+   year) or remove it. The titles, the order and the screens a video shows on live in code; the console sets only the file.
+   One optional field: the YouTube playlist that Menu › Tutorials links to at its end. */
+const tvL = (en, bn) => (L.lang === 'bn' ? bn : en);
+const tvBn = (s) => (L.lang === 'bn' ? String(s).replace(/\d/g, (d) => '০১২৩৪৫৬৭৮৯'[d]) : String(s));
+const TVO_IMG = (n) => `sample-photos/tutorials/${n}.jpg`;
+const TVO = (o = {}) => [
+  { n: '1', k: '01-shop-setup', name: tvL('Shop setting', 'শপ সাজানো'), where: tvL('Shop details, Delivery', 'শপের তথ্য, ডেলিভারি'), d: '1:37', v: 1, img: 't01' },
+  { n: '2', k: '02-categories', name: tvL('Category management', 'ক্যাটাগরি ম্যানেজমেন্ট'), where: tvL('Categories', 'ক্যাটাগরি'), d: '1:47', v: 1, img: 't02' },
+  { n: '3', k: '03-add-product', name: tvL('Adding a product', 'প্রোডাক্ট যোগ'), where: tvL('Products (empty), Quick add', 'প্রোডাক্ট (খালি অবস্থায়), কুইক অ্যাড'), d: '3:12', v: 2, img: 't03' },
+  { n: '4', k: '04-share-links', name: tvL('Sharing links', 'লিংক শেয়ার'), where: tvL('The share sheet, the shop link card', 'শেয়ার শিট, শপের লিংকের কার্ড'), d: '1:27', v: 1, img: 't04' },
+  { n: '5', k: '05-meta-pixel', name: 'Meta Pixel', where: tvL('Ads and feed', 'বিজ্ঞাপন ও ফিড'), d: '1:47', v: 1, img: 't05' },
+  { n: '6a', nb: '৬ক', k: '06a-boost', name: tvL('Boosting a product', 'প্রোডাক্ট বুস্ট'), where: tvL('Ads and feed', 'বিজ্ঞাপন ও ফিড'), d: '2:51', v: 1, img: 't06a' },
+  { n: '6b', nb: '৬খ', k: '06b-ad-campaign', name: tvL('Ad campaign', 'অ্যাড ক্যাম্পেইন'), where: tvL('Ads and feed', 'বিজ্ঞাপন ও ফিড'), d: o.live6b ? '2:35' : null, v: 1 },
+  { n: '7', k: '07-steadfast', name: 'Steadfast', where: tvL('Couriers', 'কুরিয়ার'), d: '1:15', v: 1, img: 't07' },
+  { n: '8', k: '08-pathao-redx', name: tvL('Pathao and RedX', 'Pathao আর RedX'), where: tvL('Couriers', 'কুরিয়ার'), d: null },
+  { n: '9', k: '09-orders', name: tvL('Handling orders', 'অর্ডার হ্যান্ডলিং'), where: tvL('Orders', 'অর্ডার'), d: null },
+  { n: '10', k: '10-bkash', name: tvL('bKash', 'বিকাশ'), where: tvL('Payment methods', 'পেমেন্ট মেথড'), d: null },
+  { n: '11', k: '11-nagad', name: tvL('Nagad', 'নগদ'), where: tvL('Payment methods', 'পেমেন্ট মেথড'), d: null },
+  { n: '12', k: '12-theme', name: tvL('Theme', 'থিম'), where: tvL('Storefront design', 'স্টোরফ্রন্ট ডিজাইন'), d: null },
+  { n: '13', k: '13-plan', name: tvL('Plan', 'প্ল্যান'), where: tvL('Plan', 'প্ল্যান'), d: null },
+];
+const tvPart = (x) => `${tvL('Part', 'পর্ব')} ${L.lang === 'bn' ? x.nb || tvBn(x.n) : x.n}`;
+const tvFile = (x, v) => `platform/tutorials/${x.k}-v${v || x.v}.mp4`;
+const TVO_PLAYLIST = 'https://www.youtube.com/playlist?list=PLOcfDXgUTCdc';
+const tvoRow = (x) => {
+  const live = !!x.d;
+  const thumb = live ? (x.img ? `<img class="tvo-th" src="${TVO_IMG(x.img)}" alt="">` : `<span class="tvo-th tvo-thv">${I.play}</span>`) : `<span class="tvo-th tvo-thx">${I.clock}</span>`;
+  const main = `<div class="tvo-v">${thumb}<div class="tvo-vb"><b>${tvPart(x)} · ${x.name}</b><span>${tvL('Shows on', 'দেখায়')}: ${x.where}</span>${live ? `<span class="mono tvo-f">${tvFile(x)}</span>` : `<span>${tvL('No file yet. Its row stays hidden in the app.', 'এখনো ফাইল নেই। অ্যাপে এর সারি লুকানো থাকে।')}</span>`}</div></div>`;
+  const acts = live
+    ? `${btn(I.play + tvL('Watch', 'দেখুন'), 'ghost sm', "go('tv-preview')")}${btn(I.upload + tvL('Replace', 'বদলান'), 'ghost sm', "go('tv-replace')")}<button class="iconbtn" title="${tvL('Remove', 'সরান')}" onclick="go('tv-remove')">${I.trash}</button>`
+    : btn(I.upload + tvL('Upload', 'আপলোড'), 'primary sm', "go('tv-upload')");
+  return { cells: { main, d: live ? `<span class="tvo-d">${tvBn(x.d)}</span>` : '—', st: live ? st('ok', tvL('Live', 'লাইভ')) : st('mute', tvL('No video', 'ভিডিও নেই')), acts } };
+};
+const tvoPage = (o = {}) => {
+  const all = TVO(o); const live = all.filter((x) => x.d).length;
+  const cols = [
+    { k: 'main', label: tvL('Video', 'ভিডিও'), w: 'minmax(0,1fr)', cls: 'main' },
+    { k: 'd', label: tvL('Length', 'সময়'), w: '72px' },
+    { k: 'st', label: tvL('Status', 'অবস্থা'), w: '112px' },
+    { k: 'acts', label: '', w: '272px', cls: 'acts' },
+  ];
+  return `<div class="tvo">${ocPh(tvL('Tutorials', 'টিউটোরিয়াল'), tvL('The videos in the seller app, in the series’ order. A video with no file stays hidden on the seller’s screens and shows as “Coming soon” in Menu › Tutorials.', 'সেলারের অ্যাপের ভিডিওগুলো, সিরিজের ক্রম অনুযায়ী। যে ভিডিওর ফাইল নেই, সেটা সেলারের স্ক্রিনে লুকানো থাকে আর মেনু › টিউটোরিয়ালে “শিগগিরই” দেখায়।'), `<span class="tvo-sum">${st('ok', tvL(`${live} live`, `${tvBn(live)}টি লাইভ`))}${st('mute', tvL(`${all.length - live} without a video`, `${tvBn(all.length - live)}টিতে ভিডিও নেই`))}</span>`)}
+  ${table(cols, all.map(tvoRow))}
+  <div class="card tvo-yt"><h3>${tvL('YouTube playlist', 'YouTube প্লেলিস্ট')} <span class="tvo-opt">${tvL('Optional', 'ঐচ্ছিক')}</span></h3>
+    ${field(tvL('Playlist link', 'প্লেলিস্টের লিংক'), input(TVO_PLAYLIST, 'mono'), tvL('Menu › Tutorials ends with “Watch them all on YouTube”, opening this link. Left empty, that line is not shown. The app’s own player never uses YouTube.', 'মেনু › টিউটোরিয়ালের শেষে “সব ভিডিও YouTube-এ দেখুন” এই লিংক খোলে। খালি রাখলে লাইনটা দেখায় না। অ্যাপের নিজের প্লেয়ার কখনো YouTube ব্যবহার করে না।'))}
+    <div class="tvo-ya">${btn(tvL('Save', 'সেভ করুন'), 'primary sm')}</div></div>
+  ${ocNote(tvL('The titles, the order and the screens each video shows on are set in code, so they read the same everywhere. A new tutorial is a code change; this page only sets its file.', 'নাম, ক্রম আর কোন স্ক্রিনে কোন ভিডিও দেখায়, এগুলো কোডে ঠিক করা, যাতে সব জায়গায় একই থাকে। নতুন টিউটোরিয়াল মানে কোডে পরিবর্তন; এই পেজ শুধু তার ফাইল সেট করে।'))}</div>`;
+};
+const tvoCheck = (ok, text) => `<div class="tvo-ck ${ok ? 'ok' : 'bad'}">${ok ? I.check : I.warn}<span>${text}</span></div>`;
+const tvoChosen = (name, meta, img) => `<div class="tvo-drop done">${img ? `<img class="tvo-dth" src="${TVO_IMG(img)}" alt="">` : `<span class="tvo-dth tvo-thv">${I.play}</span>`}<span class="tvo-dm"><b class="mono">${name}</b><span>${meta}</span></span><button class="iconbtn" title="${tvL('Choose another file', 'অন্য ফাইল সিলেক্ট করুন')}">${I.x}</button></div>`;
+const tvoRules = () => `<div class="tvo-rules">${tvL('A portrait 9:16 MP4 (H.264 video, AAC sound), for example 1080 × 1920, up to 80 MB. The length is read from the file; its first frame becomes the cover in Menu › Tutorials.', 'খাড়া ৯:১৬ MP4 (H.264 ভিডিও, AAC সাউন্ড), যেমন 1080 × 1920, ৮০ MB পর্যন্ত। সময় ফাইল থেকেই পড়া হয়; প্রথম ফ্রেম মেনু › টিউটোরিয়ালে কভার হিসেবে দেখায়।')}</div>`;
+const tvoUploadSheet = (o) => {
+  const x = TVO().find((y) => y.n === '6b');
+  const body = o.bad
+    ? `${tvoChosen('ad-campaign-youtube.mp4', `${tvBn('3:05')} · 1920 × 1080 · 41 MB`)}
+      ${tvoCheck(false, tvL('This file is landscape (1920 × 1080). Choose a portrait 9:16 file, for example 1080 × 1920.', 'এই ফাইলটা আড়াআড়ি (1920 × 1080)। খাড়া ৯:১৬ ফাইল সিলেক্ট করুন, যেমন 1080 × 1920।'))}
+      ${tvoCheck(true, tvL('MP4 with H.264 and AAC', 'H.264 আর AAC সহ MP4'))}${tvoCheck(true, tvL('41 MB, under 80 MB', '41 MB, ৮০ MB-এর কম'))}${tvoRules()}`
+    : `${tvoChosen('ad-campaign-final.mp4', `${tvBn('2:35')} · 1080 × 1920 · 21 MB`)}
+      ${tvoCheck(true, tvL('Portrait 9:16 (1080 × 1920)', 'খাড়া ৯:১৬ (1080 × 1920)'))}${tvoCheck(true, tvL('MP4 with H.264 and AAC', 'H.264 আর AAC সহ MP4'))}${tvoCheck(true, tvL('21 MB, under 80 MB', '21 MB, ৮০ MB-এর কম'))}
+      <div class="tvo-kv"><span>${tvL('Length', 'সময়')}</span><b>${tvBn('2:35')}</b></div>
+      <div class="tvo-kv"><span>${tvL('Saved as', 'যে নামে থাকবে')}</span><span class="mono">${tvFile(x, 1)}</span></div>
+      <div class="tvo-kv"><span>${tvL('Shows on', 'দেখাবে')}</span><b>${x.where}</b></div>`;
+  return sheet(tvL('Upload the video', 'ভিডিও আপলোড'), `${tvPart(x)} · ${x.name}`, `<div class="tvo-sh">${body}</div>`,
+    `${btn(tvL('Cancel', 'বাতিল'), 'ghost', "go('tv-tutorials')")}${btn(I.upload + tvL('Upload and make it live', 'আপলোড করে লাইভ করুন'), 'primary', o.bad ? '' : "go('tv-uploaded')", o.bad ? 'disabled' : '')}`, { close: 'tv-tutorials' });
+};
+const tvoReplaceSheet = () => {
+  const x = TVO().find((y) => y.n === '3');
+  return sheet(tvL('Replace the video', 'ভিডিও বদলান'), `${tvPart(x)} · ${x.name}`, `<div class="tvo-sh">
+    <div class="tvo-kv"><span>${tvL('Live now', 'এখন লাইভ')}</span><span class="mono">${tvFile(x)} · ${tvBn(x.d)}</span></div>
+    ${tvoChosen('add-product-new.mp4', `${tvBn('3:20')} · 1080 × 1920 · 24 MB`, 't03')}
+    ${tvoCheck(true, tvL('Portrait 9:16 (1080 × 1920)', 'খাড়া ৯:১৬ (1080 × 1920)'))}${tvoCheck(true, tvL('MP4 with H.264 and AAC', 'H.264 আর AAC সহ MP4'))}${tvoCheck(true, tvL('24 MB, under 80 MB', '24 MB, ৮০ MB-এর কম'))}
+    <div class="tvo-kv"><span>${tvL('Saved as', 'যে নামে থাকবে')}</span><span class="mono">${tvFile(x, x.v + 1)}</span></div>
+    <div class="tvo-rules">${tvL('A replacement always gets the next version’s name, because media.lytro.app keeps a file in its cache for a year: under the same name the old video would keep playing. The old file is deleted 7 days later, so nobody watching it right now is cut off. Sellers who watched the old one keep their ✓.', 'বদলানো ভিডিও সবসময় পরের ভার্সনের নামে থাকে, কারণ media.lytro.app একটা ফাইল এক বছর পর্যন্ত ক্যাশে রাখে: একই নামে রাখলে পুরোনো ভিডিওই চলতে থাকত। আগের ফাইল ৭ দিন পরে মুছে যায়, যাতে এখন কেউ দেখতে থাকলে তাঁর ভিডিও না থামে। যে সেলাররা আগের ভিডিও দেখেছেন, তাঁদের ✓ থেকে যায়।')}</div></div>`,
+    `${btn(tvL('Cancel', 'বাতিল'), 'ghost', "go('tv-tutorials')")}${btn(I.upload + tvL('Replace and make it live', 'বদলে লাইভ করুন'), 'primary', "go('tv-replaced')")}`, { close: 'tv-tutorials' });
+};
+const tvoRemoveSheet = () => {
+  const x = TVO().find((y) => y.n === '7');
+  return sheet(tvL('Remove this video?', 'এই ভিডিও সরাবেন?'), `${tvPart(x)} · ${x.name}`, `<div class="tvo-sh"><div class="tvo-rules">${tvL('Its row leaves the Couriers screen in every shop’s app, and Menu › Tutorials shows it as “Coming soon”. The file is deleted 7 days later. You can upload a new one any time.', 'সব শপের অ্যাপে কুরিয়ার স্ক্রিন থেকে এর সারি সরে যাবে, আর মেনু › টিউটোরিয়ালে এটা “শিগগিরই” দেখাবে। ফাইলটা ৭ দিন পরে মুছে যাবে। যেকোনো সময় নতুন ফাইল আপলোড করা যাবে।')}</div></div>`,
+    `${btn(tvL('Cancel', 'বাতিল'), 'ghost', "go('tv-tutorials')")}${btn(I.trash + tvL('Remove', 'সরান'), 'danger', "go('tv-tutorials')")}`, { close: 'tv-tutorials' });
+};
+const tvoPreviewSheet = () => {
+  const x = TVO().find((y) => y.n === '3');
+  return sheet(`${tvPart(x)} · ${x.name}`, `${tvBn(x.d)} · <span class="mono">${tvFile(x)}</span>`, `<div class="tvo-pv"><div class="tvo-pvv" style="background-image:url('${TVO_IMG('p03')}')"><div class="tvo-pvc">${I.pause}<span>${tvBn('0:42')}</span><span class="tvo-pvb"><i style="width:22%"></i></span><span>${tvBn(x.d)}</span></div></div><div class="tvo-rules">${tvL('The same player the sellers see, at the same size.', 'সেলাররা যে প্লেয়ারে দেখেন, সেটাই, একই মাপে।')}</div></div>`,
+    btn(tvL('Close', 'বন্ধ করুন'), 'ghost', "go('tv-tutorials')"), { close: 'tv-tutorials' });
+};
+Object.assign(S, { tv_nav: ['Tutorials', 'টিউটোরিয়াল'] });
+NAV[2].items.push(['tv_nav', 'tv-tutorials', 'play']);
+const TVO_BASE = { nav: 'tv_nav', group: 'In-app tutorials (sketch 2026-11-27)', url: 'admin.lytro.app/tutorials', bandTitle: 'tv_nav', base: 'tv-tutorials', render: () => tvoPage() };
+def('tv-tutorials', { ...TVO_BASE, label: 'Tutorials · the series, status, upload and replace' });
+def('tv-upload', { ...TVO_BASE, label: '· upload part 6b: a 9:16 file chosen and checked', sheet: () => tvoUploadSheet({}) });
+def('tv-upload-bad', { ...TVO_BASE, label: '· upload: a landscape file is refused', sheet: () => tvoUploadSheet({ bad: true }) });
+def('tv-uploaded', { ...TVO_BASE, label: '· part 6b is live (toast)', render: () => tvoPage({ live6b: true }), toast: () => tvL('Part 6b is live. Its row now shows on Ads and feed in every shop’s app.', 'পর্ব ৬খ লাইভ হয়েছে। সব শপের অ্যাপে বিজ্ঞাপন ও ফিডে এখন এর সারি দেখাবে।') });
+def('tv-replace', { ...TVO_BASE, label: '· replace part 3: the next version’s file name', sheet: tvoReplaceSheet });
+def('tv-replaced', { ...TVO_BASE, label: '· part 3 replaced (toast)', toast: () => tvL('Part 3 is replaced. Sellers get the new video the next time they open it.', 'পর্ব ৩ বদলানো হয়েছে। সেলাররা পরের বার খুললেই নতুন ভিডিও পাবেন।') });
+def('tv-remove', { ...TVO_BASE, label: '· remove part 7 (confirm)', sheet: tvoRemoveSheet });
+def('tv-preview', { ...TVO_BASE, label: '· watch part 3 in the sellers’ player', sheet: tvoPreviewSheet });
+document.head.insertAdjacentHTML('beforeend', `<style>
+.tvo{display:flex;flex-direction:column;gap:16px}
+.tvo .ttl{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+.tvo .ttl .sub{color:var(--n700);max-width:640px}
+.tvo-sum{display:flex;gap:8px;flex-wrap:wrap}
+.tvo .tbl .td .cl,.tvo .tbl .thead{color:var(--n700)}
+.tvo-v{display:flex;gap:12px;align-items:center;min-width:0}
+.tvo-th{width:40px;height:71px;border-radius:6px;object-fit:cover;flex:none;background:var(--n100)}
+.tvo-thx{display:flex;align-items:center;justify-content:center;color:var(--n700)}
+.tvo-thx svg.i{width:18px;height:18px}
+.tvo-thv{display:flex;align-items:center;justify-content:center;background:var(--teal-700);color:#fff}
+.tvo-thv svg.i{width:16px;height:16px}
+.tvo-vb{display:flex;flex-direction:column;gap:2px;min-width:0}
+.tvo-vb b{font-weight:600;font-size:15px}
+.tvo-vb span{font-size:13px;color:var(--n700);font-weight:400}
+.tvo-f{font-size:12px !important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tvo-d{font-weight:600}
+.tvo .td.acts .btn{gap:6px}
+.tvo .td.acts .btn svg.i{width:16px;height:16px}
+.tvo-yt h3{display:flex;align-items:center;gap:8px}
+.tvo-opt{font-size:12px;font-weight:600;color:var(--n700);border:1px solid var(--line-strong);border-radius:6px;padding:0 6px}
+.tvo-yt .field{margin-top:12px}
+.tvo-yt .help{color:var(--n700)}
+.tvo-ya{display:flex;justify-content:flex-end;margin-top:12px}
+.tvo-sh{display:flex;flex-direction:column;gap:10px}
+.tvo-drop{border:1.5px dashed var(--line-strong);border-radius:10px;padding:10px 12px;display:flex;gap:12px;align-items:center}
+.tvo-drop.done{border-style:solid;border-color:var(--teal-300);background:var(--teal-50)}
+.tvo-dth{width:36px;height:64px;border-radius:5px;object-fit:cover;flex:none;background:var(--n100)}
+.tvo-dm{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.tvo-dm b{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tvo-dm span{font-size:13px;color:var(--n700)}
+.tvo-ck{display:flex;align-items:flex-start;gap:8px;font-size:14px}
+.tvo-ck svg.i{width:18px;height:18px;flex:none;margin-top:1px}
+.tvo-ck.ok svg.i{color:var(--success)}
+.tvo-ck.bad{color:var(--danger);font-weight:600}
+.tvo-kv{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:14px;padding:4px 0;border-top:1px solid var(--line)}
+.tvo-kv > span:first-child{color:var(--n700);flex:none}
+.tvo-sh > .tvo-kv:first-child{border-top:0}
+.tvo-kv .mono{font-size:12px;text-align:right;word-break:break-all}
+.tvo-rules{font-size:13px;line-height:1.55;color:var(--n700);background:var(--n50);border-radius:8px;padding:10px 12px}
+.tvo-pv{display:flex;flex-direction:column;align-items:center;gap:12px}
+.tvo-pvv{width:270px;max-width:100%;aspect-ratio:9/16;border-radius:12px;background:#000 center/cover no-repeat;position:relative;overflow:hidden}
+.tvo-pvc{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;gap:8px;padding:10px 12px;color:#fff;font-size:12px;background:linear-gradient(transparent,rgba(0,0,0,.7))}
+.tvo-pvc svg.i{width:18px;height:18px;flex:none}
+.tvo-pvb{flex:1;height:4px;border-radius:2px;background:rgba(255,255,255,.35);overflow:hidden}
+.tvo-pvb i{display:block;height:100%;background:#fff}
+</style>`);
+/* ---------- end of in-app tutorial videos (sketch) ---------- */
 
 (function init() {
   const sel = document.getElementById('selScreen'); const groups = {};

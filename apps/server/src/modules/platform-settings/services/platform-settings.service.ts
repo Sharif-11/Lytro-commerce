@@ -27,6 +27,8 @@ import {
   isVatRate,
   VAT_SELLER_ADDRESS_MAX,
   VAT_SELLER_NAME_MAX,
+  TUTORIAL_PLAYLIST_MAX,
+  isYoutubeLink,
 } from '@lytronix/validators';
 import { FieldsError } from '../../../common/api-error';
 import { PlatformAuditService } from '../../audit/services/platform-audit.service';
@@ -153,6 +155,8 @@ const DESCRIPTIONS: Record<PlatformSettingKey, string> = {
     'Days a live chat photo is kept, never longer than the messages (LC-8).',
   [PlatformSettingKey.ChatMessagesPerMinute]:
     'Live chat messages one person may send in a minute (LC-25).',
+  [PlatformSettingKey.TutorialsPlaylistUrl]:
+    'The YouTube playlist Menu › Tutorials links to at its end; empty for no link (OPERATOR-CONSOLE-DESIGN §10h).',
 };
 
 // A positive-int check, the only shape any key needs today; slice 7 extends this map, not a switch, as more
@@ -209,6 +213,9 @@ const isFairUseMode = (value: unknown): boolean =>
   Object.values<unknown>(PaygFairUseMode).includes(value);
 const isDegradedMode = (value: unknown): boolean =>
   degradedModeValueSchema.safeParse(value).success;
+const isPlaylistOrCleared = (value: unknown): boolean =>
+  cleared(value) ||
+  (typeof value === 'string' && value.length <= TUTORIAL_PLAYLIST_MAX && isYoutubeLink(value));
 const isDegradedFactor = (value: unknown): boolean =>
   isPositiveInt(value) && (value as number) >= 2 && (value as number) <= DEGRADED_FACTOR_MAX;
 
@@ -272,6 +279,7 @@ const VALIDATORS: Record<PlatformSettingKey, (value: unknown) => boolean> = {
   [PlatformSettingKey.ChatHistoryDays]: isPositiveInt,
   [PlatformSettingKey.ChatPhotoDays]: isPositiveInt,
   [PlatformSettingKey.ChatMessagesPerMinute]: isPositiveInt,
+  [PlatformSettingKey.TutorialsPlaylistUrl]: isPlaylistOrCleared,
 };
 
 // D8-77: the help line's two hours, each checked against the other.

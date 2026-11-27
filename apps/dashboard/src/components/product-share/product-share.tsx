@@ -1,3 +1,4 @@
+import { TutorialScreen } from '@lytronix/validators';
 import { useId, useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
@@ -14,6 +15,7 @@ import { useShopAddress } from '@/hooks/use-shop-address';
 import { linkOf } from '@/lib/product-link';
 import { useShell } from '@/shell/shell-context';
 import type { ProductDetail } from '@/types/product';
+import { InCardTutorial } from '@/views/tutorials/tutorial-rows';
 
 /** A design's cover: the first of its photos, as the storefront's design cards show it. */
 function coverOf(product: ProductDetail, photoIds: readonly string[]): string | null {
@@ -240,6 +242,8 @@ export function ProductShareSheet({
   const product = useProduct(productId);
   return (
     <Sheet open={productId !== null} title={t('psTitle')} onClose={onClose}>
+      {/* §7.49 (`tv-share-sheet`): part 4, on white and without a dismiss, until this person has watched it. */}
+      <InCardTutorial screen={TutorialScreen.ShareSheet} />
       {product.data ? (
         <ProductShareBody product={product.data} />
       ) : (

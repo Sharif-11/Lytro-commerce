@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
-import { Permission } from '@lytronix/validators';
+import { Permission, TutorialScreen } from '@lytronix/validators';
 import { useMarkLinkShared } from '@/api/home';
 import {
   LOOK_TAB,
@@ -312,6 +312,7 @@ export function OrdersScreen({
   return (
     <ShellPage
       title={orderId ? null : undefined}
+      tutorials={orderId ? undefined : TutorialScreen.Orders}
       actions={
         mayManage ? (
           <Link

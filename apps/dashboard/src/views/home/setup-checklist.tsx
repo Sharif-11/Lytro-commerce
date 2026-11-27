@@ -2,10 +2,13 @@ import type { ReactNode } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { formatTaka } from '@lytronix/ui';
+import { TUTORIAL_HOME_STEPS, type TutorialKey } from '@lytronix/validators';
 import { useCourierConnections } from '@/api/couriers';
 import { Icon } from '@/components/icon';
 import { Card } from '@/components/ui/card';
 import { useShell } from '@/shell/shell-context';
+import { HomeVideosHead, StepVideoChip } from '@/views/tutorials/home-videos';
+import { useHomeVideos } from '@/views/tutorials/home-videos-data';
 import { doneOf, FIRST_GROUP, type Checklist } from './checklist';
 
 /** The prototype's `.checkbox`: 22 px, ticked in the primary colour. */
@@ -41,10 +44,21 @@ interface ItemProps {
     | '/$shop/settings/couriers';
   /** A place on this page instead (the link card). */
   href?: string;
+  /** §7.49a: the video that explains the step, its chip shown while it is open and Home has its videos. */
+  video?: TutorialKey;
+  videos?: ReturnType<typeof useHomeVideos>;
 }
 
 /** One item (the prototype's `ck`): its tick, its name (muted once done) and what it says; a way there while open. */
-function Item({ done, label, detail, to, href }: ItemProps): React.JSX.Element {
+function Item({
+  done,
+  label,
+  detail,
+  to,
+  href,
+  video,
+  videos = null,
+}: ItemProps): React.JSX.Element {
   const { slug } = useShell();
   const open = !done && (to !== undefined || href !== undefined);
   const content: ReactNode = (
@@ -55,6 +69,7 @@ function Item({ done, label, detail, to, href }: ItemProps): React.JSX.Element {
           {label}
         </span>
         {detail ? <span className={`${LINE} text-[14px] text-fg-muted`}>{detail}</span> : null}
+        {!done && video ? <StepVideoChip tutorialKey={video} four={videos} /> : null}
       </span>
       {open ? <Icon name="right" /> : null}
     </>
@@ -84,10 +99,13 @@ function Item({ done, label, detail, to, href }: ItemProps): React.JSX.Element {
 export function SetupChecklist({
   checklist,
   shareTarget,
+  tutorialsHead = null,
 }: {
   checklist: Checklist;
   /** The link card's id, which "share your shop link" scrolls to. */
   shareTarget: string;
+  /** §7.49a: whether the card opens with the videos (GET /home's `tutorialsHead`). */
+  tutorialsHead?: string | null;
 }): React.JSX.Element {
   const { t, i18n } = useTranslation('home');
   // Phase 6 (Part 36's `c36-home`): Connect a courier is a live step, done once one is connected.
@@ -95,9 +113,11 @@ export function SetupChecklist({
   const done = doneOf(checklist);
   const charges = checklist.deliveryCharges;
   const area = i18n.language === 'bn' ? charges.area.bn : charges.area.en;
+  const videos = useHomeVideos(tutorialsHead);
 
   return (
     <Card flush>
+      {videos ? <HomeVideosHead four={videos} /> : null}
       <div className="px-4 pt-4 pb-2">
         <div className="flex items-baseline justify-between gap-3">
           <h2 className="text-[17px] font-semibold">{t('setupTitle')}</h2>
@@ -123,9 +143,27 @@ export function SetupChecklist({
             outside: formatTaka(charges.outside),
           })}
         />
-        <Item done={checklist.firstProduct} label={t('ckProduct')} to="/$shop/products/new" />
-        <Item done={checklist.linkShared} label={t('ckShare')} href={`#${shareTarget}`} />
-        <Item done={checklist.logo} label={t('ckLogo')} to="/$shop/settings/shop" />
+        <Item
+          done={checklist.firstProduct}
+          label={t('ckProduct')}
+          to="/$shop/products/new"
+          video={TUTORIAL_HOME_STEPS.product}
+          videos={videos}
+        />
+        <Item
+          done={checklist.linkShared}
+          label={t('ckShare')}
+          href={`#${shareTarget}`}
+          video={TUTORIAL_HOME_STEPS.share}
+          videos={videos}
+        />
+        <Item
+          done={checklist.logo}
+          label={t('ckLogo')}
+          to="/$shop/settings/shop"
+          video={TUTORIAL_HOME_STEPS.logo}
+          videos={videos}
+        />
         <Item done={checklist.wallet} label={t('ckWallet')} to="/$shop/settings/payment-methods" />
         <div className="bg-neutral-50 px-4 pt-3 pb-1 text-[13px] font-semibold text-fg-muted">
           {t('setupLater')}
@@ -135,6 +173,8 @@ export function SetupChecklist({
           label={t('ckCourier')}
           detail={t('ckCourierD')}
           to="/$shop/settings/couriers"
+          video={TUTORIAL_HOME_STEPS.courier}
+          videos={videos}
         />
         <Item done={checklist.smsEvents} label={t('ckSms')} to="/$shop/settings/sms" />
         <Item

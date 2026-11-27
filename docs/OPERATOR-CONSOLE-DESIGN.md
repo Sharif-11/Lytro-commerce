@@ -85,7 +85,7 @@ in the top bar; Bangla copy uses the commerce vernacular the dashboard uses.
 **Desktop (1024 px and up).** A 248 px sidebar: the ink head with the eyebrow and wordmark, then the
 destinations in groups by how often they are opened: *Daily* (Today, Payment queue with its count, Manual entries, Page
 reports with its count, Shops), *Pricing* (Plans and prices, Billing terms, Rates, Add-ons), *Platform* (Settings, Payment
-methods, Lytro's phones, Couriers, Wallet types, Notices), *Records* (Reports, Audit log, Media costs, from v7),
+methods, Lytro's phones, Couriers, Wallet types, Notices, Tutorials), *Records* (Reports, Audit log, Media costs, from v7),
 *Catalogue* (Shop types, Attribute library, Option sets), *Later* (Support inbox and Verification, each greyed with
 "soon"), and the foot with the operator's
 email, Account and Sign out. The top bar holds the shop search with the `/` hint, the environment chip and
@@ -630,6 +630,42 @@ US dollars, as Cloudflare bills.
 - A line with the prices the estimate used, linking to Settings.
 - States: past the alert, a banner says when it went and to whom, once a period; no alert address, a line says the alert is
   only logged, with Set it in Settings; Cloudflare not connected (no token), R2 isn't read.
+
+## 10h. Tutorials (`/tutorials`, sketch 2026-11-27)
+
+**Job:** put the tutorial videos into every seller's app, and replace or take them out, without a release
+(TENANT-DASHBOARD-DESIGN §7.49). In *Platform*, after Notices. Drawn in `brand/lytro-operator.html`'s group "In-app
+tutorials (sketch 2026-11-27)": `tv-tutorials`, `tv-upload`, `tv-upload-bad`, `tv-uploaded`, `tv-replace`,
+`tv-replaced`, `tv-remove`, `tv-preview`.
+
+- The head says what the page does, and two chips count the parts that are live and those without a video.
+- One row per part in the series' order (14: part 6 is 6ক and 6খ): its cover, "পর্ব ৩ · প্রোডাক্ট যোগ", the screens
+  it shows on, and the file (`platform/tutorials/03-add-product-v2.mp4`); its length; its status, **লাইভ** or
+  **ভিডিও নেই**. A live part has দেখুন (the sellers' own player, in a sheet), বদলান and a remove icon. A part without a
+  video says "এখনো ফাইল নেই। অ্যাপে এর সারি লুকানো থাকে।" and has আপলোড.
+- **Upload** (a sheet): the chosen file with its length, size and shape, then three checks: portrait 9:16, MP4 with
+  H.264 and AAC, up to 80 MB. Then the length (read from the file), the name it will be saved as and the screens it will
+  show on. "আপলোড করে লাইভ করুন" makes it live at once, with a toast. A landscape file is refused with "এই ফাইলটা
+  আড়াআড়ি (1920 × 1080)। খাড়া ৯:১৬ ফাইল সিলেক্ট করুন, যেমন 1080 × 1920।" and the button stays off. The cover is
+  the video's first frame.
+- **Replace** (a sheet): the live file and its length, the new file with the same checks, and the next version's name
+  (`-v3` after `-v2`). It says why the name changes (media.lytro.app caches a file for a year), that the old file is
+  deleted 7 days later so nobody watching it is cut off, and that sellers who watched the old one keep their ✓.
+- **Remove** (a confirm): its row leaves that screen in every shop's app and Menu › Tutorials shows it as "শিগগিরই";
+  the file is deleted 7 days later; a new one can be uploaded any time.
+- **YouTube playlist** (optional): one link for "সব ভিডিও YouTube-এ দেখুন" at the end of the sellers' Menu ›
+  Tutorials. Left empty, that line is not shown. The app's own player never uses YouTube.
+- The names, the order and the screens are set in code, not here: a new tutorial is a code change, and this page only
+  sets its file. Uploads go straight to the public media bucket under `platform/tutorials/`, as the shops' own media
+  do; each upload, replacement and removal is written to the audit log.
+- **As built** (2026-11-27): the shops' own upload path -- a signed PUT link to the temporary uploads bucket
+  (`POST /operator/tutorials/:key/uploads`), then `PUT /operator/tutorials/:key` names the upload: the server reads it
+  by its content with the pinned ffmpeg (9:16, H.264 + AAC, at most 80 MB), re-wraps it (streams as they are, metadata
+  stripped, the index first so it plays at once), takes the first frame as a 540 px JPEG cover, claims the next version
+  and writes both with the year-long cache header, then makes it live. `DELETE /operator/tutorials/:key` removes;
+  `PUT /operator/tutorials/playlist` sets the link. The nightly `tutorial_files_tick` (04:40 Dhaka) deletes files
+  retired 7 days before. The console reads a chosen file's size, length and codecs from its own MP4 boxes before
+  sending it.
 
 ## 11. Catalogue
 

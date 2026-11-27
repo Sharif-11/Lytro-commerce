@@ -1,3 +1,5 @@
+import { TutorialScreen } from '@lytronix/validators';
+import { ScreenTutorials, TutorialsCard } from '@/views/tutorials/tutorial-rows';
 import { useEffect, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PageFrame, PageTitle } from '@/components/ui/page';
@@ -22,6 +24,11 @@ interface ShellPageProps {
    * stopped the page's own Save, a fault with its error ID (`p88-err-save`).
    */
   banner?: ReactNode;
+  /**
+   * TENANT-DASHBOARD-DESIGN §7.49: the screen whose tutorial videos sit right under the title, above the section chips --
+   * a row for each, or one card for a page with several (বিজ্ঞাপন ও ফিড). Nothing shows while no part has a file.
+   */
+  tutorials?: TutorialScreen;
   children: ReactNode;
 }
 
@@ -34,6 +41,7 @@ export function ShellPage({
   actions,
   sectionChips,
   titleInHeader = false,
+  tutorials,
   banner,
   children,
 }: ShellPageProps): React.JSX.Element {
@@ -57,6 +65,10 @@ export function ShellPage({
           {title ?? (screen?.title ? t(screen.title) : tenant.shopName)}
         </PageTitle>
       )}
+      {tutorials === TutorialScreen.AdsFeed ? <TutorialsCard screen={tutorials} /> : null}
+      {tutorials && tutorials !== TutorialScreen.AdsFeed ? (
+        <ScreenTutorials screen={tutorials} />
+      ) : null}
       {(sectionChips ?? !screen?.back) ? <SectionChips /> : null}
       {children}
     </PageFrame>

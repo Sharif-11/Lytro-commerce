@@ -6,6 +6,8 @@ import {
   Permission,
   PlanPaymentKind,
   SalesBucket,
+  SETUP_FIRST_GROUP,
+  setupDoneOf,
 } from '@lytronix/validators';
 import { usageCycleStart } from '../../../common/time';
 import { BalanceService } from '../../balance/services/balance.service';
@@ -29,6 +31,7 @@ import { SmsSettingsService } from '../../sms-events/services/sms-settings.servi
 import { EssentialSmsUsageService } from '../../sms-usage/services/essential-sms-usage.service';
 import { StaffService } from '../../staff/services/staff.service';
 import type { TenantSummary } from '../../tenancy/types/tenant-summary';
+import { TutorialLibrary } from '../../tutorials/services/tutorial-library';
 import type { HomeView, SetupChecklist } from '../types/home';
 
 // BAL-03: a top-up's payment. BIL-04, PLN-14: a plan's, a renewal's, an upgrade's or an add-on's.
@@ -69,6 +72,7 @@ export class HomeService {
     @Inject(PaymentMethods) private readonly methods: PaymentMethods,
     @Inject(PaymentsList) private readonly shopPayments: PaymentsList,
     @Inject(ListenerDevices) private readonly phones: ListenerDevices,
+    @Inject(TutorialLibrary) private readonly tutorials: TutorialLibrary,
   ) {}
 
   async view(tenant: TenantSummary, userId: string | null, now = new Date()): Promise<HomeView> {
@@ -121,6 +125,8 @@ export class HomeService {
       may(Permission.PaymentsRead) ? this.shopPayments.toVerifyCount(tenant.id) : null,
     ]);
 
+    const checklist =
+      userId === null ? await this.checklist(tenant.id, (states?.total ?? 0) > 0, now) : null;
     return {
       products:
         states && may(Permission.ProductsRead)
@@ -148,8 +154,11 @@ export class HomeService {
       paymentNeedingYou: needingYou,
       staffWithoutPassword: staff,
       fastSpendAlertedAt: fastSpend,
-      checklist:
-        userId === null ? await this.checklist(tenant.id, (states?.total ?? 0) > 0, now) : null,
+      checklist,
+      // §7.49a: the set-up card's videos, the owner's alone; they fold with the card.
+      tutorialsHead: checklist
+        ? await this.tutorials.homeHead(tenant.id, setupDoneOf(checklist) === SETUP_FIRST_GROUP)
+        : null,
     };
   }
 

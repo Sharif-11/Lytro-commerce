@@ -3025,6 +3025,41 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: ({ max }) => `There can be at most ${String(max)} quick replies.`,
     bn: ({ max }) => `সর্বোচ্চ ${String(max)}টি দ্রুত উত্তর রাখা যায়।`,
   },
+  // TENANT-DASHBOARD-DESIGN §7.49, OPERATOR-CONSOLE-DESIGN §10h: the tutorial videos.
+  TutorialsLoaded: { en: 'Tutorials loaded.', bn: 'টিউটোরিয়াল।' },
+  TutorialWatched: { en: 'Marked as watched.', bn: 'দেখা হয়েছে।' },
+  TutorialsDismissed: {
+    en: 'The videos will not show on this screen again.',
+    bn: 'এই স্ক্রিনে আর ভিডিও দেখাবে না।',
+  },
+  TutorialsListed: { en: 'Tutorials listed.', bn: 'টিউটোরিয়ালের তালিকা।' },
+  TutorialPlaylistSaved: { en: 'Playlist link saved.', bn: 'প্লেলিস্টের লিংক সেভ হয়েছে।' },
+  TutorialUploadStarted: { en: 'Video upload ready.', bn: 'ভিডিও আপলোডের জন্য তৈরি।' },
+  TutorialPublished: { en: 'The video is live.', bn: 'ভিডিও লাইভ হয়েছে।' },
+  TutorialRemoved: { en: 'The video is removed.', bn: 'ভিডিও সরানো হয়েছে।' },
+  TutorialFileNotUploaded: {
+    en: 'The video did not arrive. Choose the file and upload it again.',
+    bn: 'ভিডিওটা পৌঁছায়নি। ফাইলটা সিলেক্ট করে আবার আপলোড করুন।',
+  },
+  TutorialFileTooLarge: {
+    en: ({ mb }) => `The video can be at most ${String(mb)} MB.`,
+    bn: ({ mb }) => `ভিডিও সর্বোচ্চ ${String(mb)} MB হতে পারে।`,
+  },
+  TutorialFileNotMp4: {
+    en: 'Choose an MP4 with H.264 video and AAC sound.',
+    bn: 'H.264 ভিডিও আর AAC সাউন্ডসহ MP4 ফাইল সিলেক্ট করুন।',
+  },
+  TutorialFileNotPortrait: {
+    en: ({ width, height }) =>
+      `This file is ${String(width)} × ${String(height)}. Choose a portrait 9:16 file, for example 1080 × 1920.`,
+    bn: ({ width, height }) =>
+      `এই ফাইলটা ${String(width)} × ${String(height)}। খাড়া ৯:১৬ ফাইল সিলেক্ট করুন, যেমন 1080 × 1920।`,
+  },
+  TutorialHasNoVideo: { en: 'This part has no video.', bn: 'এই পর্বে কোনো ভিডিও নেই।' },
+  TutorialChangedMeanwhile: {
+    en: 'A newer video of this part went live meanwhile. Open the page again to see it.',
+    bn: 'এর মধ্যে এই পর্বের নতুন একটা ভিডিও লাইভ হয়েছে। দেখতে পেজটা আবার খুলুন।',
+  },
 };
 
 export function translate(key: MessageKey, lang: Language, params: MessageParams = {}): string {

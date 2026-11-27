@@ -49,6 +49,12 @@ const SETTINGS = {
 /** A route parameter that is a name, not an ID: the value every seeded shop has for it. */
 const NAMED_VALUES: Readonly<Record<string, string>> = { key: 'steadfast', method: 'bkash' };
 
+/**
+ * Reads that send a stored file itself, not a link to it. The previous release runs with no bucket, so these find their
+ * row and then answer that the storage can't be reached: a 503 that says so is the answer, any other 500 is a fault.
+ */
+const READS_A_STORED_FILE: ReadonlySet<string> = new Set(['GET /chat/photos/:id']);
+
 let app: INestApplication | undefined;
 let admin: pg.Client;
 let shop: Caller;
@@ -173,6 +179,11 @@ function startPrevious(databaseUrl: string): void {
   ]);
 }
 
+/** The answer of a read that reached its row but not the bucket: the storage error's own code. */
+function noStorage(answer: { status: number; text: string }): boolean {
+  return answer.status === 503 && answer.text.includes('"code":"service_unavailable"');
+}
+
 function logsOfPrevious(): string {
   const logs = spawnSync('docker', ['logs', '--tail', '40', CONTAINER], { encoding: 'utf8' });
   return `${logs.stdout}${logs.stderr}`;
@@ -220,6 +231,7 @@ describeIfPrevious('the previous release reads this schema (ENGINEERING-STANDARD
     const faults: string[] = [];
     for (const read of reads) {
       const answer = await get(`/api/v1${read.path}`, shop.shop.headers());
+      if (READS_A_STORED_FILE.has(read.route) && noStorage(answer)) continue;
       if (answer.status >= 500)
         faults.push(`${read.route}: ${String(answer.status)} ${answer.text.slice(0, 200)}`);
     }

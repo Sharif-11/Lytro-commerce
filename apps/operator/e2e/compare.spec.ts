@@ -8,6 +8,7 @@ import { P88_MONEY_PAIRS } from './compare-p88-money';
 import { P88_RECORDS_PAIRS } from './compare-p88-records';
 import { P88_SHOPS_PAIRS } from './compare-p88-shops';
 import { LIVE_CHAT_PAIRS } from './compare-live-chat';
+import { TUTORIAL_PAIRS } from './compare-tutorials';
 import { retiringCouriers } from './support/courier-mock';
 import { phase7Changes, phase7RateHistory, phase7Rates } from './support/notice-mock';
 import {
@@ -934,6 +935,7 @@ const PAIRS: Pair[] = [
   ...P88_RECORDS_PAIRS,
   // LIVE-CHAT-PLAN (PR 1): the inbox, one chat, quick replies, my notifications, the chat settings and the switches.
   ...LIVE_CHAT_PAIRS,
+  ...TUTORIAL_PAIRS,
 ];
 
 const DEVICES: Device[] = ['phone', 'desktop', 'tablet'];

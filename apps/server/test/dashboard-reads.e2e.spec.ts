@@ -405,6 +405,8 @@ describeIfDatabase('Home in one read (TENANT-DASHBOARD-DESIGN §7.1, SUP-01, STF
       fastSpendAlertedAt: null,
       checklist: null,
       orders: null,
+      // §7.49a: Home's videos are the owner's, as the checklist is.
+      tutorialsHead: null,
     });
     // AUTH-31: the owner sees a staff member who has not chosen a password yet -- until they do. (A seat for them.)
     await admin.query(

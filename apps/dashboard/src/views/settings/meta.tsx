@@ -1,3 +1,4 @@
+import { TutorialScreen } from '@lytronix/validators';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ApiClientError } from '@lytronix/api-client';
@@ -65,7 +66,7 @@ export function MetaView(): React.JSX.Element {
   }
 
   return (
-    <ShellPage>
+    <ShellPage tutorials={TutorialScreen.AdsFeed}>
       {save.isError && Object.keys(problems).length === 0 ? (
         <ErrorBanner error={save.error} />
       ) : null}

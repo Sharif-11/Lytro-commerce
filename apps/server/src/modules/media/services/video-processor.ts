@@ -80,7 +80,7 @@ export class VideoProcessor {
     let keptOriginal = false;
     if (this.mayKeep(facts)) {
       const kept = join(workDir, 'kept.mp4');
-      if ((await this.run(this.rewrapArgs(input, kept))).code === 0) {
+      if (await this.rewrap(input, kept)) {
         if ((await stat(kept)).size < (await stat(compressed)).size) {
           chosen = kept;
           keptOriginal = true;
@@ -199,8 +199,17 @@ export class VideoProcessor {
     ];
   }
 
-  /** One frame of the video, as a PNG, for its poster. */
-  private async frame(path: string, atMs: number): Promise<Buffer> {
+  /**
+   * STO-09's re-wrap on its own: the first video and sound streams as they are, the metadata stripped, the index moved
+   * to the front so it plays before it has all arrived. False when ffmpeg could not do it. A tutorial's file is stored
+   * this way (OPERATOR-CONSOLE-DESIGN §10h).
+   */
+  async rewrap(input: string, output: string): Promise<boolean> {
+    return (await this.run(this.rewrapArgs(input, output))).code === 0;
+  }
+
+  /** One frame of the video, as a PNG, for its poster (or a tutorial's cover). */
+  async frame(path: string, atMs: number): Promise<Buffer> {
     const run = await this.run(
       [
         '-hide_banner',

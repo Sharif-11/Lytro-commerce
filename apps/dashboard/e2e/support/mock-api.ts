@@ -1,6 +1,6 @@
 import { basename, resolve } from 'node:path';
 import type { Page, Route } from '@playwright/test';
-import type { ChatView, HelpLineView, ListenerAppRead } from '@lytronix/validators';
+import type { ChatView, HelpLineView, ListenerAppRead, TutorialsView } from '@lytronix/validators';
 import {
   billingPrices,
   ONE_MONTH,
@@ -86,6 +86,7 @@ import { purchasingAnswer } from './purchases';
 import { checksAnswer } from './stock-checks';
 import { drawnOffers, offersAnswer, offersWrite, type OffersFixture } from './offers';
 import { CHAT_UPLOAD_PATH, chatAnswer, drawnChat } from './chat';
+import { noTutorials, serveTutorialFiles, tutorialsAnswer } from './tutorials';
 import { variantRead } from './variants';
 import { PRESETS } from './presets';
 import { drawnTeam, teamAnswer, teamWrite, type TeamFixture } from './team';
@@ -189,6 +190,8 @@ export interface ShopState {
   brandShows?: boolean;
   /** LIVE-CHAT-PLAN (PR 1): the shop's chat with Lytro; off unless a test gives one (the shops' plans leave it out). */
   chat?: ChatView | null;
+  /** §7.49: the tutorial videos; every part without a file unless a test gives them, so no screen draws a row. */
+  tutorials?: TutorialsView | null;
   /** Slice 13: the shop's own domain where it differs from none on a plan that includes one; the page's writes change it. */
   domain?: DomainFixture | null;
   /** STOREFRONT-BUILDER-PLAN: the storefront design where it differs from the builder sketch's; the editor's writes change it. */
@@ -359,6 +362,8 @@ function home(state: Required<ShopState>): unknown {
       state.isOwner || state.permissions.includes('orders:read')
         ? homeOrders((state.orders ??= meghOrders()))
         : null,
+    // §7.49a: the set-up card's videos, none unless a test gives them.
+    tutorialsHead: null,
     ...state.home,
   };
 }
@@ -430,6 +435,7 @@ export function shopState(given: ShopState = {}): Required<ShopState> {
     domain: null,
     design: null,
     chat: null,
+    tutorials: null,
     cards: null,
     offers: null,
     keys: null,
@@ -690,6 +696,7 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
   await page.route(`**${UPLOAD_PATH}`, (route: Route) => route.fulfill({ status: 200 }));
   await page.route(`**${MEDIA_UPLOAD_PREFIX}**`, (route: Route) => route.fulfill({ status: 200 }));
   await page.route(`**${CHAT_UPLOAD_PATH}**`, (route: Route) => route.fulfill({ status: 200 }));
+  await serveTutorialFiles(page);
   const log: ApiLog = {
     calls: [],
     sent: (method, path) =>
@@ -762,6 +769,9 @@ export async function mockApi(page: Page, given: ShopState = {}): Promise<ApiLog
       body,
     );
     if (chatSaid !== null) return ok(chatSaid);
+    // §7.49: the tutorial videos and this person's marks.
+    const tutorialsSaid = tutorialsAnswer((state.tutorials ??= noTutorials()), method, path, body);
+    if (tutorialsSaid !== null) return ok(tutorialsSaid);
 
     if (method === 'POST' && (path === '/billing/quote' || path === '/billing/upgrade/quote')) {
       const planId = String(body?.planId ?? '');

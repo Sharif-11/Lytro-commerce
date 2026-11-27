@@ -145,6 +145,10 @@ export {
   type NewChatMessage,
   type NewChatPhoto,
 } from './repositories/platform/chat.repository';
+export {
+  TutorialRepository,
+  type TutorialOldFiles,
+} from './repositories/platform/tutorial.repository';
 export { PlatformAdEventRepository } from './repositories/platform/platform-ad-events.repository';
 export {
   MediaCostRepository,
