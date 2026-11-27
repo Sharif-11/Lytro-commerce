@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate } from '@tanstack/react-router';
+import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { Mark } from '@lytronix/ui';
 import { errorMessage } from '@lytronix/api-client';
@@ -409,7 +409,6 @@ function Context({ detail }: { detail: ChatDetail }): React.JSX.Element {
 /** The sketch's `oc-chat`: the inbox beside one chat, with the shop beside it (LC-9). */
 export function ChatPage({ tenantId }: { tenantId: string }): React.JSX.Element {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const { connected } = useChatLive();
   const detail = useChatDetail(tenantId, !connected);
   const read = useChatRead(tenantId);
@@ -439,16 +438,14 @@ export function ChatPage({ tenantId }: { tenantId: string }): React.JSX.Element 
         {data ? (
           <>
             <header className="flex flex-wrap items-center gap-2 border-b border-line px-4 py-3">
-              <button
-                type="button"
+              <Link
+                to="/shops/$id"
+                params={{ id: data.shop.tenantId }}
                 className="inline-flex items-center gap-1 text-[17px] font-bold text-primary underline-offset-2 hover:underline"
                 data-testid="chat-shop-link"
-                onClick={() => {
-                  void navigate({ to: '/shops/$id', params: { id: data.shop.tenantId } });
-                }}
               >
                 {data.shop.shopName} <ConsoleIcon name="arrow" size={16} />
-              </button>
+              </Link>
               {data.shop.planName ? (
                 <span className="rounded-md border border-line px-1.5 text-[12px] text-fg-muted">
                   {data.shop.planName}

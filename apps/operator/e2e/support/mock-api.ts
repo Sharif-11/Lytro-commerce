@@ -1,4 +1,6 @@
 import type { Page, Route } from '@playwright/test';
+import { ChatFeatureMode } from '@lytronix/validators';
+import { chatAnswer, type ChatMockState } from './chat-mock';
 import {
   drawnAddons,
   drawnAttributes,
@@ -83,6 +85,8 @@ export interface ConsoleState
     Partial<RecordsMockState>,
     Partial<P99MockState> {
   language?: Language;
+  /** LIVE-CHAT-PLAN (PR 1): the chats with shops; none waiting unless a test gives them (`drawnChats()`). */
+  chats?: ChatMockState;
   /** Whether the browser starts signed in. */
   signedIn?: boolean;
   /** Whether the account has confirmed its authenticator; otherwise a first sign-in enrols. */
@@ -539,6 +543,12 @@ export async function startIn(page: Page, language: Language): Promise<void> {
 export async function mockApi(page: Page, given: ConsoleState = {}): Promise<ApiLog> {
   const state: Required<ConsoleState> = {
     language: 'en',
+    chats: given.chats ?? {
+      inbox: [],
+      messages: [],
+      feature: { plan: false, mode: ChatFeatureMode.Plan },
+      quick: [],
+    },
     signedIn: true,
     enrolled: true,
     failures: 0,
@@ -654,6 +664,9 @@ export async function mockApi(page: Page, given: ConsoleState = {}): Promise<Api
       return ok({ ok: true });
     }
     if (state.expired) return refused(401, 'unauthenticated', 'Sign in to continue.');
+    // LIVE-CHAT-PLAN (PR 1): the chats, from their own state; nothing waits unless the test gave chats.
+    const chatSaid = chatAnswer(state.chats, method, path, body);
+    if (chatSaid !== undefined) return ok(chatSaid);
     if (path === '/auth/operator/me') {
       await state.holdMe;
       if (state.meFails !== null) return refused(state.meFails, 'service_unavailable', '');
