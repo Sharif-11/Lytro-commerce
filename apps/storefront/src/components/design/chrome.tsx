@@ -24,10 +24,17 @@ const NAV_CATEGORIES = 5;
 // The footer lists this many categories.
 const FOOTER_CATEGORIES = 4;
 
-/** The shop's logo, or its first letter on the theme's mark where it has none (TEN-16). */
+/**
+ * The shop's logo, or its first letter on the theme's mark where it has none (TEN-16), and always its name beside it:
+ * most sellers' logos are a mark with no words in it (the owner, 2026-11-27: "when there is logo the shop name is not
+ * shown"). A long name ends in … where the header runs out of room.
+ */
 function ShopMark({ shop }: { shop: Pick<PublicShop, 'name' | 'logo'> }) {
   return shop.logo ? (
-    <img src={shop.logo.urls.thumbnail} alt={shop.name} />
+    <>
+      <img src={shop.logo.urls.thumbnail} alt="" />
+      <span>{shop.name}</span>
+    </>
   ) : (
     <>
       <span className="sb-mk">{firstLetter(shop.name)}</span>

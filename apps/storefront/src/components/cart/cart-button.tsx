@@ -17,6 +17,7 @@ import { countedUnits } from '@/lib/product/quantity';
 import type { DeliveryEstimate, EstimateItem } from '@/lib/api/storefront-api';
 import { Icon } from '../icon';
 import { InShell } from '../in-shell';
+import { ChoiceText } from '../order/choice-text';
 import { LineExtras, TaxRows } from '../order/order-parts';
 import { Stepper } from '../product/buy-parts';
 import { AreaSheet, DeliveryBanner, Sheet } from '../product/sheets';
@@ -277,7 +278,11 @@ function CartLineRow({
         {thumb}
         <div className="b">
           {name}
-          {line.choice ? <div className="vr">{line.choice}</div> : null}
+          {line.choice ? (
+            <div className="vr">
+              <ChoiceText parts={line.choiceParts} text={line.choice} />
+            </div>
+          ) : null}
           <div className="note">
             {words.t(
               state === 'out' ? 'line_out' : state === 'gone' ? 'line_gone' : 'e48LineRefit',
@@ -289,22 +294,24 @@ function CartLineRow({
     );
   }
   // The variant, then what its product asks first, as the prototype's line writes them; either may be missing.
-  const detail = [
-    line.choice,
+  const asks =
     checked.paymentPolicy === PaymentPolicy.DeliveryChargeOnly
       ? words.t('pay_dc')
       : checked.advance === null
         ? ''
-        : words.t('pay_adv', { n: checked.advance }),
-  ]
-    .filter((part) => part !== '')
-    .join(' · ');
+        : words.t('pay_adv', { n: checked.advance });
   return (
     <div className="cl">
       {thumb}
       <div className="b">
         {name}
-        {detail !== '' ? <div className="vr">{detail}</div> : null}
+        {line.choice !== '' || asks !== '' ? (
+          <div className="vr">
+            {line.choice !== '' ? <ChoiceText parts={line.choiceParts} text={line.choice} /> : null}
+            {line.choice !== '' && asks !== '' ? ' · ' : null}
+            {asks}
+          </div>
+        ) : null}
         <LineExtras
           parts={line.partsText}
           addOns={line.addOns?.map((row) => ({ name: row.name, price: row.priceChange }))}

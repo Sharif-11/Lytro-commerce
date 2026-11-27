@@ -648,8 +648,8 @@ feat/product-quick-add). §7.4a was already taken (the product form by shop type
 - "কতগুলো আছে? => stock"
 - Asking "how do we treat video currently, does it define a design": it does not (PRD-11; see below).
 
-**Job.** A new seller adds a first product in one screen with a photo, a name, a price, the stock and, for a clothing
-shop, its sizes. Everything else is one tap away, with today's defaults.
+**Job.** A new seller adds a first product in one screen with a photo, a name, a price, the stock, for a clothing
+shop its sizes, and its category. Everything else is one tap away, with today's defaults.
 
 **Why.** This starts from the built editor (§7.4, §7.4a, the `pf-*` screens). On staging, at 390 px, a new product
 shows about 17 controls over 3.3 phone screens (2,717 px).
@@ -695,8 +695,10 @@ in the owner's folder "Lytro screenshots/quick-add-sketch", beside `before-pf-cl
      pants and blouses; and "অন্য সাইজ" to type one.
    - The picked sizes show as removable chips with "+ আরও" (`pq-size-added`).
    - Other shops show nothing here (`pq-other`), and add any option from আরও সেটিংস.
-6. **বিবরণ (ঐচ্ছিক)**, an open text box.
-7. **সেভ করুন.**
+6. **ক্যাটাগরি (ঐচ্ছিক)**, the category picker sheet as today (the owner, 2026-11-27: "include the category
+   selection in quick add"; until then it sat in আরও সেটিংস).
+7. **বিবরণ (ঐচ্ছিক)**, an open text box.
+8. **সেভ করুন.**
 
 Under the card come **আরও সেটিংস** (folded), then a link card, **"কম্বো প্যাক বানাতে চান?"**, which opens today's
 combo flow. On a computer, both sit in the right-hand column (`pq-wide`).
@@ -772,7 +774,6 @@ choose.
   - কম স্টকে জানান (5);
   - ব্যাচে স্টক, মেয়াদসহ;
   - প্রতিটি পিসের সিরিয়াল নম্বর.
-- **ক্যাটাগরি** (optional).
 - **ডেলিভারি:** ওজন, ডেলিভারি চার্জ, where it delivers.
 - **টাকা নেওয়া:** কীভাবে টাকা নেবেন.
 - **সাইজ চার্ট (ছবি)**, for clothing only.
