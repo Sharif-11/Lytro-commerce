@@ -24,6 +24,8 @@ const DESTINATIONS = [
   ['Manual entries', '/manual'],
   ['Page reports', '/page-reports'],
   ['Shops', '/shops'],
+  // Live chat (LC-12, the owner 2026-11-27): the inbox left Later for the daily work, as Chats.
+  ['Chats', '/inbox'],
   ['Plans and prices', '/plans'],
   ['Billing terms', '/billing-terms'],
   ['Rates', '/rates'],
@@ -44,7 +46,6 @@ const DESTINATIONS = [
   ['Shop types', '/catalogue/shop-types'],
   ['Attribute library', '/catalogue/attributes'],
   ['Option sets', '/catalogue/option-sets'],
-  ['Support inbox', '/inbox'],
   ['Verification', '/verification'],
 ] as const;
 
@@ -159,12 +160,8 @@ test.describe('on a desktop', () => {
   test('marks later work "soon"', async ({ page }) => {
     await mockApi(page);
     await page.goto('/');
-    for (const label of ['Support inbox', 'Verification']) {
-      await expect(
-        sidebar(page).getByRole('link', { name: new RegExp(`^${label}`) }),
-      ).toContainText('soon');
-    }
-    for (const label of ['Rates', 'Reports', 'Audit log', 'Manual entries']) {
+    await expect(sidebar(page).getByRole('link', { name: /^Verification/ })).toContainText('soon');
+    for (const label of ['Chats', 'Rates', 'Reports', 'Audit log', 'Manual entries']) {
       await expect(
         sidebar(page).getByRole('link', { name: new RegExp(`^${label}`) }),
       ).not.toContainText('soon');
