@@ -68,8 +68,11 @@ export function ChatLauncher(): React.JSX.Element | null {
   const [open, setOpen] = useState(false);
   const [scrolling, setScrolling] = useState(false);
   const [peeking, setPeeking] = useState(false);
-  const chat = useChat({ poll: open && !connected });
   const read = useReadChat();
+  // LC-3's fallback: without its live connection, a shop that has the chat reads it every few seconds, so Lytro's reply
+  // still brings the button up on any screen. A shop without the chat never asks again.
+  const known = queryClient.getQueryData<ChatView>(CHAT_QUERY_KEY)?.enabled === true;
+  const chat = useChat({ poll: known && !connected });
   const enabled = chat.data?.enabled === true;
   const unread = chat.data?.unread ?? 0;
   const openRef = useRef(open);
@@ -196,8 +199,16 @@ export function ChatLauncher(): React.JSX.Element | null {
         ].join(' ')}
         onClick={() => {
           setOpen(true);
-          void chat.refetch();
-          if (unread > 0) read.mutate();
+          // Read first, then fetch: a fetch already on its way would bring the count back after the read mark.
+          if (unread > 0) {
+            read.mutate(undefined, {
+              onSettled: () => {
+                void chat.refetch();
+              },
+            });
+          } else {
+            void chat.refetch();
+          }
         }}
       >
         <Icon name="message" size={22} />
