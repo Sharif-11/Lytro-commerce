@@ -46,7 +46,7 @@ export function FraudRuleView(): React.JSX.Element {
   const readsCouriers = allows(viewer, [Permission.CouriersManage, Permission.OrdersManage]);
   const couriers = useCourierConnections({ enabled: readsCouriers });
   const rates = useCurrentRates({ enabled: allows(viewer, [Permission.BalanceRead]) });
-  const [on, setOn] = useState(true);
+  const [on, setOn] = useState(false);
   const [min, setMin] = useState('');
   const [problem, setProblem] = useState<string | null>(null);
   useEffect(() => {

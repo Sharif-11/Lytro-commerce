@@ -139,6 +139,12 @@ async function checked(client: ShopClient, phone: string): Promise<Check> {
   return answer.body as Check;
 }
 
+/** The shop switches the automatic check on: off by default since the owner's 2026-11-27 reversal of D7-50. */
+async function checkingNewOrders(client: ShopClient): Promise<void> {
+  const saved = await client.put('/fraud-checks/rule', { codOrders: true, minAmount: null });
+  expect(saved.status, JSON.stringify(saved.body)).toBe(200);
+}
+
 let thana: number | null = null;
 async function mirpur(client: ShopClient): Promise<number> {
   if (thana !== null) return thana;
@@ -543,6 +549,7 @@ describeIfDatabase('who may check, and when (FRD-07, FRD-08, D7-47, D7-51)', () 
         : real(key),
     );
     const client = await shop();
+    await checkingNewOrders(client);
     for (let checks = 0; checks < 3; checks += 1) {
       expect((await check(client, freshMobile())).status).toBe(201);
     }
@@ -566,6 +573,7 @@ describeIfDatabase(
   () => {
     it('FRD-05: the real job, once the relay hands it over, runs the check and charges for it', async () => {
       const client = await shop();
+      await checkingNewOrders(client);
       priced('1.00');
       await app.get(BalanceService).creditStandalone({
         tenantId: client.tenantId,
@@ -591,16 +599,25 @@ describeIfDatabase(
       expect(await ledgerChecks(client)).toEqual(['-1.00']);
     });
 
-    it('checks every new delivery that collects cash, on by default, apart from the order', async () => {
+    it('is off by default, and once on checks every new delivery that collects cash, apart from the order', async () => {
       const client = await shop();
       const rule = await client.get('/fraud-checks/rule');
-      expect(rule.body).toEqual({ codOrders: true, minAmount: null });
+      // The owner, 2026-11-27: "make it after clicking for everyone".
+      expect(rule.body).toEqual({ codOrders: false, minAmount: null });
       const variant = await variantOf(client);
+      const untouched = await order(client, variant, freshMobile());
+      const [offJob] = await queued(client);
+      expect(offJob?.orderId).toBe(untouched.id);
+      expect(await app.get(FraudChecks).onNewOrder(offJob as FraudCheckJob)).toBeNull();
+      expect(await rowsOf(client)).toEqual([]);
+      expect(steadfast.calls).toEqual([]);
+
+      await checkingNewOrders(client);
       const phone = freshMobile();
       const made = await order(client, variant, phone);
       // A takeaway collects nothing on delivery, so it isn't checked.
       await order(client, variant, freshMobile(), { fulfilmentType: 'takeaway' });
-      const jobs = await queued(client);
+      const jobs = (await queued(client)).filter((job) => job.orderId !== untouched.id);
       expect(jobs).toEqual([
         { tenantId: client.tenantId, orderId: made.id, phone, codAmount: made.grandTotal },
       ]);
@@ -638,6 +655,7 @@ describeIfDatabase(
 
     it("skips a check it can't run, and never touches the order (FRD-05, FRD-06)", async () => {
       const client = await shop();
+      await checkingNewOrders(client);
       const variant = await variantOf(client);
       const made = await order(client, variant, freshMobile());
       const [job] = await queued(client);
@@ -682,6 +700,7 @@ describeIfDatabase("an order's automatic check as its page shows it (FRD-05, Sli
 
   it("is being checked until the job runs, then shows the check; a takeaway is none of the rule's", async () => {
     const client = await shop();
+    await checkingNewOrders(client);
     const variant = await variantOf(client);
     const made = await order(client, variant, freshMobile());
     expect(await read(client, made.id)).toMatchObject({
@@ -696,6 +715,24 @@ describeIfDatabase("an order's automatic check as its page shows it (FRD-05, Sli
     expect(done.check?.orderId).toBe(made.id);
     const takeaway = await order(client, variant, freshMobile(), { fulfilmentType: 'takeaway' });
     expect((await read(client, takeaway.id)).state).toBe('not_applicable');
+  });
+
+  it('says at once that an order the rule leaves out was not checked, before its job has run', async () => {
+    const client = await shop();
+    const variant = await variantOf(client);
+    const off = await order(client, variant, freshMobile());
+    expect(await read(client, off.id)).toMatchObject({
+      state: 'skipped',
+      reason: 'rule_off',
+      check: null,
+    });
+    await client.put('/fraud-checks/rule', { codOrders: true, minAmount: 5000 });
+    const small = await order(client, variant, freshMobile());
+    expect(await read(client, small.id)).toMatchObject({
+      state: 'skipped',
+      reason: 'below_minimum',
+      minAmount: '5000.00',
+    });
   });
 
   it("says why it was skipped, the smallest amount as the rule had it then, and a refusal in the reader's words", async () => {
@@ -740,6 +777,7 @@ describeIfDatabase("an order's automatic check as its page shows it (FRD-05, Sli
         : real(key),
     );
     const client = await shop();
+    await checkingNewOrders(client);
     expect((await check(client, freshMobile())).status).toBe(201);
     const variant = await variantOf(client);
     const made = await order(client, variant, freshMobile());

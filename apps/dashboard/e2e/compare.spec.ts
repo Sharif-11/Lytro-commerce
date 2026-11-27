@@ -2568,6 +2568,32 @@ const P37: Pair[] = [
     path: '/orders/o-47',
     state: P37_CHECKED,
   },
+  // The owner, 2026-11-27: the customer, the items and the total read first; the check after them, not run until tapped.
+  {
+    name: 'op-order',
+    screen: 'op-order',
+    device: 'phone',
+    language: 'bn',
+    path: '/orders/o-47',
+    state: { phase7: { fraud: { order: { state: 'skipped', reason: 'rule_off' } } } },
+  },
+  {
+    name: 'op-order',
+    screen: 'op-order',
+    device: 'desktop',
+    language: 'en',
+    path: '/orders/o-47',
+    state: { phase7: { fraud: { order: { state: 'skipped', reason: 'rule_off' } } } },
+  },
+  {
+    name: 'op-order-check',
+    screen: 'op-order',
+    device: 'phone',
+    language: 'bn',
+    path: '/orders/o-47',
+    state: { phase7: { fraud: { order: { state: 'skipped', reason: 'rule_off' } } } },
+    scrollText: /^হিসাব$/,
+  },
   {
     name: 'p37-order-fraud-pending',
     screen: 'p37-order-fraud-pending',
