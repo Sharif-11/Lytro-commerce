@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
-import { Permission, planCardTaka } from '@lytronix/validators';
+import { Permission, planCardTaka, TutorialScreen } from '@lytronix/validators';
 import { formatTakaExact } from '@lytronix/ui';
 import { useBalance, useCurrentRates } from '@/api/balance';
 import { useCloseShop, usePayAsYouGoPlan } from '@/api/billing';
@@ -74,7 +74,7 @@ export function PaygPage({ openPlanId }: { openPlanId: string | null }): React.J
   const limits = payg.data?.limits;
 
   return (
-    <ShellPage>
+    <ShellPage tutorials={TutorialScreen.Plan}>
       {notices.plan ? <PaymentBanner notice={notices.plan} about="plan" /> : null}
       <div className="flex flex-col gap-section lg:grid lg:grid-cols-[1fr_340px] lg:items-start lg:gap-columns">
         <div className="flex min-w-0 flex-col gap-section">

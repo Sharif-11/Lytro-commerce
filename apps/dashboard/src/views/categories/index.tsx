@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ApiClientError } from '@lytronix/api-client';
-import { CATEGORY_MAX_DEPTH, Permission } from '@lytronix/validators';
+import { CATEGORY_MAX_DEPTH, Permission, TutorialScreen } from '@lytronix/validators';
 import { useProductDefaults } from '@/api/attributes';
 import { useCategories } from '@/api/catalogue';
 import {
@@ -178,6 +178,7 @@ export function CategoriesView(): React.JSX.Element {
   return (
     <ShellPage
       actions={add(true)}
+      tutorials={TutorialScreen.Categories}
       banner={movedMeanwhile ? <Banner tone="bad">{t('p88cat.failed')}</Banner> : null}
     >
       {categories.isError ? <ErrorBanner error={categories.error} /> : null}

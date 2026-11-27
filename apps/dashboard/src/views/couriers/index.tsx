@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
-import { CourierConnectionState, Permission } from '@lytronix/validators';
+import { CourierConnectionState, Permission, TutorialScreen } from '@lytronix/validators';
 import { useCourierAdapters, useCourierConnections } from '@/api/couriers';
 import { ErrorBanner } from '@/components/error-banner';
 import { Icon } from '@/components/icon';
@@ -140,7 +140,7 @@ export function CouriersView(): React.JSX.Element {
   };
 
   return (
-    <ShellPage>
+    <ShellPage tutorials={TutorialScreen.Couriers}>
       <div className="flex max-w-[640px] flex-col gap-3.5" tabIndex={manage ? undefined : 0}>
         <p className="text-[14px] text-fg-muted">{t('crLead')}</p>
         {failure ? <ErrorBanner error={failure} /> : null}

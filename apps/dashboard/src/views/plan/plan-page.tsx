@@ -1,7 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
-import { Permission, planCardTaka, TenantState, UsageMetric } from '@lytronix/validators';
+import {
+  Permission,
+  planCardTaka,
+  TenantState,
+  UsageMetric,
+  TutorialScreen,
+} from '@lytronix/validators';
 import { daysUntil } from '@lytronix/ui';
 import {
   useCancelScheduledChange,
@@ -182,7 +188,7 @@ export function PlanPage({ openPlanId }: { openPlanId: string | null }): React.J
       : null;
 
   return (
-    <ShellPage>
+    <ShellPage tutorials={TutorialScreen.Plan}>
       {notices.plan ? <PaymentBanner notice={notices.plan} about="plan" /> : null}
       {change && tenant.planName ? (
         <ScheduledBanner

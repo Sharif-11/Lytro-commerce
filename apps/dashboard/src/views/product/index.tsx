@@ -9,6 +9,7 @@ import {
   ProductKind,
   SerialFormat,
   StockTracking,
+  TutorialScreen,
   type ProductFormField,
 } from '@lytronix/validators';
 import { useTaxClasses } from '@/api/tax-classes';
@@ -106,6 +107,7 @@ import { PhotoStrip } from './photo-strip';
 import { useProductMedia } from './product-media';
 import { usePhotoDesigns } from './use-photo-designs';
 import { photosOf, withDesignWord } from '@/lib/photo-designs';
+import { ScreenTutorials } from '@/views/tutorials/tutorial-rows';
 import { StorageFullBanner } from './storage-full-banner';
 import { AddOnsCard } from './addons-card';
 import { MoreSettings } from './more-settings';
@@ -879,6 +881,8 @@ function ProductPage({
     <ShellPage
       title={title}
       actions={product ? <StockTag state={product.stockState} /> : undefined}
+      // §7.49: quick add's row for part 3 under the title; on the first landing it comes after the welcome instead.
+      tutorials={quickAdd && !welcome ? TutorialScreen.QuickAdd : undefined}
       banner={
         faults.length > 0
           ? faults.map((each) => <ErrorBanner key={each.part} error={each.error} />)
@@ -947,6 +951,10 @@ function ProductPage({
             void navigate({ to: '/$shop', params: { shop: slug } });
           }}
         />
+      ) : null}
+      {/* §7.49a (`tv-first-landing`): the install row, the welcome, then the row for part 3. */}
+      {product === null && welcome && quickAdd ? (
+        <ScreenTutorials screen={TutorialScreen.QuickAdd} />
       ) : null}
       {quickAdd && fee ? (
         <QuickFee

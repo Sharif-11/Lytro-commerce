@@ -30,6 +30,7 @@ const QUIET: HomeView = {
   fastSpendAlertedAt: null,
   checklist: null,
   orders: null,
+  tutorialsHead: null,
 };
 
 function tenant(state: TenantState, daysLeft: number): MeTenant {

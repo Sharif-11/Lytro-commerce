@@ -28,6 +28,7 @@ import {
 } from '@/shell/hubs';
 import { useShell } from '@/shell/shell-context';
 import { ShellPage } from '@/shell/shell-page';
+import { TutorialsMenuRow } from '@/views/tutorials/menu-row';
 import { InstallCard, menuRowClass, MenuRowInner } from './menu-parts';
 
 // Each Menu section's icon (the prototype's `menuRow`).
@@ -101,6 +102,10 @@ export function MenuView(): React.JSX.Element {
   const shopSections = (['team', 'activity', 'notices', 'settings'] as const).filter((id) =>
     sections.includes(id),
   );
+  // §7.49 (`tv-menu`): Tutorials right under Notices, for everyone; before Settings where Notices isn't shown.
+  const tutorialsAt = shopSections.includes('notices')
+    ? shopSections.indexOf('notices') + 1
+    : shopSections.filter((id) => id !== 'settings').length;
   const days = daysUntil(tenant.periodEnd);
   const planName =
     tenant.state === TenantState.Trial
@@ -178,11 +183,13 @@ export function MenuView(): React.JSX.Element {
           </RowList>
         </Card>
       ) : null}
-      {shopSections.length > 0 ? (
-        <Card flush>
-          <RowList>{shopSections.map(sectionRow)}</RowList>
-        </Card>
-      ) : null}
+      <Card flush>
+        <RowList>
+          {shopSections.slice(0, tutorialsAt).map(sectionRow)}
+          <TutorialsMenuRow />
+          {shopSections.slice(tutorialsAt).map(sectionRow)}
+        </RowList>
+      </Card>
       <Card flush>
         <RowList>
           {sectionRow('account')}

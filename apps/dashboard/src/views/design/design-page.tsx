@@ -6,6 +6,7 @@ import {
   StorefrontSectionKind,
   type StorefrontDesign,
   type StorefrontSection,
+  TutorialScreen,
 } from '@lytronix/validators';
 import {
   useBackDesign,
@@ -219,7 +220,10 @@ function DesignPage({ editor }: { editor: StorefrontEditor }): React.JSX.Element
 
   return (
     // The chip beside the title on a phone; from 1024 px, where the header carries the title, beside the preview's.
-    <ShellPage actions={chip ? <span className="lg:hidden">{chip}</span> : undefined}>
+    <ShellPage
+      actions={chip ? <span className="lg:hidden">{chip}</span> : undefined}
+      tutorials={TutorialScreen.StorefrontDesign}
+    >
       {storeOff ? <Banner tone="warn">{t('sdStoreOff')}</Banner> : null}
       {failure ? <ErrorBanner error={failure} /> : null}
       <div className="flex flex-col gap-section lg:grid lg:grid-cols-[430px_1fr] lg:items-start lg:gap-columns">

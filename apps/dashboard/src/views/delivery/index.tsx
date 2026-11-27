@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ApiClientError } from '@lytronix/api-client';
 import { formatTaka } from '@lytronix/ui';
-import { Permission } from '@lytronix/validators';
+import { Permission, TutorialScreen } from '@lytronix/validators';
 import {
   useDeleteZone,
   useDeliverySettings,
@@ -216,7 +216,7 @@ function DeliveryBody({
 
   const result = resolved.data;
   return (
-    <ShellPage>
+    <ShellPage tutorials={TutorialScreen.Delivery}>
       <div className="flex flex-col gap-section lg:grid lg:grid-cols-[1fr_340px] lg:items-start lg:gap-columns">
         <div className="flex min-w-0 flex-col gap-section">
           <Card className="flex flex-col gap-3">
