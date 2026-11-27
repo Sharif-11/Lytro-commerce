@@ -89,6 +89,7 @@ import {
   NamePrice,
   PhotoMenuSheet,
   QuickCard,
+  QuickCategory,
   QuickFee,
   QuickMore,
   QuickPhotos,
@@ -1047,6 +1048,14 @@ function ProductPage({
                   onMore={null}
                 />
               ))}
+              <QuickCategory
+                text={categoryWords}
+                error={problems.category}
+                readOnly={!mayManage}
+                onPick={() => {
+                  setPicking(true);
+                }}
+              />
               <Description
                 value={form.description}
                 error={problems.description}
@@ -1062,7 +1071,6 @@ function ProductPage({
               form={form}
               open={moreOpen}
               clothing={preset !== null}
-              categoryText={categoryWords}
               deliversTo={deliversTo}
               chartText={chartText}
               shopDefault={defaults.data?.shopPaymentPolicy ?? null}

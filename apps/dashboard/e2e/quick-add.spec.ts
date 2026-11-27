@@ -10,7 +10,8 @@ const ENCODED_LINK = 'https%3A%2F%2Fmegh\\.lytro\\.app%2Fl%2Fp-new-\\d+';
 
 // TENANT-DASHBOARD-DESIGN §7.4b (the sketch's `pq-*`, approved by the owner 2026-11-25): a new product's quick add --
 // photos as designs with each photo's menu, name and price, one stock box shared by default with the split a tap away,
-// no silent 0, sizes from a sheet, আরও সেটিংস under the card, the fee on top, the combo one link away, and after the
+// no silent 0, sizes from a sheet, the category in the card after the sizes (the owner, 2026-11-27), আরও সেটিংস under
+// the card, the fee on top, the combo one link away, and after the
 // first save the landing link to copy, share or open, with the shop's own under it (`pq-saved`). A brand-new shop lands
 // here from onboarding with a welcome line (`pq-first`). Each test runs on a phone and on a desktop.
 
@@ -279,6 +280,27 @@ test('photos as designs: a box under each photo once split, and the menu makes o
   await expect(stockBox(page)).toBeVisible();
 });
 
+test('the card: the category after the sizes and before the description, picked from its sheet', async ({
+  page,
+}) => {
+  await open(page);
+  // In the card itself, with আরও সেটিংস still folded (the owner, 2026-11-27: "include the category selection in quick add").
+  const category = main(page).getByRole('button', { name: /^Category \(optional\)/ });
+  await expect(category).toBeVisible();
+  const sizes = await main(page).getByRole('button', { name: 'Add sizes' }).boundingBox();
+  const picker = await category.boundingBox();
+  const description = await main(page).getByLabel('Description (optional)').boundingBox();
+  if (!sizes || !picker || !description) throw new Error('the card is missing a part');
+  expect(sizes.y).toBeLessThan(picker.y);
+  expect(picker.y).toBeLessThan(description.y);
+
+  await category.click();
+  const sheet = page.getByRole('dialog', { name: 'Pick categories' });
+  await expect(sheet).toBeVisible();
+  await expect(sheet.getByRole('button', { name: 'New category' })).toBeVisible();
+  await expectAccessible(page);
+});
+
 test('more settings: the groups, the colour link with one photo only, and options open the full form', async ({
   page,
 }) => {
@@ -288,7 +310,9 @@ test('more settings: the groups, the colour link with one photo only, and option
     await expect(main(page).getByText(group, { exact: true }).first()).toBeVisible();
   }
   await expect(main(page).getByRole('switch', { name: /Made to order/ })).not.toBeChecked();
-  await expect(main(page).getByRole('button', { name: /^Category \(optional\)/ })).toBeVisible();
+  // The category left আরও সেটিংস for the card (the owner, 2026-11-27): no group of its own here, one picker on the page.
+  await expect(main(page).getByText('Category', { exact: true })).toHaveCount(0);
+  await expect(main(page).getByRole('button', { name: /^Category \(optional\)/ })).toHaveCount(1);
   await expect(main(page).getByRole('button', { name: /^Size chart/ })).toBeVisible();
   await expect(
     main(page).getByRole('button', { name: 'Several colours in one photo? Add colours' }),

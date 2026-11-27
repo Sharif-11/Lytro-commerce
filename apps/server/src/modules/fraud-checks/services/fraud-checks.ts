@@ -127,10 +127,20 @@ export function fraudCheckViewOf(row: SelectFraudCheck): FraudCheckView {
 }
 
 function ruleViewOf(row: SelectFraudRule | null): FraudRuleView {
-  // D7-50: with no row, every new cash-on-delivery order is checked, whatever its amount.
+  // With no row, nothing is checked by itself: the seller checks an order's number by tapping Check (the owner,
+  // 2026-11-27: "make it after clicking for everyone", reversing D7-50's on-by-default). A shop can switch it on.
   return row
     ? { codOrders: row.codOrders, minAmount: row.minAmount }
-    : { codOrders: true, minAmount: null };
+    : { codOrders: false, minAmount: null };
+}
+
+/** FRD-05, D7-50: why a shop's rule leaves a new order's automatic check out, or null when it covers the order. */
+function leftOutBy(rule: FraudRuleView, codAmount: string): FraudSkipReason | null {
+  if (!rule.codOrders) return FraudSkipReason.RuleOff;
+  if (rule.minAmount !== null && toPaisa(codAmount) < toPaisa(rule.minAmount)) {
+    return FraudSkipReason.BelowMinimum;
+  }
+  return null;
 }
 
 /**
@@ -178,12 +188,14 @@ export class FraudChecks {
    */
   async onNewOrder(job: FraudCheckJob): Promise<FraudCheckView | null> {
     const rule = await this.rule(job.tenantId);
-    if (!rule.codOrders) {
-      await this.skipped(job, FraudSkipReason.RuleOff, null, null);
-      return null;
-    }
-    if (rule.minAmount !== null && toPaisa(job.codAmount) < toPaisa(rule.minAmount)) {
-      await this.skipped(job, FraudSkipReason.BelowMinimum, rule.minAmount, null);
+    const left = leftOutBy(rule, job.codAmount);
+    if (left !== null) {
+      await this.skipped(
+        job,
+        left,
+        left === FraudSkipReason.BelowMinimum ? rule.minAmount : null,
+        null,
+      );
       return null;
     }
     try {
@@ -248,6 +260,18 @@ export class FraudChecks {
       order.customerPhone !== null &&
       toPaisa(order.codAmount) > 0n;
     if (!covered) return { ...none, state: 'not_applicable' };
+    // The rule is read here too, so an order the rule leaves out reads so at once, never "being checked" until the
+    // job has written its skip (the owner, 2026-11-27: off for everyone, so most new orders are left out).
+    const rule = await this.rule(tenantId);
+    const left = leftOutBy(rule, order.codAmount);
+    if (left !== null) {
+      return {
+        ...none,
+        state: 'skipped',
+        reason: left,
+        minAmount: left === FraudSkipReason.BelowMinimum ? rule.minAmount : null,
+      };
+    }
     const waited = this.clock().getTime() - order.createdAt.getTime();
     return waited < ORDER_CHECK_WAIT_MS
       ? { ...none, state: 'pending' }

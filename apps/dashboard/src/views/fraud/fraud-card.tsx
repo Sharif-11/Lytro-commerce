@@ -9,6 +9,7 @@ import { BalanceNote } from '@/components/balance-note';
 import { Icon } from '@/components/icon';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { StatusTag } from '@/components/ui/status-tag';
 import { useBalanceGate } from '@/hooks/use-balance-gate';
 import { dayKey, formatShortDay, formatTime } from '@/lib/dates';
@@ -354,9 +355,10 @@ export function NewOrderFraud({ phone }: { phone: string }): React.JSX.Element |
 }
 
 /**
- * On the order (Part 37's `p37-order-fraud-*`, FRD-05): the automatic check as it stands -- being checked, its figures with
- * Check again for fraud:read, or why it didn't run. Staff who see the order but can't check get no button; a lapsed shop
- * says checks wait for a renewal.
+ * On the order (Part 37's `p37-order-fraud-*`, FRD-05), a card of its own after the items and the total (the owner,
+ * 2026-11-27, `op-order`): the check as it stands -- being checked, its figures with Check again for fraud:read, or not
+ * checked yet with Check this number (the automatic check is off unless the shop switched it on). Staff who see the order
+ * but can't check get no button; a lapsed shop says checks wait for a renewal.
  */
 export function OrderFraud({
   orderId,
@@ -394,51 +396,66 @@ export function OrderFraud({
     <div className={meta}>{t('p37FrNoPerm')}</div>
   );
   const refusal = check.refused ? <Banner tone="warn">{check.refused.text}</Banner> : null;
-  if (check.fresh) return <FraudFigures check={check.fresh} top={refusal} foot={again} />;
+  if (check.fresh) {
+    return (
+      <Card>
+        <FraudFigures flush check={check.fresh} top={refusal} foot={again} />
+      </Card>
+    );
+  }
   if (found.state === 'pending') {
     return (
-      <Frame when={t('p37FrAuto')}>
-        <div className={`${meta} flex items-center gap-2`}>
-          <Icon name="clock" size={16} /> {t('p37FrPending')}
-        </div>
-      </Frame>
+      <Card>
+        <Frame flush when={t('p37FrAuto')}>
+          <div className={`${meta} flex items-center gap-2`}>
+            <Icon name="clock" size={16} /> {t('p37FrPending')}
+          </div>
+        </Frame>
+      </Card>
     );
   }
   if (found.state === 'done' && found.check) {
-    return <FraudFigures check={found.check} auto top={refusal} foot={again} />;
+    return (
+      <Card>
+        <FraudFigures flush check={found.check} auto top={refusal} foot={again} />
+      </Card>
+    );
   }
+  // The rule off is the usual case now (the owner, 2026-11-27: "make it after clicking for everyone"): not checked yet.
   const why =
     found.reason === 'below_minimum'
       ? t('p37FrSkipped', { a: found.minAmount ? formatTakaExact(found.minAmount) : '' })
       : found.reason === 'rule_off'
-        ? t('p37FrRuleOff')
+        ? t('p37FrNotYet')
         : found.reason === 'refused' && found.message
           ? found.message
           : found.reason === 'minute_limit'
             ? t('p37FrMinute')
             : t('p37FrNotRun');
   return (
-    <Frame>
-      {refusal}
-      <div className={meta}>{why}</div>
-      {may && !lapsed ? (
-        <>
-          {check.note}
-          <div className="flex justify-end">
-            <FootButton
-              icon="shield"
-              busy={check.busy}
-              blocked={check.note !== null}
-              onClick={check.run}
-            >
-              {t('p37FrCheck')}
-            </FootButton>
-          </div>
-        </>
-      ) : lapsed ? (
-        <div className={meta}>{t('p37FrFrozen')}</div>
-      ) : null}
-    </Frame>
+    <Card>
+      <Frame flush>
+        {refusal}
+        <div className={meta}>{why}</div>
+        {may && !lapsed ? (
+          <>
+            {check.note}
+            <div className="flex justify-end">
+              <FootButton
+                icon="shield"
+                busy={check.busy}
+                blocked={check.note !== null}
+                onClick={check.run}
+              >
+                {t('p37FrCheck')}
+              </FootButton>
+            </div>
+          </>
+        ) : lapsed ? (
+          <div className={meta}>{t('p37FrFrozen')}</div>
+        ) : null}
+      </Frame>
+    </Card>
   );
 }
 

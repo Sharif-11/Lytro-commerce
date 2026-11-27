@@ -241,7 +241,9 @@ test.describe('the landing page (PD-4, PD-6, PD-25)', () => {
     await cards(page).nth(3).click();
     const summary = page.locator('.side .cl');
     await expect(summary.locator('img')).toHaveAttribute('src', designPhoto(3));
-    await expect(summary.locator('.vr')).toHaveText('S × 1 piece');
+    // The option named in bold as the seller typed it, never the design's name (PD-6; the owner, 2026-11-27).
+    await expect(summary.locator('.vr')).toHaveText('Size: S × 1 piece');
+    await expect(summary.locator('.vr b')).toHaveText(['Size:']);
     const delivery = page.locator('.side .sum .r').nth(1);
     await expect(delivery).toContainText('৳130');
     await expect(page.locator('.side .sum')).toContainText(

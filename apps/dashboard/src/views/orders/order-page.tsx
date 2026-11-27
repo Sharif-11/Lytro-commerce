@@ -430,8 +430,8 @@ function OrderBody({ order }: { order: Order }): React.JSX.Element {
           setOpen({ kind: 'call' });
         }}
       />
-      {counter ? null : <TrackingCard order={order} />}
-      {counter ? null : <CallsCard calls={order.calls} byPayment={autoConfirmed(order)} />}
+      {/* The owner, 2026-11-27 (`op-order`): who, where, their note, then what they ordered and the total, read first;
+          the fake-order check, tracking and calls follow. */}
       <ItemsCard
         items={order.items}
         onAddStock={
@@ -443,6 +443,17 @@ function OrderBody({ order }: { order: Order }): React.JSX.Element {
         }
       />
       <PricingCard order={order} />
+      {!counter && !order.customerErased && order.customerPhone ? (
+        // Part 37's `p37-order-fraud-*` (FRD-05). PYG-22: a locked order's figures show, but its masked phone can't be
+        // checked again.
+        <OrderFraud
+          orderId={order.id}
+          phone={order.customerPhone}
+          recheck={order.access !== OrderAccess.Locked}
+        />
+      ) : null}
+      {counter ? null : <TrackingCard order={order} />}
+      {counter ? null : <CallsCard calls={order.calls} byPayment={autoConfirmed(order)} />}
       <PaymentsCard
         order={order}
         canRecord={can.recordPayment}
@@ -712,13 +723,6 @@ function CustomerCard({
                 <span className="text-fg-muted">{t('shopperNote')}</span>
                 <span className="text-right">{order.shopperNote}</span>
               </div>
-            </div>
-          ) : null}
-          {order.customerPhone ? (
-            // Part 37's `p37-order-fraud-*` (FRD-05): the automatic check where Part 29 kept its place.
-            // 12 px under the address, or under the shopper's note, whose row keeps 8 px of its own below.
-            <div className={`${order.shopperNote ? 'mt-1' : 'mt-3'} empty:hidden`}>
-              <OrderFraud orderId={order.id} phone={order.customerPhone} recheck={!locked} />
             </div>
           ) : null}
         </>

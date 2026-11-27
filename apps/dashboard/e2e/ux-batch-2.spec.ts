@@ -188,13 +188,21 @@ test("2.1: the shop's WhatsApp, Messenger and Facebook page, each refused in its
   expect(log.sent('PATCH', '/shop-settings')).toBeUndefined();
 
   await page.getByLabel('WhatsApp number').fill('1711 234 567');
-  await page.getByLabel('Messenger link or username').fill('https://m.me/meghfashion');
+  // A pasted link turns into the name it holds when the box is left, beside its "m.me/" (the owner, 2026-11-27); a
+  // page with no username keeps its id.
+  const messenger = page.getByLabel('Messenger link or username');
+  await messenger.fill('https://www.facebook.com/profile.php?id=61596608640202&mibextid=LQQJ4d');
+  await messenger.blur();
+  await expect(messenger).toHaveValue('61596608640202');
+  await messenger.fill('https://m.me/meghfashion');
+  await messenger.blur();
+  await expect(messenger).toHaveValue('meghfashion');
   await page.getByLabel('Facebook page link').fill('facebook.com/meghfashion');
   await page.getByRole('button', { name: 'Save' }).first().click();
   await expect(page.getByRole('status').filter({ hasText: /^Saved/ })).toBeVisible();
   expect(log.sent('PATCH', '/shop-settings')).toMatchObject({
     whatsapp: '+8801711234567',
-    messenger: 'https://m.me/meghfashion',
+    messenger: 'meghfashion',
     facebookPage: 'facebook.com/meghfashion',
   });
 });

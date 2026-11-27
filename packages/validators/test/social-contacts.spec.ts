@@ -31,6 +31,37 @@ describe('messengerUsernameOf', () => {
       expect(messengerUsernameOf(typed), typed).toBeNull();
     }
   });
+
+  // The owner, 2026-11-27: "what if customer paste the full link". A page with no username (Lytro's own is one) is
+  // named by its id, which m.me opens as well; before this, profile.php?id=… was kept as "profile.php".
+  it('keeps the id of a page with no username, from each of its links', () => {
+    for (const typed of [
+      'https://www.facebook.com/profile.php?id=61596608640202',
+      'https://m.facebook.com/profile.php?id=61596608640202&mibextid=LQQJ4d',
+      'facebook.com/profile.php?mibextid=LQQJ4d&id=61596608640202',
+      'https://www.facebook.com/people/Megh-Fashion/61596608640202/',
+      'https://www.facebook.com/messages/t/61596608640202',
+      'https://www.messenger.com/t/61596608640202/',
+    ]) {
+      expect(messengerUsernameOf(typed), typed).toBe('61596608640202');
+    }
+    expect(messengerChatLinkOf('61596608640202')).toBe('https://m.me/61596608640202');
+  });
+
+  it("takes the username from an fb.me link, and never keeps one of Facebook's own paths", () => {
+    expect(messengerUsernameOf('https://fb.me/megh.fashion')).toBe('megh.fashion');
+    for (const typed of [
+      'https://www.facebook.com/profile.php',
+      'facebook.com/profile.php?id=abc',
+      'https://www.facebook.com/share/1AbCdEfGh/',
+      'facebook.com/share',
+      'https://m.me/j/AbCdEf123/',
+      'https://www.facebook.com/people',
+      'https://www.facebook.com/groups/megh',
+    ]) {
+      expect(messengerUsernameOf(typed), typed).toBeNull();
+    }
+  });
 });
 
 describe('facebookPageUrlOf', () => {

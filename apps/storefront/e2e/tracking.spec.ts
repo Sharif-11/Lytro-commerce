@@ -73,7 +73,8 @@ test('names its items as ordered: options, a combo’s parts, add-ons, answers, 
   }));
   await page.goto(shop.url('/track/K7F2M9QX'));
   const lines = page.locator('.side .cl');
-  await expect(lines.nth(0)).toContainText('M · White × 1');
+  await expect(lines.nth(0)).toContainText('Size: M · Colour: White × 1');
+  await expect(lines.nth(0).locator('.vr b')).toHaveText(['Size:', 'Colour:']);
   await expect(lines.nth(0)).toContainText('+ Gift wrap ৳50');
   await expect(lines.nth(0)).toContainText('Name to embroider: Rafi');
   await expect(lines.nth(1)).toContainText('Chosen: Panjabi L, Check lungi');

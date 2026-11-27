@@ -3,6 +3,7 @@ import type { ShopperItem, TaxLine } from '@/lib/api/storefront-api';
 import { money, plainNumber, type Words } from '@/lib/i18n/words';
 import { quantityText } from '@/lib/order/order-form';
 import { Icon } from '../icon';
+import { ChoiceText } from './choice-text';
 
 // The prototype's order lines and totals (`e48Line`, `e48Sum`), as the checkout, the landing page and tracking show them.
 
@@ -54,7 +55,8 @@ export function SummaryLine({
 }: {
   name: string;
   image: string | null;
-  detail: string;
+  /** Its options (each named in bold) and quantity. */
+  detail: ReactNode;
   total: number | string;
   children?: ReactNode;
 }) {
@@ -74,11 +76,19 @@ export function SummaryLine({
   );
 }
 
-/** An ordered item's values and quantity with its unit ("54 × 1 পিস"); the server leaves out a design's name (PD-6). */
-export function itemDetail(item: ShopperItem, words: Words): string {
-  const options = item.attributes.map((row) => row.value).join(' · ');
+/**
+ * An ordered item's options, each named in bold as the seller typed it, and its quantity with its unit
+ * ("**Size:** 54 × 1 পিস"; the owner, 2026-11-27); the server leaves out a design's name (PD-6).
+ */
+export function itemDetail(item: ShopperItem, words: Words): ReactNode {
   const quantity = quantityText(item.quantity, item.stockUnit, words);
-  return options === '' ? `× ${quantity}` : `${options} × ${quantity}`;
+  if (item.attributes.length === 0) return `× ${quantity}`;
+  return (
+    <>
+      <ChoiceText parts={item.attributes} text="" />
+      {` × ${quantity}`}
+    </>
+  );
 }
 
 /** An item left out of the total: why, and Remove. */
@@ -92,7 +102,8 @@ export function OffLine({
 }: {
   name: string;
   image: string | null;
-  detail: string;
+  /** Its options (each named in bold) and quantity; nothing to show for none. */
+  detail: ReactNode;
   note: string;
   words: Words;
   onRemove: () => void;
