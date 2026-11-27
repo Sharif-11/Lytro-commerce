@@ -2,6 +2,12 @@ import type { Page, Route } from '@playwright/test';
 import { ChatFeatureMode } from '@lytronix/validators';
 import { chatAnswer, type ChatMockState } from './chat-mock';
 import {
+  drawnConsoleTutorials,
+  serveTutorialFiles,
+  tutorialsAnswer,
+  type TutorialsMockState,
+} from './tutorials-mock';
+import {
   drawnAddons,
   drawnAttributes,
   drawnCatalogueAddons,
@@ -87,6 +93,8 @@ export interface ConsoleState
   language?: Language;
   /** LIVE-CHAT-PLAN (PR 1): the chats with shops; none waiting unless a test gives them (`drawnChats()`). */
   chats?: ChatMockState;
+  /** §10h: the tutorial videos, as the sketch draws them unless a test gives others. */
+  tutorials?: TutorialsMockState;
   /** Whether the browser starts signed in. */
   signedIn?: boolean;
   /** Whether the account has confirmed its authenticator; otherwise a first sign-in enrols. */
@@ -543,6 +551,7 @@ export async function startIn(page: Page, language: Language): Promise<void> {
 export async function mockApi(page: Page, given: ConsoleState = {}): Promise<ApiLog> {
   const state: Required<ConsoleState> = {
     language: 'en',
+    tutorials: drawnConsoleTutorials(),
     chats: given.chats ?? {
       inbox: [],
       messages: [],
@@ -610,6 +619,7 @@ export async function mockApi(page: Page, given: ConsoleState = {}): Promise<Api
   state.rateHistory = structuredClone(state.rateHistory);
   state.manualEntries = structuredClone(state.manualEntries);
   state.walletTypes = structuredClone(state.walletTypes);
+  state.tutorials = structuredClone(state.tutorials);
   state.differences = structuredClone(state.differences);
   state.settings = structuredClone(state.settings);
   state.payments = withShots(state.payments);
@@ -627,6 +637,7 @@ export async function mockApi(page: Page, given: ConsoleState = {}): Promise<Api
   await startIn(page, state.language);
   await answerUploads(page);
   if (!state.ownClock) await page.clock.setFixedTime(state.now);
+  await serveTutorialFiles(page);
   await page.route('**/api/v1/**', async (route: Route) => {
     const request = route.request();
     const url = new URL(request.url());
@@ -667,6 +678,9 @@ export async function mockApi(page: Page, given: ConsoleState = {}): Promise<Api
     // LIVE-CHAT-PLAN (PR 1): the chats, from their own state; nothing waits unless the test gave chats.
     const chatSaid = chatAnswer(state.chats, method, path, body);
     if (chatSaid !== undefined) return ok(chatSaid);
+    // §10h: the tutorial videos.
+    const tutorialSaid = tutorialsAnswer(state.tutorials, method, path, body);
+    if (tutorialSaid !== undefined) return ok(tutorialSaid);
     if (path === '/auth/operator/me') {
       await state.holdMe;
       if (state.meFails !== null) return refused(state.meFails, 'service_unavailable', '');

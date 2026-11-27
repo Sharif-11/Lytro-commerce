@@ -658,6 +658,14 @@ tutorials (sketch 2026-11-27)": `tv-tutorials`, `tv-upload`, `tv-upload-bad`, `t
 - The names, the order and the screens are set in code, not here: a new tutorial is a code change, and this page only
   sets its file. Uploads go straight to the public media bucket under `platform/tutorials/`, as the shops' own media
   do; each upload, replacement and removal is written to the audit log.
+- **As built** (2026-11-27): the shops' own upload path -- a signed PUT link to the temporary uploads bucket
+  (`POST /operator/tutorials/:key/uploads`), then `PUT /operator/tutorials/:key` names the upload: the server reads it
+  by its content with the pinned ffmpeg (9:16, H.264 + AAC, at most 80 MB), re-wraps it (streams as they are, metadata
+  stripped, the index first so it plays at once), takes the first frame as a 540 px JPEG cover, claims the next version
+  and writes both with the year-long cache header, then makes it live. `DELETE /operator/tutorials/:key` removes;
+  `PUT /operator/tutorials/playlist` sets the link. The nightly `tutorial_files_tick` (04:40 Dhaka) deletes files
+  retired 7 days before. The console reads a chosen file's size, length and codecs from its own MP4 boxes before
+  sending it.
 
 ## 11. Catalogue
 

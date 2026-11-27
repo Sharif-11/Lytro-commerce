@@ -1,20 +1,22 @@
 import { TUTORIAL_MAX_BYTES, isTutorialShape } from '@lytronix/validators';
 
-// OPERATOR-CONSOLE-DESIGN §10h: what the console reads in a chosen tutorial file before it sends it, so a file the
-// server would refuse is never sent. The server checks it again by its content with ffmpeg; this is for the operator.
+// OPERATOR-CONSOLE-DESIGN §10h: what the console reads in a chosen tutorial file before it sends it, so a file the server
+// would refuse is never sent. The MP4's own boxes are read (its tracks, their size and codecs, its length), so the
+// answer doesn't depend on which codecs this browser can play; the server checks it again with ffmpeg.
 
-/** What a chosen file is, as far as the browser can tell. */
+/** What a chosen file is, as far as its boxes tell. */
 export interface TutorialFileFacts {
   name: string;
   bytes: number;
   width: number | null;
   height: number | null;
   durationSeconds: number | null;
-  /** An MP4 (its first box is `ftyp`) whose tracks are H.264 video and AAC sound. */
+  /** Its first box is `ftyp`. */
   mp4: boolean;
+  /** A video track in H.264 (`avc1`, `avc3`), and a sound track in AAC (`mp4a`). */
   videoCodec: boolean;
   audioCodec: boolean;
-  /** Its first frame, small, for the chosen-file box; null where the browser can't draw it. */
+  /** Its first frame, small, for the chosen-file box; null where this browser can't draw it. */
   thumb: string | null;
 }
 
@@ -34,21 +36,91 @@ export function checksOf(facts: TutorialFileFacts): TutorialFileChecks {
   };
 }
 
+interface Box {
+  type: string;
+  /** Where its content starts and where the box ends. */
+  body: number;
+  end: number;
+}
+
 const ascii = (bytes: Uint8Array, at: number): string =>
   String.fromCharCode(bytes[at] ?? 0, bytes[at + 1] ?? 0, bytes[at + 2] ?? 0, bytes[at + 3] ?? 0);
 
-/** Whether a 4-letter code appears in the bytes (a track's sample entry in `stsd`). */
-function holds(bytes: Uint8Array, code: string): boolean {
-  for (let at = 0; at + 4 <= bytes.length; at += 1) {
-    if (ascii(bytes, at) === code) return true;
+/** The boxes inside [start, end) of an MP4's bytes. */
+function boxesIn(bytes: Uint8Array, start: number, end: number): Box[] {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const found: Box[] = [];
+  let at = start;
+  while (at + 8 <= end) {
+    let size = view.getUint32(at);
+    let header = 8;
+    if (size === 1 && at + 16 <= end) {
+      size = Number(view.getBigUint64(at + 8));
+      header = 16;
+    } else if (size === 0) {
+      size = end - at;
+    }
+    if (size < header || at + size > end) break;
+    found.push({ type: ascii(bytes, at + 4), body: at + header, end: at + size });
+    at += size;
   }
-  return false;
+  return found;
 }
 
-// A file's box index is small; anything past this is not one.
+const child = (bytes: Uint8Array, box: Box | undefined, type: string): Box | undefined =>
+  box ? boxesIn(bytes, box.body, box.end).find((each) => each.type === type) : undefined;
+
+/** What the tracks of a `moov` box say: the picture's size as shown, the codecs, and the length. */
+function readMoov(moov: Uint8Array): {
+  width: number | null;
+  height: number | null;
+  duration: number | null;
+  video: boolean;
+  audio: boolean;
+} {
+  const view = new DataView(moov.buffer, moov.byteOffset, moov.byteLength);
+  const top = boxesIn(moov, 8, moov.length);
+  let duration: number | null = null;
+  const mvhd = top.find((each) => each.type === 'mvhd');
+  if (mvhd) {
+    const v1 = moov[mvhd.body] === 1;
+    const scale = view.getUint32(mvhd.body + (v1 ? 20 : 12));
+    const length = v1 ? Number(view.getBigUint64(mvhd.body + 24)) : view.getUint32(mvhd.body + 16);
+    if (scale > 0) duration = length / scale;
+  }
+  let width: number | null = null;
+  let height: number | null = null;
+  let video = false;
+  let audio = false;
+  for (const trak of top.filter((each) => each.type === 'trak')) {
+    const mdia = child(moov, trak, 'mdia');
+    const hdlr = child(moov, mdia, 'hdlr');
+    const handler = hdlr ? ascii(moov, hdlr.body + 8) : '';
+    const stsd = child(moov, child(moov, child(moov, mdia, 'minf'), 'stbl'), 'stsd');
+    const codecs = stsd ? boxesIn(moov, stsd.body + 8, stsd.end).map((each) => each.type) : [];
+    if (handler === 'vide') {
+      video ||= codecs.includes('avc1') || codecs.includes('avc3');
+      const tkhd = child(moov, trak, 'tkhd');
+      if (tkhd && width === null) {
+        // The size is the box's last eight bytes (16.16), after its 3 × 3 matrix: a quarter turn swaps them.
+        const w = view.getUint32(tkhd.end - 8) / 65536;
+        const h = view.getUint32(tkhd.end - 4) / 65536;
+        const turned = view.getInt32(tkhd.end - 44) === 0;
+        if (w > 0 && h > 0) {
+          width = Math.round(turned ? h : w);
+          height = Math.round(turned ? w : h);
+        }
+      }
+    }
+    if (handler === 'soun') audio ||= codecs.includes('mp4a');
+  }
+  return { width, height, duration, video, audio };
+}
+
+// A file's index is small; anything past this is not one.
 const MOOV_MAX = 32 * 1024 * 1024;
 
-/** The MP4's `moov` box (its tracks), wherever it sits, or null when the file is not an MP4. */
+/** The MP4's `moov` box (its tracks), wherever it sits, or null; and whether the file is an MP4 at all. */
 async function moovOf(file: Blob): Promise<{ mp4: boolean; moov: Uint8Array | null }> {
   let offset = 0;
   while (offset + 8 <= file.size) {
@@ -77,33 +149,19 @@ async function moovOf(file: Blob): Promise<{ mp4: boolean; moov: Uint8Array | nu
   return { mp4: offset > 0, moov: null };
 }
 
-/** The picture's size, length and first frame, from the browser's own player; nulls where it can't read them. */
-function pictureOf(file: Blob): Promise<{
-  width: number | null;
-  height: number | null;
-  duration: number | null;
-  thumb: string | null;
-}> {
+/** The file's first frame, small, from this browser's own player; null where it can't play the file. */
+function thumbOf(file: Blob): Promise<string | null> {
+  if (typeof document === 'undefined') return Promise.resolve(null);
   return new Promise((resolve) => {
     const url = URL.createObjectURL(file);
     const video = document.createElement('video');
     let done = false;
-    const finish = (result: {
-      width: number | null;
-      height: number | null;
-      duration: number | null;
-      thumb: string | null;
-    }) => {
+    const finish = (thumb: string | null) => {
       if (done) return;
       done = true;
       URL.revokeObjectURL(url);
-      resolve(result);
+      resolve(thumb);
     };
-    const facts = () => ({
-      width: video.videoWidth || null,
-      height: video.videoHeight || null,
-      duration: Number.isFinite(video.duration) ? video.duration : null,
-    });
     video.muted = true;
     video.preload = 'metadata';
     video.playsInline = true;
@@ -111,42 +169,40 @@ function pictureOf(file: Blob): Promise<{
       video.currentTime = Math.min(0.1, video.duration || 0);
     };
     video.onseeked = () => {
-      let thumb: string | null = null;
       try {
         const canvas = document.createElement('canvas');
         canvas.width = 72;
         canvas.height = 128;
         canvas.getContext('2d')?.drawImage(video, 0, 0, canvas.width, canvas.height);
-        thumb = canvas.toDataURL('image/jpeg', 0.7);
+        finish(canvas.toDataURL('image/jpeg', 0.7));
       } catch {
-        thumb = null;
+        finish(null);
       }
-      finish({ ...facts(), thumb });
     };
     video.onerror = () => {
-      finish({ width: null, height: null, duration: null, thumb: null });
+      finish(null);
     };
-    // A browser that reads the size but can't seek still answers within a few seconds.
     setTimeout(() => {
-      finish({ ...facts(), thumb: null });
-    }, 8000);
+      finish(null);
+    }, 5000);
     video.src = url;
   });
 }
 
 /** §10h: reads a chosen file's facts for the three checks. */
 export async function readTutorialFile(file: File): Promise<TutorialFileFacts> {
-  const [{ mp4, moov }, picture] = await Promise.all([moovOf(file), pictureOf(file)]);
+  const [{ mp4, moov }, thumb] = await Promise.all([moovOf(file), thumbOf(file)]);
+  const tracks = moov ? readMoov(moov) : null;
   return {
     name: file.name,
     bytes: file.size,
-    width: picture.width,
-    height: picture.height,
-    durationSeconds: picture.duration === null ? null : Math.round(picture.duration),
+    width: tracks?.width ?? null,
+    height: tracks?.height ?? null,
+    durationSeconds:
+      tracks === null || tracks.duration === null ? null : Math.round(tracks.duration),
     mp4,
-    // H.264's sample entries are avc1 and avc3; AAC's is mp4a (TUTORIAL_VIDEO_CODEC, TUTORIAL_AUDIO_CODEC).
-    videoCodec: moov !== null && (holds(moov, 'avc1') || holds(moov, 'avc3')),
-    audioCodec: moov !== null && holds(moov, 'mp4a'),
-    thumb: picture.thumb,
+    videoCodec: tracks?.video ?? false,
+    audioCodec: tracks?.audio ?? false,
+    thumb,
   };
 }

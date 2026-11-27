@@ -176,7 +176,8 @@ export function Tutorials(): React.JSX.Element {
     <ConsolePage>
       <PageTitle
         title={t('nav.tutorials')}
-        lead={t('tutorials.lead')}
+        // The sketch's `.tvo .ttl .sub`: 640 px at most.
+        lead={<span className="block max-w-[640px]">{t('tutorials.lead')}</span>}
         actions={
           data ? (
             <span className="flex flex-wrap gap-2">

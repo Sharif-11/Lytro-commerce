@@ -2848,14 +2848,27 @@ playing. The player streams with range requests, so a seller downloads only as m
   dismissed screens; `POST` routes to mark one watched and to dismiss a screen.
 - The console's upload, replace and remove (OPERATOR-CONSOLE-DESIGN §10h) and its optional playlist link.
 
-**Open questions.**
+**Decided** (the owner, 2026-11-27, "all point agreed": every recommendation above and below).
 
-1. A row inside a card or the share sheet has no "আর দেখাবেন না". Should it go away once the person has watched that
-   video? Recommended: yes.
-2. Should parts without a video be hidden from Menu › Tutorials instead of showing "শিগগিরই"? Recommended: keep
-   "শিগগিরই".
-3. Replacing a video keeps everyone's "✓ দেখা হয়েছে". Should a replaced video show as "নতুন" again? Recommended: no;
-   the console could offer that as a tick later if a change is large.
+1. A row inside a card or the share sheet goes away once that person has watched the video to the end.
+2. Parts without a video stay in Menu › Tutorials, greyed, as "শিগগিরই".
+3. A replaced video keeps everyone's "✓ দেখা হয়েছে"; it does not become "নতুন" again.
+
+**As built** (one PR, 2026-11-27). The series, its screens and the upload limits are `TUTORIAL_SERIES` and its neighbours
+in `@lytronix/validators` (`api/tutorials`). Migration `0156_tutorial_videos`: `control.tutorial_videos` (one row per
+uploaded version; a part's live file is its row published and not retired, so a removed part's next upload still gets
+a new name) and each person's `tenant.tutorial_views` and `tenant.tutorial_dismissals` under row-level security. Routes:
+`GET /tutorials`, `POST /tutorials/:key/watched`, `POST /tutorials/dismissals` (any member, also while the shop is
+read-only); GET `/home` adds `tutorialsHead`. Named decisions of the build:
+
+- The playlist link is the platform setting `tutorials_playlist_url`, set on the console's Tutorials page and written
+  to the audit log as a setting; none is seeded (the doc's link is the owner's to paste). Only an https YouTube link is
+  taken.
+- The rows on the ads card (বিজ্ঞাপন ও ফিড) stay after they are watched: the card is the page's tutorials, with its own
+  "আর দেখাবেন না". Only the in-card rows of the shop link card and the share sheet go once watched.
+- On কুরিয়ার, পেমেন্ট মেথড and any screen with two videos, each row carries "আর দেখাবেন না", and either hides both.
+- Home's head lists the four that have a file (all four will); it counts and shrinks by those.
+- The wallet step's bKash and Nagad chips wait for their videos and a drawing: two chips on one step are not drawn.
 
 #### 7.49a Home: the first four videos for a new seller (sketch 2026-11-27)
 
@@ -2918,12 +2931,10 @@ without a product; the folding card is on the list because the head has nowhere 
 whether the head shows (`tutorialsHead: 'full' | 'small' | null`), worked out from the rules above; the dismissal is one
 more `tutorial_dismissals` row (screen `home`).
 
-**Open questions for §7.49a.**
+**Decided** (the owner, 2026-11-27, "all point agreed").
 
-1. Should staff see the head too (a new staff member is new as well)? Recommended: no; the owner sets the shop up,
-   and staff have Menu › টিউটোরিয়াল.
-2. Should the first landing after sign-up be Home instead of quick add, so the four videos come first? Recommended:
-   keep quick add, with the part 3 row; it gets the first product in fastest, and Home catches the seller next.
+1. Staff never see the head; they have Menu › টিউটোরিয়াল.
+2. The first landing after sign-up stays quick add, with the part 3 row under the welcome.
 
 ## 8. Screens designed for later phases
 

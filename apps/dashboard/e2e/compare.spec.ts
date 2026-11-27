@@ -14,6 +14,7 @@ import {
 } from './support/payments';
 import { drawnActivity } from './support/activity';
 import { chatMessage, drawnChat } from './support/chat';
+import { drawnTutorials } from './support/tutorials';
 import {
   BILLING_STAFF,
   inFacebookOnAndroid,
@@ -5886,6 +5887,90 @@ function liveChatPairs(): Pair[] {
 
 const LIVE_CHAT: Pair[] = liveChatPairs();
 
+/**
+ * TENANT-DASHBOARD-DESIGN §7.49 and §7.49a: the in-app tutorial videos, each pair a screen of the sketch's "In-app
+ * tutorial videos" and "Home · the first four videos" groups beside the dashboard showing the same. The sketch's parts 1
+ * to 7 but 6খ have a file, 1 and 2 watched; the player's video is the cover, since a test serves no MP4.
+ */
+function tutorialPairs(): Pair[] {
+  const one = (
+    name: string,
+    path: string,
+    more: Partial<Pair> = {},
+    device: Device = 'phone',
+    language: Language = 'bn',
+  ): Pair => ({ name, screen: name, device, language, path, ...more });
+  const drawn = { tutorials: drawnTutorials() };
+  const fresh: ShopState = { ...DAY_ONE, products: { limit: 20, products: [] } };
+  const newShop = { drawn: 'new', state: { ...fresh, tutorials: drawnTutorials() } };
+  const row = /ভিডিও দেখুন: কীভাবে প্রোডাক্ট যোগ করবেন|Watch: How to add a product/;
+  const play = async (page: Page): Promise<void> => {
+    await page.getByRole('main').getByText(row).click();
+    await page.getByRole('dialog').waitFor();
+  };
+  const ended = async (page: Page): Promise<void> => {
+    await play(page);
+    await page.getByRole('dialog').locator('video').dispatchEvent('ended');
+  };
+  const dismiss = async (page: Page): Promise<void> => {
+    await page
+      .getByRole('main')
+      .getByRole('button', { name: /^(আর দেখাবেন না|Don’t show again)$/ })
+      .first()
+      .click();
+  };
+  const share = async (page: Page): Promise<void> => {
+    await page
+      .getByRole('main')
+      .getByRole('button', { name: /-এর লিংক শেয়ার করুন$/ })
+      .first()
+      .click();
+    await page.getByRole('dialog').waitFor();
+  };
+  // Home's head, the owner's while the card is open and no order came (GET /home's `tutorialsHead`).
+  const home = (watched: string[]): Pair['shop'] => ({
+    drawn: 'new',
+    state: {
+      ...DAY_ONE,
+      home: { ...DAY_ONE.home, tutorialsHead: 'full' },
+      tutorials: drawnTutorials(watched as Parameters<typeof drawnTutorials>[0]),
+    },
+  });
+  const four = ['01-shop-setup', '02-categories', '03-add-product', '04-share-links'];
+  return [
+    one('tv-products-empty', '/products', { shop: newShop }),
+    one('tv-products', '/products', { state: drawn }),
+    one('tv-quick-add', '/products/new', { state: drawn }),
+    one('tv-categories', '/categories', { state: drawn }),
+    one('tv-shopdetails', '/settings/shop', { state: drawn }),
+    one('tv-delivery', '/delivery', { state: drawn }),
+    one('tv-share-sheet', '/products', { state: drawn, then: share }),
+    one('tv-meta', '/settings/meta', { state: drawn }),
+    one('tv-meta', '/settings/meta', { state: drawn }, 'desktop'),
+    { ...c36('tv-couriers', '/settings/couriers', { state: drawn }) },
+    one('tv-dismissed', '/products', { shop: newShop, then: dismiss }),
+    one('tv-player', '/products', { shop: newShop, then: play }),
+    one('tv-player', '/products', { shop: newShop, then: play }, 'desktop'),
+    one('tv-player-end', '/products', { shop: newShop, then: ended }),
+    one('tv-menu', '/menu', { state: drawn }),
+    one('tv-list', '/tutorials', { state: drawn }),
+    one('tv-list', '/tutorials', { state: drawn }, 'phone', 'en'),
+    one('tv-first-landing', '/products/new?first=1', {
+      shop: { drawn: 'new', state: { ...DAY_ONE, tutorials: drawnTutorials([]) } },
+      then: offerInstall,
+    }),
+    one('tv-home-new', '', { shop: home([]), before: onAndroid, then: offerInstall }),
+    one('tv-home-new', '', { shop: home([]) }, 'desktop'),
+    one('tv-home-half', '', { shop: home(four.slice(0, 2)) }),
+    one('tv-home-half', '', { shop: home(four.slice(0, 2)) }, 'desktop'),
+    one('tv-home-half', '', { shop: home(four.slice(0, 2)) }, 'phone', 'en'),
+    one('tv-home-done', '', { shop: home(four) }),
+    one('tv-home-dismissed', '', { shop: home(four.slice(0, 2)), then: dismiss }),
+  ];
+}
+
+const TUTORIALS: Pair[] = tutorialPairs();
+
 // TENANT-DASHBOARD-DESIGN §7.42 (Part 40): photo designs.
 const P40: Pair[] = p40Pairs();
 // §7.4c: the product list's share sheet and the seller's product page.
@@ -5921,6 +6006,7 @@ test.describe('the built shell beside the prototype', () => {
     ...P40,
     ...PD_SHARE,
     ...LIVE_CHAT,
+    ...TUTORIALS,
   ]) {
     test(`${pair.name} on a ${pair.device} in ${pair.language}`, async ({ browser }) => {
       // The pictures set their own sizes, so they are taken once, not in every project.
