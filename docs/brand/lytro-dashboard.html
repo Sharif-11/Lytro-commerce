@@ -429,6 +429,7 @@ svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.75;str
       <optgroup label="Products · share link and product page (proposal 2026-11-25)"><option value="pl-share-row">Products list · a row opens the product page (pd-detail); its share icon opens the share sheet</option><option value="pl-share-sheet">· the share sheet: the landing link, Copy, Share, See the page; a design link; the shop link</option><option value="pl-share-design">· a design chosen: the link opens with it (?d=)</option><option value="pl-share-copied">· copied (toast)</option><option value="pl-share-paused">· the shop not open yet: the link still shows, with when it opens</option><option value="pl-share-wide">· on a computer</option><option value="pd-detail">Product page · one photo: stock, link, last 30 days, recent orders; Edit, Share, more</option><option value="pd-detail-designs">· several designs: the stock by design and size</option><option value="pd-made">· made to order: no stock counted</option><option value="pd-menu">· the more menu: see in the shop, duplicate, archive, delete</option><option value="pd-delete">· delete: the remove dialog as built</option><option value="pd-archived">· archived: restore or delete for good</option><option value="pd-share">· share from the product page</option><option value="pd-wide">· on a computer</option></optgroup>
       <optgroup label="The install box (proposal 2026-11-26)"><option value="app-first">First landing · Install the app (Chrome on Android)</option><option value="app-first-fb">· inside Facebook on Android: Open in Chrome</option><option value="app-first-ios">· an iPhone, in Safari: Apple's two taps</option><option value="app-first-ios-fb">· an iPhone, inside Facebook</option><option value="app-first-other">· Android before Chrome offers it, or another browser: the menu steps</option><option value="app-home">Home · the same row on top, until installed or closed</option><option value="app-home-fb">· inside Facebook</option></optgroup>
       <optgroup label="Live chat with Lytro (sketch 2026-11-27)"><option value="lc-home-peek">Home · the small chat button, first 5 seconds</option><option value="lc-home-gone">· after it slides away</option><option value="lc-menu">Menu · the button, always there</option><option value="lc-unread-any">Any screen (orders) · Lytro replied: the button with a count and a sound</option><option value="lc-chat">The chat · names in two colours, a photo, a deleted photo, 7 days</option><option value="lc-offhours">· outside hours: when we answer, and WhatsApp</option><option value="lc-busy">· 10 minutes unanswered: the busy line</option><option value="lc-ai">· an AI answer, labelled, and Talk to a person</option><option value="lc-chat-desktop">· on a computer: the side panel (switch to Computer)</option><option value="lc-sound">Notifications · chat sound beside the bell's</option></optgroup>
+      <optgroup label="In-app tutorial videos (sketch 2026-11-27)"><option value="tv-products-empty">Products · no products yet: the row for part 3 (adding a product)</option><option value="tv-products">· with products</option><option value="tv-quick-add">Quick add · the row for part 3</option><option value="tv-categories">Categories · the row for part 2</option><option value="tv-shopdetails">Shop details · part 1 on top, part 4 in the shop link card</option><option value="tv-delivery">Delivery · the row for part 1</option><option value="tv-share-sheet">Share sheet · part 4 inside it</option><option value="tv-meta">Ads and feed · one card, parts 5 and 6a (6b hidden until set)</option><option value="tv-couriers">Couriers · the row for part 7</option><option value="tv-dismissed">· Don’t show again (toast)</option><option value="tv-player">The player · full screen, 9:16, inside the app</option><option value="tv-player-end">· at the end: watch again, next video</option><option value="tv-menu">Menu · the Tutorials row</option><option value="tv-list">Menu › Tutorials · the series in order</option></optgroup>
       <optgroup label="Later phases (design only)"><option value="storefront">Storefront settings · slides as a carousel (Slice 12)</option><option value="storefront-tiles">· one banner and two tiles (Slice 12)</option><option value="storefront-empty">· no slides yet (Slice 12)</option><option value="sh-slide">· slide editor with the focal point (Slice 12)</option><option value="sh-slide-new">· new slide (Slice 12)</option><option value="sh-slide-preview">· both crops (Slice 12)</option><option value="sh-slide-delete">· remove slide (Slice 12)</option><option value="storefront-saved">· slide saved (Slice 12)</option></optgroup>
     </select>
   </label>
@@ -11409,6 +11410,140 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 </style>`);
 (function initLc() { const h = location.hash.replace('#', ''); if (h && h.startsWith('lc-') && SCREENS[h] && h !== ST.screen) { ST.screen = h; document.getElementById('selScreen').value = h; render(); } })();
 /* ---------- end of live chat (sketch) ---------- */
+/* ---------- In-app tutorial videos (sketch, 2026-11-27) ----------
+   The owner: most sellers are on phones, so each tutorial plays INSIDE the app, 9:16, full screen (not YouTube). A small
+   row at the top of each screen it belongs to ("▶ ভিডিও দেখুন: কীভাবে …", its length, "আর দেখাবেন না" per screen and per
+   seller); the row is hidden while its tutorial has no video. Menu › টিউটোরিয়াল lists the whole series in order, with what
+   is not made yet as "শিগগিরই". The files sit in the public media bucket under platform/tutorials/<key>-vN.mp4 (versioned,
+   because media.lytro.app caches a year); the console's Tutorials page uploads and replaces them. */
+I.play = I.play || '<path d="M7 4l12 8-12 8z"/>';
+I.pause = I.pause || '<path d="M7 4h3v16H7z"/><path d="M14 4h3v16h-3z"/>';
+const TV_IMG = (n) => `sample-photos/tutorials/${n}.jpg`;
+const TV = () => [
+  { k: '01', n: L('১', '1'), name: L('শপ সাজানো', 'Shop setting'), how: L('কীভাবে শপ সাজাবেন', 'How to set up your shop'), d: L('১:৩৭', '1:37'), img: 't01', seen: true },
+  { k: '02', n: L('২', '2'), name: L('ক্যাটাগরি ম্যানেজমেন্ট', 'Category management'), how: L('কীভাবে ক্যাটাগরি বানাবেন আর সাজাবেন', 'How to make and arrange categories'), d: L('১:৪৭', '1:47'), img: 't02', seen: true },
+  { k: '03', n: L('৩', '3'), name: L('প্রোডাক্ট যোগ', 'Adding a product'), how: L('কীভাবে প্রোডাক্ট যোগ করবেন', 'How to add a product'), d: L('৩:১২', '3:12'), img: 't03' },
+  { k: '04', n: L('৪', '4'), name: L('লিংক শেয়ার', 'Sharing links'), how: L('কীভাবে লিংক শেয়ার করবেন', 'How to share your links'), d: L('১:২৭', '1:27'), img: 't04' },
+  { k: '05', n: L('৫', '5'), name: 'Meta Pixel', how: L('কীভাবে Meta Pixel যোগ করবেন', 'How to add Meta Pixel'), d: L('১:৪৭', '1:47'), img: 't05' },
+  { k: '06a', n: L('৬ক', '6a'), name: L('প্রোডাক্ট বুস্ট', 'Boosting a product'), how: L('কীভাবে প্রোডাক্ট বুস্ট করবেন', 'How to boost a product'), d: L('২:৫১', '2:51'), img: 't06a' },
+  { k: '06b', n: L('৬খ', '6b'), name: L('অ্যাড ক্যাম্পেইন', 'Ad campaign'), how: L('কীভাবে অ্যাড ক্যাম্পেইন দেবেন', 'How to run an ad campaign'), d: null },
+  { k: '07', n: L('৭', '7'), name: 'Steadfast', how: L('কীভাবে Steadfast কানেক্ট করবেন', 'How to connect Steadfast'), d: L('১:১৫', '1:15'), img: 't07' },
+  { k: '08', n: L('৮', '8'), name: L('Pathao আর RedX', 'Pathao and RedX'), how: L('কীভাবে Pathao আর RedX কানেক্ট করবেন', 'How to connect Pathao and RedX'), d: null },
+  { k: '09', n: L('৯', '9'), name: L('অর্ডার হ্যান্ডলিং', 'Handling orders'), how: L('কীভাবে অর্ডার সামলাবেন', 'How to handle orders'), d: null },
+  { k: '10', n: L('১০', '10'), name: L('বিকাশ', 'bKash'), how: L('কীভাবে বিকাশ কানেক্ট করবেন', 'How to connect bKash'), d: null },
+  { k: '11', n: L('১১', '11'), name: L('নগদ', 'Nagad'), how: L('কীভাবে নগদ কানেক্ট করবেন', 'How to connect Nagad'), d: null },
+  { k: '12', n: L('১২', '12'), name: L('থিম', 'Theme'), how: L('কীভাবে থিম আর ডিজাইন বদলাবেন', 'How to change the theme and design'), d: null },
+  { k: '13', n: L('১৩', '13'), name: L('প্ল্যান', 'Plan'), how: L('কীভাবে প্ল্যান কিনবেন', 'How to buy a plan'), d: null },
+];
+const tvOf = (k) => TV().find((x) => x.k === k);
+const TV_PLAYLIST = 'https://www.youtube.com/playlist?list=PLOcfDXgUTCdc';
+/* The row: tap anywhere but the dismiss link to play; "আর দেখাবেন না" hides it on this screen for this seller. */
+const tvRow = (k, o = {}) => {
+  const x = tvOf(k);
+  if (!x || !x.d) return '';
+  return `<div class="tv-row${o.inCard ? ' tv-in' : ''}" role="button" onclick="go('tv-player')"><span class="tv-pl">${ic('play', 18)}</span><span class="tv-b"><span class="tv-1">${L('ভিডিও দেখুন', 'Watch')}: ${x.how}</span><span class="tv-2">${L('পর্ব', 'Part')} ${x.n} · ${x.d}${o.noDismiss ? '' : ` · <span class="tv-x" role="button" onclick="event.stopPropagation();go('tv-dismissed')">${L('আর দেখাবেন না', 'Don’t show again')}</span>`}</span></span>${ic('right')}</div>`;
+};
+/* Put the row right under the page title (the .ttl block), or at the top when a screen has none. */
+const tvAfterTtl = (html, add) => {
+  const at = html.indexOf('<div class="ttl">');
+  if (at < 0) return add + html;
+  let i = at, depth = 0;
+  const re = /<div\b|<\/div>/g; re.lastIndex = at;
+  let m;
+  while ((m = re.exec(html))) { depth += m[0] === '</div>' ? -1 : 1; if (depth === 0) { i = m.index + 6; break; } }
+  return html.slice(0, i) + add + html.slice(i);
+};
+const tvScreen = (base, k, note, o = {}) => ({ ...base, tv: true, shop: o.shop || base.shop, render: () => (note ? lcNote(note) : '') + tvAfterTtl(base.render(), tvRow(k)) });
+SCREENS['tv-products-empty'] = tvScreen(SCREENS.products, '03', L('নতুন শপে প্রোডাক্ট লিস্ট খালি থাকলে এই সারিটা সবচেয়ে কাজে লাগে।', 'On a new shop with no products this row helps most.'), { shop: 'new' });
+SCREENS['tv-products'] = tvScreen(SCREENS.products, '03');
+SCREENS['tv-quick-add'] = { ...SCREENS['pq-empty'], tv: true, render: () => tvAfterTtl(SCREENS['pq-empty'].render(), tvRow('03')) };
+SCREENS['tv-categories'] = tvScreen(SCREENS.categories, '02');
+SCREENS['tv-shopdetails'] = { ...SCREENS['ux-shop-contact'], tv: true, render: () => {
+  let h = tvAfterTtl(SCREENS['ux-shop-contact'].render(), tvRow('01'));
+  const head = `<h3>${t('shopLink')}</h3>`;
+  const at = h.indexOf(head);
+  // The shop link card also offers tutorial 4 (sharing links), smaller, inside the card.
+  if (at >= 0) h = h.slice(0, at + head.length) + tvRow('04', { inCard: true, noDismiss: true }) + h.slice(at + head.length);
+  // The sketch names this card "শপের ঠিকানা"; the built app calls it "শপের লিংক" (menu shopLink).
+  else h = h.replace(/(<h3>[^<]*(?:লিংক|ঠিকানা|[Ll]ink|[Aa]ddress)[^<]*<\/h3>)/, `$1${tvRow('04', { inCard: true, noDismiss: true })}`);
+  return lcNote(L('উপরে পর্ব ১ (শপ সাজানো)। শপের লিংকের কার্ডে পর্ব ৪ (লিংক শেয়ার)। এই কার্ডকে অ্যাপে "শপের লিংক" বলা হয়।', 'Part 1 (shop setting) on top. Part 4 (sharing links) in the shop link card, which the app calls "Shop link".')) + h;
+} };
+SCREENS['tv-delivery'] = tvScreen(SCREENS.delivery, '01');
+SCREENS['tv-share-sheet'] = { ...SCREENS['pl-share-sheet'], tv: true, sheet: () => SCREENS['pl-share-sheet'].sheet().replace('<div class="sb">', `<div class="sb">${tvRow('04', { inCard: true, noDismiss: true })}`) };
+SCREENS['tv-meta'] = { ...SCREENS.meta, tv: true, render: () => lcNote(L('একাধিক ভিডিওর পেজে একটা কার্ডে সবগুলো। পর্ব ৬খ (অ্যাড ক্যাম্পেইন) এখনো তৈরি হয়নি, তাই দেখাচ্ছে না; ভিডিও সেট হলে নিজে থেকেই আসবে।', 'A page with several videos gets one card with all of them. Part 6b (ad campaign) is not made yet, so it does not show; it appears by itself once its video is set.'))
+  + tvAfterTtl(SCREENS.meta.render(), `<div class="card tv-card"><div class="tv-ch"><b>${L('এই পেজের ভিডিও', 'Videos for this page')}</b><span class="tv-x" role="button" onclick="go('tv-dismissed')">${L('আর দেখাবেন না', 'Don’t show again')}</span></div>${tvRow('05', { inCard: true, noDismiss: true })}${tvRow('06a', { inCard: true, noDismiss: true })}${tvRow('06b', { inCard: true, noDismiss: true })}</div>`) };
+SCREENS['tv-couriers'] = tvScreen(SCREENS.c36, '07', L('পর্ব ৮ (Pathao আর RedX) তৈরি হলে এর নিচে দ্বিতীয় সারি আসবে।', 'Once part 8 (Pathao and RedX) is made, a second row appears below this one.'));
+SCREENS['tv-dismissed'] = { ...SCREENS.products, tv: true, shop: 'new', render: () => SCREENS.products.render(), toast: () => `${ic('check')} ${L('এই স্ক্রিনে আর দেখাবে না। সব ভিডিও মেনু › টিউটোরিয়ালে আছে।', 'It will not show on this screen again. Every video is in Menu › Tutorials.')}` };
+
+/* The player: full screen and portrait on a phone; on a computer the 9:16 video in the middle of a dark screen. */
+const tvPlayer = (o = {}) => {
+  const x = tvOf('03'), nx = tvOf('04');
+  const vid = o.end
+    ? `<div class="tv-vid tv-ended"><img src="${TV_IMG('p03')}" alt=""><div class="tv-endc"><button class="btn o sm" onclick="go('tv-player')">${ic('undo', 16)} ${L('আবার দেখুন', 'Watch again')}</button><button class="btn p sm" onclick="go('tv-player')">${L('পরের ভিডিও', 'Next video')}: ${L('পর্ব', 'Part')} ${nx.n} · ${nx.name}</button></div></div>`
+    : `<div class="tv-vid"><img src="${TV_IMG('p03')}" alt=""><div class="tv-ctl"><span class="tv-pp">${ic('pause', 20)}</span><span class="tv-tm">${L('০:৪২', '0:42')}</span><span class="tv-bar"><i style="width:22%"></i></span><span class="tv-tm">${x.d}</span></div></div>`;
+  return `<div class="tv-full"><div class="tv-top"><button class="tv-close" aria-label="${L('বন্ধ করুন', 'Close')}" onclick="go('tv-products-empty')">${ic('x')}</button><div class="tv-tt"><b>${L('পর্ব', 'Part')} ${x.n} · ${x.name}</b><span>${x.d}</span></div></div>
+    ${vid}
+    <div class="tv-bot"><button class="tv-next" onclick="go('tv-player-end')"><span>${L('পরের ভিডিও', 'Next video')}</span><b>${L('পর্ব', 'Part')} ${nx.n} · ${nx.name}</b>${ic('right')}</button><button class="tv-all" onclick="go('tv-list')">${ic('list', 16)} ${L('সব টিউটোরিয়াল', 'All tutorials')}</button></div></div>`;
+};
+SCREENS['tv-player'] = { ...SCREENS['tv-products-empty'], sheet: () => tvPlayer() };
+SCREENS['tv-player-end'] = { ...SCREENS['tv-products-empty'], sheet: () => tvPlayer({ end: true }) };
+
+/* Menu › টিউটোরিয়াল: the whole series in order; what is not made yet shows as "শিগগিরই" and does not open. */
+const tvListRow = (x) => x.d
+  ? `<button class="row tv-li" onclick="go('tv-player')"><img class="tv-th" src="${TV_IMG(x.img)}" alt=""><span class="body"><span class="l1">${L('পর্ব', 'Part')} ${x.n} · ${x.name}</span><span class="l2">${x.d}${x.seen ? ` · <span class="tv-seen">${ic('check', 14)} ${L('দেখা হয়েছে', 'Watched')}</span>` : ` · <span class="st info">${L('নতুন', 'New')}</span>`}</span></span>${ic('play')}</button>`
+  : `<div class="row tv-li tv-soon"><span class="tv-th tv-thx">${ic('clock')}</span><span class="body"><span class="l1">${L('পর্ব', 'Part')} ${x.n} · ${x.name}</span><span class="l2">${L('শিগগিরই', 'Coming soon')}</span></span></div>`;
+SCREENS['tv-list'] = { hub: 'menu', title: 'hubMenu', back: true, base: 'menu', path: '/tutorials', tv: true, render: () => `<div class="ttl"><h1>${L('টিউটোরিয়াল', 'Tutorials')}</h1></div>
+  <p class="hint" style="margin:0 0 12px">${L('ছোট ছোট ভিডিওতে ধাপে ধাপে লিট্রো চালানো শিখুন। ক্রম অনুযায়ী দেখলে সবচেয়ে সহজ হয়।', 'Learn Lytro step by step in short videos. Watching them in order is easiest.')}</p>
+  <div class="card flush list">${TV().map(tvListRow).join('')}</div>
+  <a class="tv-yt" href="${TV_PLAYLIST}" target="_blank" rel="noopener">${ic('external', 16)} ${L('সব ভিডিও YouTube-এ দেখুন', 'Watch them all on YouTube')}</a>` };
+const tvAfterNotices = (html, add) => { const at = html.indexOf('>' + t('secNotices')); if (at < 0) return add + html; const end = html.indexOf('</button>', at) + '</button>'.length; return html.slice(0, end) + add + html.slice(end); };
+SCREENS['tv-menu'] = { ...SCREENS.menu, tv: true, render: () => tvAfterNotices(SCREENS.menu.render(), `<button class="row" onclick="go('tv-list')"><span class="lead">${ic('play')}</span><span class="body"><span class="l1">${L('টিউটোরিয়াল', 'Tutorials')} <span class="st info">${L('৫টি নতুন', '5 new')}</span></span><span class="l2">${L('ভিডিও দেখে লিট্রো শিখুন', 'Learn Lytro by watching videos')}</span></span>${ic('right')}</button>`) };
+
+document.head.insertAdjacentHTML('beforeend', `<style>
+.tv-row{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--primary-soft);border:1px solid var(--teal-200);border-radius:12px;padding:10px 12px;margin:0 0 12px;cursor:pointer;color:var(--text)}
+.tv-row.tv-in{background:var(--surface);border-color:var(--line);margin:10px 0}
+.tv-row > svg.i{flex:none;color:var(--n700)}
+.tv-pl{flex:none;width:36px;height:36px;border-radius:50%;background:var(--primary);color:var(--on-primary);display:flex;align-items:center;justify-content:center}
+.tv-b{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.tv-1{font-size:15px;font-weight:600;line-height:1.35}
+.tv-2{font-size:13px;color:var(--n700)}
+.tv-x{color:var(--n700);text-decoration:underline;cursor:pointer;font-size:13px}
+.tv-card{margin:0 0 12px;padding:12px 16px}
+.tv-card .tv-ch{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.tv-card .tv-row.tv-in:last-child{margin-bottom:0}
+.tv-full{position:absolute;inset:0;z-index:30;background:#000;display:flex;flex-direction:column;color:#fff}
+.tv-top{display:flex;align-items:center;gap:10px;padding:10px 12px;flex:none}
+.tv-close{width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.14);color:#fff;display:flex;align-items:center;justify-content:center;flex:none}
+.tv-tt{display:flex;flex-direction:column;min-width:0}
+.tv-tt b{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tv-tt span{font-size:13px;color:#d5dfde}
+.tv-vid{position:relative;flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
+.tv-vid img{height:100%;max-width:100%;aspect-ratio:9/16;object-fit:cover;border-radius:8px}
+.tv-ctl{position:absolute;left:12px;right:12px;bottom:10px;display:flex;align-items:center;gap:10px;background:rgba(0,0,0,.55);border-radius:999px;padding:6px 12px}
+.tv-pp{display:flex;color:#fff}
+.tv-tm{font-size:12px;font-variant-numeric:tabular-nums;color:#fff}
+.tv-bar{flex:1;height:4px;border-radius:2px;background:rgba(255,255,255,.35);overflow:hidden}
+.tv-bar i{display:block;height:100%;background:var(--accent)}
+.tv-ended img{filter:brightness(.35)}
+.tv-endc{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:0 24px}
+.tv-endc .btn{max-width:100%}
+.tv-bot{flex:none;display:flex;flex-direction:column;gap:8px;padding:10px 12px 14px}
+.tv-next{display:flex;align-items:center;gap:10px;width:100%;background:rgba(255,255,255,.12);color:#fff;border-radius:12px;padding:10px 14px;text-align:left}
+.tv-next span{font-size:13px;color:#d5dfde;flex:none}
+.tv-next b{flex:1;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tv-all{display:inline-flex;align-items:center;gap:6px;color:#fff;font-size:14px;font-weight:600;align-self:center;padding:4px}
+.frame.desktop .tv-full{background:rgba(0,0,0,.88);align-items:center}
+.frame.desktop .tv-top,.frame.desktop .tv-bot{width:420px}
+.frame.desktop .tv-vid{width:420px}
+.tv-li{min-height:84px}
+.tv-th{flex:none;width:48px;height:85px;border-radius:8px;object-fit:cover;background:var(--n100)}
+.tv-thx{display:flex;align-items:center;justify-content:center;color:var(--n700)}
+.tv-soon .l1{color:var(--n700)}
+.tv-seen{display:inline-flex;align-items:center;gap:3px;color:var(--success);font-weight:600}
+.tv-yt{display:inline-flex;align-items:center;gap:6px;margin:14px 2px 4px;color:var(--primary);font-weight:600;font-size:15px;text-decoration:none}
+</style>`);
+(function initTv() { const h = location.hash.replace('#', ''); if (h && h.startsWith('tv-') && SCREENS[h] && h !== ST.screen) { ST.screen = h; document.getElementById('selScreen').value = h; render(); } })();
+/* ---------- end of in-app tutorial videos (sketch) ---------- */
 </script>
 </body>
 </html>

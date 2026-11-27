@@ -2761,6 +2761,102 @@ that rule:
    real product). Proposed: the website only; the products stay the sample's, so the page never shows a stranger's data
    when a staff member screenshots it.
 
+### 7.49 In-app tutorial videos (sketch 2026-11-27)
+
+The owner, 2026-11-27: "After current tutorial is done i need to attach coresponding tutorial to corresponding screen.
+but how to do it", then "most of the user is from mobile. What if we use 9:16" and "now do i need a seperate bucket for
+tutorial"; the plan below was approved in principle ("yes please"). Drawn in `brand/lytro-dashboard.html`'s group "In-app
+tutorial videos (sketch 2026-11-27)": `tv-products-empty`, `tv-products`, `tv-quick-add`, `tv-categories`,
+`tv-shopdetails`, `tv-delivery`, `tv-share-sheet`, `tv-meta`, `tv-couriers`, `tv-dismissed`, `tv-player`,
+`tv-player-end`, `tv-menu`, `tv-list`. Lytro's side is OPERATOR-CONSOLE-DESIGN §10h.
+
+**Job.** A seller stuck on a screen can watch the short Bangla video for that exact screen without leaving the app, and
+a new seller can follow the whole series in order from the Menu.
+
+**The series.** Fixed order, set in code with the screens each video shows on. Part 6 is two videos, so the list has 14
+rows.
+
+| Part | Name | Length | Shows on |
+|---|---|---|---|
+| ১ | শপ সাজানো | ১:৩৭ | শপের তথ্য, ডেলিভারি |
+| ২ | ক্যাটাগরি ম্যানেজমেন্ট | ১:৪৭ | ক্যাটাগরি |
+| ৩ | প্রোডাক্ট যোগ | ৩:১২ | প্রোডাক্ট (most useful while the list is empty), quick add |
+| ৪ | লিংক শেয়ার | ১:২৭ | the share sheet; the shop link card in শপের তথ্য |
+| ৫ | Meta Pixel | ১:৪৭ | বিজ্ঞাপন ও ফিড |
+| ৬ক | প্রোডাক্ট বুস্ট | ২:৫১ | বিজ্ঞাপন ও ফিড |
+| ৬খ | অ্যাড ক্যাম্পেইন | not made yet | বিজ্ঞাপন ও ফিড |
+| ৭ | Steadfast | ১:১৫ | কুরিয়ার |
+| ৮ | Pathao আর RedX | not made yet | কুরিয়ার |
+| ৯ | অর্ডার হ্যান্ডলিং | not made yet | অর্ডার |
+| ১০, ১১ | বিকাশ, নগদ | not made yet | পেমেন্ট মেথড |
+| ১২ | থিম | not made yet | storefront design |
+| ১৩ | প্ল্যান | not made yet | প্ল্যান |
+
+**The row on a screen.** Right under the page title, a tinted row: a round play button, "ভিডিও দেখুন: কীভাবে …" (the
+video's own line, for example "কীভাবে প্রোডাক্ট যোগ করবেন"), and under it "পর্ব ৩ · ৩:১২ · আর দেখাবেন না". Tapping
+the row opens the player. The rules:
+
+- **No video, no row.** While a tutorial has no file (the console's "ভিডিও নেই"), its row is not drawn at all, so
+  nothing on a screen points at a video that does not exist. When Lytro uploads one, the row appears by itself.
+- **"আর দেখাবেন না"** hides that row on that screen for that person (not the whole shop: the owner and each staff
+  member decide for themselves). It is kept on the server, so it holds on the phone and the computer alike. A toast
+  says "এই স্ক্রিনে আর দেখাবে না। সব ভিডিও মেনু › টিউটোরিয়ালে আছে।" (`tv-dismissed`). There is no undo on the
+  screen; the video stays in Menu › Tutorials.
+- **A page with more than one video** (বিজ্ঞাপন ও ফিড: parts 5, 6ক and 6খ) gets one card, "এই পেজের ভিডিও", with a
+  row for each video that has a file and one "আর দেখাবেন না" for the card (`tv-meta`).
+- **Inside a card or a sheet** (the shop link card in শপের তথ্য, the share sheet) the row is the same but has no
+  "আর দেখাবেন না": the card already has its own job, and the row stays small. Recommendation, not drawn: such a row
+  goes away by itself once the person has watched that video to the end (open question 1).
+- On শপের তথ্য both appear: part 1 under the title, part 4 inside the shop link card (the sketch's card is titled
+  "শপের ঠিকানা"; the built app calls it "শপের লিংক"). On কুরিয়ার, part 8's row joins part 7's once it has a file.
+
+**The player** (`tv-player`, `tv-player-end`). Lytro's own, never YouTube: full screen and black, the 9:16 video
+filling the height. At the top a close button and "পর্ব ৩ · প্রোডাক্ট যোগ" with its length. The controls sit on the
+video: pause or play, the time so far, a bar to drag, the length. At the end the video dims under two buttons, "আবার
+দেখুন" and "পরের ভিডিও: পর্ব ৪ · লিংক শেয়ার" (the next part that has a file). Under the video, always: "পরের ভিডিও"
+and "সব টিউটোরিয়াল". On a computer the same player sits in the middle at 420 px wide over a dark backdrop. Closing it
+returns to the screen it was opened from. A video counts as watched once it has played to the end (or past 90 percent).
+
+**Menu › টিউটোরিয়াল** (`tv-menu`, `tv-list`, `/tutorials`). A Menu row right under নোটিশ: "টিউটোরিয়াল" with a
+"৫টি নতুন" chip (videos with a file that this person has not watched) and "ভিডিও দেখে লিট্রো শিখুন". The page opens
+with "ছোট ছোট ভিডিওতে ধাপে ধাপে লিট্রো চালানো শিখুন। ক্রম অনুযায়ী দেখলে সবচেয়ে সহজ হয়।", then every part in the
+series' order: its cover (the video's first frame), "পর্ব ৩ · প্রোডাক্ট যোগ", the length, and "✓ দেখা হয়েছে" or
+"নতুন".
+
+- **Decision: parts without a video are shown, not hidden.** They are greyed, with a clock and "শিগগিরই" in place of
+  the length, and cannot be tapped. The seller sees the whole course and what is coming; the screens themselves never
+  show them (above).
+- The page ends with "সব ভিডিও YouTube-এ দেখুন", opening the playlist
+  (https://www.youtube.com/playlist?list=PLOcfDXgUTCdc) outside the app. The line shows only while the console has a
+  playlist link (it is optional there).
+
+**The files.** No separate bucket: the public media bucket, under Lytro's own prefix rather than a shop's,
+`platform/tutorials/<key>-v<N>.mp4`, with its cover beside it as `<key>-v<N>.jpg` (for example
+`platform/tutorials/03-add-product-v2.mp4`). Every upload or replacement gets the next version's name, because
+media.lytro.app tells Cloudflare and phones to cache a file for a year: under the same name the old video would keep
+playing. The player streams with range requests, so a seller downloads only as much as they watch. Recommended export:
+9:16 at 1080 × 1920, H.264 at about 1.5 to 2 Mbps with AAC sound, so a three-minute video stays near 35 to 45 MB.
+
+**What the backend must add.**
+
+- The series in code, once (keys, order, the names and lines in both languages, the screens): the dashboard, the
+  console and the server read the same list.
+- `tutorial_videos`: the key, the version, the length in seconds, the file and cover keys, who uploaded it and when.
+  No row means no video.
+- `tutorial_views` (person, key, when watched) and `tutorial_dismissals` (person, screen).
+- `GET /v1/tutorials` for the dashboard: each part with its URL, cover, length and watched mark, plus this person's
+  dismissed screens; `POST` routes to mark one watched and to dismiss a screen.
+- The console's upload, replace and remove (OPERATOR-CONSOLE-DESIGN §10h) and its optional playlist link.
+
+**Open questions.**
+
+1. A row inside a card or the share sheet has no "আর দেখাবেন না". Should it go away once the person has watched that
+   video? Recommended: yes.
+2. Should parts without a video be hidden from Menu › Tutorials instead of showing "শিগগিরই"? Recommended: keep
+   "শিগগিরই".
+3. Replacing a video keeps everyone's "✓ দেখা হয়েছে". Should a replaced video show as "নতুন" again? Recommended: no;
+   the console could offer that as a tick later if a change is large.
+
 ## 8. Screens designed for later phases
 
 Kept in the prototype under "Later phases (design only)", exactly as designed on 2026-10-20, so the
