@@ -582,7 +582,6 @@
   "p37FrAuto": "Checked by itself when the order came",
   "p37FrPending": "Being checked… the order can be confirmed or shipped meanwhile.",
   "p37FrSkipped": "Not checked by itself: orders under {{a}} aren't checked.",
-  "p37FrRuleOff": "Not checked by itself: the automatic check is off.",
   "p37FrNotRun": "Not checked by itself this time.",
   "p37FrNotYet": "This number hasn't been checked yet.",
   "p37FrSf": "Steadfast's record",

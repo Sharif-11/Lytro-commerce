@@ -1286,7 +1286,8 @@ export function phase7Answer(
       };
       fixture.fraud = fraud;
     }
-    return { data: fraud.rule ?? { codOrders: true, minAmount: null } };
+    // Off by default, as the server keeps it (the owner, 2026-11-27: "make it after clicking for everyone").
+    return { data: fraud.rule ?? { codOrders: false, minAmount: null } };
   }
   // Reading a message.
   if (method === 'POST' && path === '/orders/read-address') {

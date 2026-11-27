@@ -193,7 +193,7 @@ test.describe('The SMS an action sends', () => {
 });
 
 test.describe('The fake order check', () => {
-  test('the order: the automatic result in its customer card, figures only, Check again', async ({
+  test('the order: the automatic result in its own card, figures only, Check again', async ({
     page,
   }) => {
     const log = await open(page, '/orders/o-47', { fraud: { order: { state: 'done' } } });
@@ -202,6 +202,34 @@ test.describe('The fake order check', () => {
     await expect(main(page).getByText('3 delivered · 1 returned · 0 cancelled')).toBeVisible();
     await main(page).getByRole('button', { name: 'Check again' }).click();
     await expect(page.getByText('Phone checked')).toBeVisible();
+    expect(log.phase7.checks).toEqual(['+8801711234567']);
+  });
+
+  // The owner, 2026-11-27: the customer, then what they ordered and the total, read first; and "make it after clicking
+  // for everyone", so a new order's number is not checked until the seller taps.
+  test('the order: after the items and the total, not checked yet until Check this number', async ({
+    page,
+  }) => {
+    const log = await open(page, '/orders/o-47', {
+      fraud: { order: { state: 'skipped', reason: 'rule_off' } },
+    });
+    await expect(main(page).getByText("This number hasn't been checked yet.")).toBeVisible();
+    // Top to bottom: the customer, the items, the total, the check, then the customer's tracking.
+    const tops: number[] = [];
+    for (const part of [
+      main(page).getByRole('heading', { name: 'Customer', exact: true }),
+      main(page).getByRole('heading', { name: /^Items/ }),
+      main(page).getByRole('heading', { name: 'Pricing', exact: true }),
+      main(page).getByText('Fake order check', { exact: true }),
+      main(page).getByRole('heading', { name: 'Customer tracking', exact: true }),
+    ]) {
+      tops.push((await part.boundingBox())?.y ?? Number.NaN);
+    }
+    expect(tops).toEqual([...tops].sort((x, y) => x - y));
+    expect(tops.some(Number.isNaN)).toBe(false);
+    await main(page).getByRole('button', { name: 'Check this number' }).click();
+    await expect(page.getByText('Phone checked')).toBeVisible();
+    await expect(main(page).getByText('82%')).toBeVisible();
     expect(log.phase7.checks).toEqual(['+8801711234567']);
   });
 
@@ -265,9 +293,15 @@ test.describe('The fake order check', () => {
     await expect(main(page).getByText("This number hasn't been checked yet.")).toBeVisible();
   });
 
-  test('Settings: the automatic check, from a smallest amount, saved', async ({ page }) => {
+  test('Settings: off by default, switched on from a smallest amount, saved', async ({ page }) => {
     const log = await open(page, '/settings/fraud-checks');
     await expect(main(page).getByText('Where the figures come from')).toBeVisible();
+    const every = main(page).getByRole('switch', { name: 'Check every new COD order' });
+    await expect(every).not.toBeChecked();
+    await expect(
+      main(page).getByText("While it's off, check by hand from the order's page."),
+    ).toBeVisible();
+    await every.click();
     await main(page).getByLabel('Only from this amount (optional)').fill('500');
     await main(page).getByRole('button', { name: 'Save' }).click();
     await expect(page.getByText('Automatic check settings saved.')).toBeVisible();

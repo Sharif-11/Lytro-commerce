@@ -1787,10 +1787,13 @@ drawn greyed with "Later" so the design stays whole; **the built screens hide th
 - **The order** (`order`): its number, when and where it came from (Storefront, Landing page, Dashboard, API), the
   status chip and the **more** button; a line for the state (a new order: "Call the customer to confirm"; on hold: due
   a call at 4:00 pm; cancelled: the reason and its note). Then the customer -- name, phone, **Call**, the address, the
-  customer's own note from checkout (read-only), their order count linking to their page; the **Calls**; the items as
-  ordered (ORD-46) -- options, a combo's items inside it, add-ons with their price, quantity and price, units back;
-  pricing with the tax inside the total, one line per class (TAX-03), and cash on delivery or what is due; payments;
-  shipping; the timeline, newest first.
+  customer's own note from checkout (read-only), their order count linking to their page; the items as ordered
+  (ORD-46) -- options, a combo's items inside it, add-ons with their price, quantity and price, units back; pricing
+  with the tax inside the total, one line per class (TAX-03), and cash on delivery or what is due; the **Calls**;
+  payments; shipping; the timeline, newest first. *Amended 2026-11-27* (the owner: "a seller needs customer
+  information, customer address, notes and product ordered quickly"; `op-order`): the customer card holds only
+  who, where and their note, and the items and the total follow it at once; then the fake order check in a card of its own
+  (§7.40), the customer's tracking, the Calls, payments, the courier and the timeline.
 - **One next step** in the bar (agreed): **Call to confirm** for a new order, **Call again** on hold, **Mark shipped**
   once confirmed, **Hand over** for a counter order, **Delivered** once shipped, **Return items** once delivered. The
   rest is in the more menu (`o29-menu`): Put on hold, Edit the order (until it ships), Print label, Cancel the order,
@@ -2313,15 +2316,20 @@ one sketch PR now and one build PR after 7.4). Drawn from what the server on mai
   it cost, and "figures only, no verdict; the order is never held up" (`p37-new-fraud`, `-reports`). An answer reused
   within 3 days says from when (`p37-new-fraud-known`); Steadfast not connected, with Connect Steadfast (`-nosf`);
   Steadfast not answering (`-failed`); the minute's limit (`-minute`); a trial while checks are free (`-trial`) and once
-  they are charged (`-trial-paid`), both in the server's words. **On the order** the automatic check sits in the
-  Customer card in place of Part 29's greyed line, "checked by itself when the order came", with Check again
+  they are charged (`-trial-paid`), both in the server's words. **On the order** the check is a card of its own after the
+  items and the total (2026-11-27, `op-order`; before, it sat in the Customer card in place of Part 29's greyed
+  line).
+  With the automatic check off, as it is for every shop until switched on, it says "This number hasn't been checked
+  yet" with **Check this number**, which runs a check and shows its figures there. Checked by itself, "checked by
+  itself when the order came", with Check again
   (`p37-order-fraud`, `-reports`), being checked (`-pending`), not checked under the smallest amount (`-skipped`),
   checked again (`-again`), the minute's limit (`-minute`), Steadfast not connected or not answering (`-nosf`,
   `-failed`); staff who see the order but can't check get no button (`-staff`); a lapsed shop says checks wait for a
   renewal (`-ro`). **On the customer's page**, a card above the last address (`p37-cust-fraud`, never checked
   `p37-cust-fraud-none`). The Orders list carries no marker: with no level there is nothing to flag.
 - **Fake order check in Settings** (`/settings/fraud-checks`, `p37-fraud-rule`, GET/PUT `/fraud-checks/rule`;
-  `fraud:manage` changes it): "Check every new COD order" (on until changed; takeaway and dine-in never), "Only from this
+  `fraud:manage` changes it): "Check every new COD order" (off until switched on: the owner, 2026-11-27,
+  "make it after clicking for everyone", reversing D7-50's on by default; takeaway and dine-in never), "Only from this
   amount", empty for every order (`-min`), off with "check by hand from the order's page" (`-off`), where the figures
   come from (Steadfast with the shop's own keys, or Not connected with Connect, `-nosf`; the shop's past orders, always,
   free; Pathao and RedX if they publish a check), the cost (free for now), staff who may only read (`-ro`), saved
