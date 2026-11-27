@@ -642,6 +642,10 @@ export enum QueueName {
   ShopDataDeletion = 'shop_data_deletion',
   // D8-47 (Phase 8 Slice 8.5): each night, removes payment screenshots past their two years.
   EvidenceSweep = 'evidence_sweep',
+  // LIVE-CHAT-PLAN LC-5, LC-24: each minute, the busy line for a chat left unanswered. LC-8, LC-11: each night, photos
+  // and messages past their days.
+  ChatTick = 'chat_tick',
+  ChatPurgeTick = 'chat_purge_tick',
   // DAT-52, D9-16 (Phase 9 Slice 9.5): at 06:00 in Asia/Dhaka, yesterday's money compared, each difference listed.
   ReconciliationTick = 'reconciliation_tick',
   // DAT-51, D9-16 (Phase 9 Slice 9.5): each night, the raw courier messages and gateway answers past their days removed.
@@ -789,6 +793,9 @@ export enum PlatformAuditAction {
   PaymentMethodTypeRemoved = 'payment_method_type_removed',
   // DAT-52 (Phase 9 Slice 9.5): the operator saying what was done about a difference the daily reconciliation found.
   ReconciliationDifferenceResolved = 'reconciliation_difference_resolved',
+  // LIVE-CHAT-PLAN LC-2 (the owner, 2026-11-27): an operator set a shop's own plan feature -- live chat -- on, off or to
+  // follow its plan.
+  ShopFeatureSet = 'shop_feature_set',
 }
 
 // DAT-51, D9-16 (Phase 9 Slice 9.5): what became of a courier's message kept as it arrived. `received` is stored and not yet
@@ -1014,6 +1021,12 @@ export enum PlatformSettingKey {
   PaygFairUse = 'payg_fair_use',
   PaygActivationTopUp = 'payg_activation_topup',
   PaygApiFreeRequests = 'payg_api_free_requests',
+  // LIVE-CHAT-PLAN LC-5, LC-8, LC-11, LC-25 (the owner, 2026-11-27): the live chat's busy line, how long messages and
+  // photos are kept, and the flood guard. Its hours are the help line's (LC-24).
+  ChatBusyMinutes = 'chat_busy_minutes',
+  ChatHistoryDays = 'chat_history_days',
+  ChatPhotoDays = 'chat_photo_days',
+  ChatMessagesPerMinute = 'chat_messages_per_minute',
 }
 
 // PYG-30: pay-as-you-go fair use, off or on.
@@ -1213,10 +1226,12 @@ export const CUSTOM_DOMAIN_FEATURE = 'custom_domain';
 export const VERIFICATION_FEES_WAIVED_FEATURE = 'verification_fees_waived';
 // PLN-02 (the owner, 2026-11-24): the plan features the platform itself reads (featureOn), brand identity among them
 // (BRN-05: an add-on, or a plan that includes it). The operator's plan editor offers each on every plan, off until set.
+// LIVE-CHAT-PLAN LC-2 (the owner, 2026-11-27): live chat with Lytro, per plan and per shop (LIVE_CHAT_FEATURE).
 export const PLAN_FEATURES: readonly string[] = [
   CUSTOM_DOMAIN_FEATURE,
   VERIFICATION_FEES_WAIVED_FEATURE,
   BRAND_IDENTITY_ADDON,
+  'live_chat',
 ];
 
 // BRN-02 (agreed for Slice 11.2): the curated typefaces a brand identity's headings and its body text are set in, each

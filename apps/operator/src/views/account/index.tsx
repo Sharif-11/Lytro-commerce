@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@lytronix/ui';
 import { useOperatorMe, useOperatorSignOut } from '@/api/operator-auth';
@@ -97,6 +98,20 @@ export function Account(): React.JSX.Element {
               <ConsoleIcon name="globe" size={18} />
               {language.label}
             </Button>
+          </div>
+        </ConsoleCard>
+        {/* LIVE-CHAT-PLAN LC-4: the chat's alerts on this browser -- the floating button, its sound, phone pushes. */}
+        <ConsoleCard>
+          <h2 className={CARD_TITLE}>{t('myNotifications.title')}</h2>
+          <div className={HINT}>{t('myNotifications.cardHint')}</div>
+          <div className="mt-3">
+            <Link
+              to="/account/notifications"
+              className="inline-flex h-9 items-center gap-2 rounded-control border border-line-strong px-3 text-[14px] font-semibold"
+            >
+              <ConsoleIcon name="bell" size={18} />
+              {t('myNotifications.open')}
+            </Link>
           </div>
         </ConsoleCard>
       </div>

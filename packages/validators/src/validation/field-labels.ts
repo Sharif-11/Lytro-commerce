@@ -48,6 +48,8 @@ export const FIELD_LABELS: Readonly<Record<string, Translation | null>> = {
   before: { en: 'Page', bn: 'পেজ' },
   behavesLike: { en: 'Behaves like', bn: 'যে ধরনের মতো চলবে' },
   billingTermId: { en: 'Billing term', bn: 'বিলিং টার্ম' },
+  // Live chat (LC-1): a chat message's words, and the photos sent with it.
+  body: { en: 'Message', bn: 'মেসেজ' },
   bodyBn: { en: 'Text (Bangla)', bn: 'লেখা (বাংলা)' },
   bodyEn: { en: 'Text (English)', bn: 'লেখা (ইংরেজি)' },
   bodyFont: { en: 'Body font', bn: 'লেখার ফন্ট' },
@@ -210,6 +212,7 @@ export const FIELD_LABELS: Readonly<Record<string, Translation | null>> = {
   imageIds: { en: 'Photos', bn: 'ছবি' },
   // PUT products/:id/images (photo designs, ATR-19): the photos with their designs, and the designs they name.
   photos: { en: 'Photos', bn: 'ছবি' },
+  photoKeys: { en: 'Photos', bn: 'ছবি' },
   design: { en: 'Design', bn: 'ডিজাইন' },
   designs: { en: 'Designs', bn: 'ডিজাইন' },
   // PUT storefront/design/cards/order (STOREFRONT-BUILDER-PLAN DC-6, DC-8): the cards in order, each a product and its

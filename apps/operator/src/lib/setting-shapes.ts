@@ -49,6 +49,12 @@ export const SETTING_GROUPS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
 /** Slice 9.9 (D9-7): the VAT group, which shows how an invoice will read above its four rows. */
 export const VAT_GROUP = 17;
 
+/**
+ * LIVE-CHAT-PLAN LC-5, LC-8, LC-11, LC-25: the live chat's four rules. They have a page of their own (Settings → Live
+ * chat, `/settings/chat`, beside its quick replies), so the main page's seventeen groups leave them out.
+ */
+export const CHAT_GROUP = 18;
+
 /** D8-76: a setting stored empty is one not set, such as a help number never given or cleared. */
 export const isUnset = (value: unknown): boolean =>
   value === null || value === undefined || value === '';
@@ -121,6 +127,11 @@ export const SETTING_SHAPES: readonly SettingShape[] = [
   { key: PlatformSettingKey.VatRate, group: VAT_GROUP, unit: 'vatRate' },
   { key: PlatformSettingKey.VatSellerName, group: VAT_GROUP, unit: 'vatText' },
   { key: PlatformSettingKey.VatSellerAddress, group: VAT_GROUP, unit: 'vatText' },
+  // LIVE-CHAT-PLAN (the owner, 2026-11-27): the busy line, how long messages and photos stay, and the flood guard.
+  { key: PlatformSettingKey.ChatBusyMinutes, group: CHAT_GROUP, unit: 'minutes' },
+  { key: PlatformSettingKey.ChatHistoryDays, group: CHAT_GROUP, unit: 'days' },
+  { key: PlatformSettingKey.ChatPhotoDays, group: CHAT_GROUP, unit: 'days' },
+  { key: PlatformSettingKey.ChatMessagesPerMinute, group: CHAT_GROUP, unit: 'perMinute' },
 ];
 
 /** Slice 9.9: the four VAT settings, by the order the page shows them. */

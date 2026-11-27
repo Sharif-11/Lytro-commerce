@@ -3,6 +3,7 @@ import { useRouterState } from '@tanstack/react-router';
 import { useShellCounts } from '@/api/shell-counts';
 import { ToastProvider } from '@/components/ui/toast';
 import { Band } from './band';
+import { ChatLiveProvider } from './chat-fab';
 import { MoreSheet } from './more-sheet';
 import { Sidebar } from './sidebar';
 import { TabBar } from './tab-bar';
@@ -28,25 +29,27 @@ export function ConsoleShell({ children }: { children: ReactNode }): React.JSX.E
 
   return (
     <ToastProvider>
-      <div className="flex h-dvh flex-col bg-page text-fg">
-        <Band onMenu={openMore} />
-        <div className="flex min-h-0 flex-1">
-          <Sidebar counts={counts} />
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-            <TopBar />
-            <main ref={screen} className="min-h-0 flex-1 overflow-auto">
-              {children}
-            </main>
-            <TabBar counts={counts} onMore={openMore} />
+      <ChatLiveProvider>
+        <div className="flex h-dvh flex-col bg-page text-fg">
+          <Band onMenu={openMore} />
+          <div className="flex min-h-0 flex-1">
+            <Sidebar counts={counts} />
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+              <TopBar />
+              <main ref={screen} className="min-h-0 flex-1 overflow-auto">
+                {children}
+              </main>
+              <TabBar counts={counts} onMore={openMore} />
+            </div>
           </div>
+          <MoreSheet
+            open={moreOpen}
+            onClose={() => {
+              setMoreOpen(false);
+            }}
+          />
         </div>
-        <MoreSheet
-          open={moreOpen}
-          onClose={() => {
-            setMoreOpen(false);
-          }}
-        />
-      </div>
+      </ChatLiveProvider>
     </ToastProvider>
   );
 }

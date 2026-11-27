@@ -138,6 +138,13 @@ export {
   type NewRequestError,
   type RequestErrorRow,
 } from './repositories/platform/request-error.repository';
+export {
+  ChatRepository,
+  type ChatInboxRow,
+  type ChatPerson,
+  type NewChatMessage,
+  type NewChatPhoto,
+} from './repositories/platform/chat.repository';
 export { PlatformAdEventRepository } from './repositories/platform/platform-ad-events.repository';
 export {
   MediaCostRepository,

@@ -1532,5 +1532,7 @@
   "sdLeftCategoryHead": "This category has no products now",
   "sdLeftShopHead": "The shop has no products now",
   "sdLeftBackLine": "It shows again when products come.",
-  "ssGridLines": "A grid shows whole lines of four."
+  "ssGridLines": "A grid shows whole lines of four.",
+  "sndChat": "Sound for a chat message",
+  "sndChatD": "The same sound plays when Lytro replies, on any screen. On this device only."
 }

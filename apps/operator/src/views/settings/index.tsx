@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@lytronix/ui';
 import { PlatformSettingKey } from '@lytronix/validators';
@@ -24,7 +25,8 @@ import { VatPreview } from './vat-preview';
 const groupId = (group: number): string => `settings-group-${String(group)}`;
 const HELP_GROUP = 14;
 
-function SettingRow({
+/** One setting in its row: its value, and changed in place with the reason the audit log keeps. */
+export function SettingRow({
   setting,
   shape,
   rows,
@@ -184,6 +186,10 @@ export function Settings(): React.JSX.Element {
                 {t(`settings.groups.${String(number)}`)}
               </a>
             ))}
+            {/* LIVE-CHAT-PLAN: the chat's rules and quick replies have a page of their own. */}
+            <Link to="/settings/chat" className={chipClass(false)}>
+              {t('settings.chatLink')} →
+            </Link>
           </div>
           <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
             <div className="flex min-w-0 flex-col gap-4">{[1, 2].map(group)}</div>

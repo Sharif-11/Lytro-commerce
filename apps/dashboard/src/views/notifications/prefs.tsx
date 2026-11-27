@@ -3,6 +3,7 @@ import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { IdentityKind, NotificationKind } from '@lytronix/validators';
 import { errorMessage } from '@lytronix/api-client';
+import { useChat } from '@/api/chat';
 import { useMe } from '@/api/me';
 import { useIdentities } from '@/api/identities';
 import {
@@ -17,7 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { SkeletonRows } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
-import { notificationSound } from '@/lib/notification-sound';
+import { chatSound, notificationSound } from '@/lib/notification-sound';
 import { deviceName, usePushDevice } from '@/lib/push';
 import { useShell } from '@/shell/shell-context';
 import { ShellPage } from '@/shell/shell-page';
@@ -86,6 +87,9 @@ function SoundCard(): React.JSX.Element {
   const { t } = useTranslation('menu');
   const { showToast } = useShell();
   const [on, setOn] = useState(() => notificationSound.isOn());
+  // LIVE-CHAT-PLAN §5.6 (the sketch's `lc-sound`): the chat's own sound, for a shop that has the chat.
+  const chat = useChat();
+  const [chatOn, setChatOn] = useState(() => chatSound.isOn());
   return (
     <Card>
       <h3 className="text-[16px] font-semibold">{t('sndT')}</h3>
@@ -103,6 +107,22 @@ function SoundCard(): React.JSX.Element {
           }}
         />
       </div>
+      {chat.data?.enabled ? (
+        <div className="mt-2 flex items-center gap-3 border-t border-line pt-2.5 pb-1">
+          <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <span className="text-[15px] leading-[1.4] font-medium">{t('sndChat')}</span>
+            <span className="text-[13px] leading-[1.4] text-fg-muted">{t('sndChatD')}</span>
+          </span>
+          <Switch
+            checked={chatOn}
+            label={t('sndChat')}
+            onChange={(next) => {
+              chatSound.setOn(next);
+              setChatOn(next);
+            }}
+          />
+        </div>
+      ) : null}
       <div className="mt-2">
         <Button
           tone="outline"

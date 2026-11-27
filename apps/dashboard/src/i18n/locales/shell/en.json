@@ -198,5 +198,22 @@
   "sDesign": "Storefront design",
   "sThemes": "Pick a theme",
   "sLogoIcon": "Logo and icon",
-  "sProductList": "Product list"
+  "sProductList": "Product list",
+  "chatOpen": "Chat with Lytro",
+  "chatTitle": "Lytro support",
+  "chatKeep": "Messages older than {{count}} days are deleted",
+  "chatToday": "Today",
+  "chatYesterday": "Yesterday",
+  "chatOwner": "owner",
+  "chatStaff": "staff",
+  "chatPhotoGone": "Photo deleted",
+  "chatBusy": "Busy for a moment — we will answer soon. WhatsApp us if it is urgent.",
+  "chatOffHours": "We answer from {{opens}} to {{closes}} — we will reply at {{opens}}. WhatsApp us if it is urgent.",
+  "chatWrite": "Write a message…",
+  "chatPhoto": "Photo",
+  "chatSend": "Send",
+  "chatPhotoRemove": "Remove the photo",
+  "chatPhotoRefused": "Only a JPG, PNG or WebP photo up to 5 MB can be sent.",
+  "chatPhotosMax": "At most {{count}} photos in a message.",
+  "chatEmpty": "A problem or a question? Write to Lytro."
 }

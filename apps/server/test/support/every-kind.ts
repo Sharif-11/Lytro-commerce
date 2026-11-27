@@ -21,6 +21,8 @@ export const ID_TARGETS: readonly { path: RegExp; table?: string; sql?: string }
   { path: /\/addons\/mine\/:id$/, table: 'control.addon_purchases' },
   { path: /\/api-keys\/:id$/, table: 'control.api_keys' },
   { path: /\/listener\/devices\/:id$/, table: 'control.listener_devices' },
+  // LIVE-CHAT-PLAN LC-8: a photo in the shop's chat with Lytro.
+  { path: /\/chat\/photos\/:id$/, table: 'control.chat_photos' },
   { path: /\/attributes\/:id\/options\/:optionId$/, table: 'tenant.attribute_options' },
   { path: /\/attributes\/:id$/, table: 'tenant.attributes' },
   { path: /\/categories\/:id$/, table: 'tenant.categories' },
@@ -229,6 +231,20 @@ export class EveryKind {
          (tenant_id, status, file_content, file_size_bytes, content_type, ready_at, expires_at)
        VALUES ($1, 'ready', '\\x504b0506', 4, 'application/zip', now(), now() + interval '1 day')`,
       [tenantId],
+    );
+    // LIVE-CHAT-PLAN LC-8: a photo in the shop's chat with Lytro, and the file the server hands back for it.
+    const chatPhotoKey = `chat/${tenantId}/walk`;
+    await admin.query(
+      `WITH message AS (
+         INSERT INTO control.chat_messages (tenant_id, sender_kind, body) VALUES ($1, 'owner', 'A photo.') RETURNING id
+       )
+       INSERT INTO control.chat_photos (tenant_id, message_id, position, object_key, content_type, bytes)
+       SELECT $1, id, 0, $2, 'image/png', 9 FROM message`,
+      [tenantId, chatPhotoKey],
+    );
+    this.storage.evidence.set(
+      chatPhotoKey,
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00]),
     );
   }
 

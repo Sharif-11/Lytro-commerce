@@ -78,5 +78,6 @@ export * from './api/platform/media-costs';
 export * from './api/platform/reconciliation';
 export * from './api/platform/payment-method-types';
 export * from './api/platform/help-line';
+export * from './api/chat/live-chat';
 export * from './api/platform/degraded-mode';
 export * from './edge-cache-tags';

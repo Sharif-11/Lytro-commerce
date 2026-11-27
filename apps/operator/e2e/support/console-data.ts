@@ -1723,6 +1723,31 @@ export function drawnSettings(): Record<string, unknown>[] {
       'The hour Lytro stops answering the help line, every day, 0 to 23 in Dhaka (D8-68).',
       { at: '2026-11-10T00:00:00.000Z', by: null },
     ),
+    // LIVE-CHAT-PLAN (migration 0155): the live chat's four rules, on their own page (Settings → Live chat).
+    setting(
+      'chat_busy_minutes',
+      10,
+      "Minutes a shop's chat message waits unanswered within hours before Lytro's busy line goes (LC-5).",
+      { at: '2026-11-27T00:00:00.000Z', by: null },
+    ),
+    setting(
+      'chat_history_days',
+      7,
+      'Days a live chat message is kept before the nightly clean-up deletes it (LC-11).',
+      { at: '2026-11-27T00:00:00.000Z', by: null },
+    ),
+    setting(
+      'chat_photo_days',
+      3,
+      'Days a live chat photo is kept, never longer than the messages (LC-8).',
+      { at: '2026-11-27T00:00:00.000Z', by: null },
+    ),
+    setting(
+      'chat_messages_per_minute',
+      20,
+      'Live chat messages one person may send in a minute (LC-25).',
+      { at: '2026-11-27T00:00:00.000Z', by: null },
+    ),
     setting(
       'media_budget_usd',
       10,

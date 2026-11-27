@@ -948,6 +948,25 @@ export const MESSAGE_KEYS = [
   'NoticePlanNotFound',
   'NoticeShopNotFound',
   'RateChangeNotFound',
+  // LIVE-CHAT-PLAN (PR 1): live chat between a shop and Lytro.
+  'ChatLoaded',
+  'ChatMessageSent',
+  'ChatRead',
+  'ChatPhotoUploadStarted',
+  'ChatsListed',
+  'ChatsWaiting',
+  'ChatFeatureLoaded',
+  'ChatFeatureSet',
+  'ChatQuickRepliesListed',
+  'ChatQuickReplyAdded',
+  'ChatQuickRepliesOrdered',
+  'ChatQuickReplyChanged',
+  'ChatQuickReplyRemoved',
+  'ChatOff',
+  'TooManyChatMessages',
+  'ChatPhotoNotUploaded',
+  'ChatPhotoNotAllowed',
+  'ChatQuickRepliesFull',
 ] as const;
 
 export type MessageKey = (typeof MESSAGE_KEYS)[number];

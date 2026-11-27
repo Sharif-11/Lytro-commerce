@@ -2995,6 +2995,36 @@ const DICTIONARY: Record<MessageKey, { en: MessageText; bn: MessageText }> = {
     en: 'Too many phones checked in the last minute. Try again shortly.',
     bn: 'গত এক মিনিটে অনেক ফোন নম্বর চেক করা হয়েছে। একটু পরে আবার ট্রাই করুন।',
   },
+  ChatLoaded: { en: 'Chat loaded.', bn: 'চ্যাট।' },
+  ChatMessageSent: { en: 'Message sent.', bn: 'মেসেজ পাঠানো হয়েছে।' },
+  ChatRead: { en: 'Chat marked read.', bn: 'চ্যাট পড়া হয়েছে।' },
+  ChatPhotoUploadStarted: { en: 'Photo upload ready.', bn: 'ছবি আপলোডের জন্য তৈরি।' },
+  ChatsListed: { en: 'Chats listed.', bn: 'চ্যাটের তালিকা।' },
+  ChatsWaiting: { en: 'Waiting chats counted.', bn: 'অপেক্ষায় থাকা চ্যাট।' },
+  ChatFeatureLoaded: { en: 'Chat setting loaded.', bn: 'চ্যাটের সেটিং।' },
+  ChatFeatureSet: { en: 'Chat setting saved.', bn: 'চ্যাটের সেটিং সেভ হয়েছে।' },
+  ChatQuickRepliesListed: { en: 'Quick replies listed.', bn: 'দ্রুত উত্তরের তালিকা।' },
+  ChatQuickReplyAdded: { en: 'Quick reply added.', bn: 'দ্রুত উত্তর যোগ হয়েছে।' },
+  ChatQuickRepliesOrdered: { en: 'Quick replies reordered.', bn: 'দ্রুত উত্তরের ক্রম সেভ হয়েছে।' },
+  ChatQuickReplyChanged: { en: 'Quick reply saved.', bn: 'দ্রুত উত্তর সেভ হয়েছে।' },
+  ChatQuickReplyRemoved: { en: 'Quick reply removed.', bn: 'দ্রুত উত্তর মুছে ফেলা হয়েছে।' },
+  ChatOff: { en: "Live chat isn't on for this shop.", bn: 'এই শপে লাইভ চ্যাট চালু নেই।' },
+  TooManyChatMessages: {
+    en: 'Too many messages in a minute. Try again shortly.',
+    bn: 'এক মিনিটে অনেক মেসেজ হয়ে গেছে। একটু পরে আবার পাঠান।',
+  },
+  ChatPhotoNotUploaded: {
+    en: "The photo didn't finish uploading. Add it again.",
+    bn: 'ছবিটা পুরো আপলোড হয়নি। আবার যোগ করুন।',
+  },
+  ChatPhotoNotAllowed: {
+    en: 'Only a JPG, PNG or WebP photo up to 5 MB can be sent.',
+    bn: 'শুধু 5 MB পর্যন্ত JPG, PNG বা WebP ছবি পাঠানো যায়।',
+  },
+  ChatQuickRepliesFull: {
+    en: ({ max }) => `There can be at most ${String(max)} quick replies.`,
+    bn: ({ max }) => `সর্বোচ্চ ${String(max)}টি দ্রুত উত্তর রাখা যায়।`,
+  },
 };
 
 export function translate(key: MessageKey, lang: Language, params: MessageParams = {}): string {

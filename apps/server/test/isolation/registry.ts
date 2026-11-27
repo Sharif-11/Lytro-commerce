@@ -53,6 +53,15 @@ export const ISOLATION_REGISTRY: Readonly<Record<string, string>> = {
     "closes only the session person's own banner; a notice for another shop only answers 404",
   'POST /notices/:id/acknowledge':
     'acknowledges for the session shop only; a notice for another shop only answers 404',
+  // LIVE-CHAT-PLAN (PR 1), checked in test/live-chat.e2e.spec.ts: a shop's one chat with Lytro is always the session
+  // shop's own -- its messages, its read mark (the session person's own), its photo uploads under its own prefix, and its
+  // photos, where another shop's photo answers 404 like one that never was.
+  'GET /chat': "shows only the session shop's chat, with the session person's own unread count",
+  'POST /chat/messages':
+    "writes only to the session shop's chat; another shop's photo upload is refused",
+  'POST /chat/read': "marks only the session person's own read in the session shop",
+  'POST /chat/photos': "signs an upload under the session shop's own prefix only",
+  'GET /chat/photos/:id': "another shop's photo answers 404",
   // The staff routes: a shop lists, adds and changes only its own staff. Checked in test/staff.e2e.spec.ts.
   'GET /staff': 'lists only the session shop staff and seats',
   'POST /staff': 'creates staff in the session shop only; seats are counted in that shop',

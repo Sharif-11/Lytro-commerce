@@ -2719,3 +2719,18 @@ The storefront keeps each page every shopper of its shop sees alike in a Redis o
 6. **English pages and shops' own domains open as the edge's do** (§150 item 5): on the product's first choice and the
    highest charge, then the `?v=` link and the area in the browser.
 7. **The API processes open a connection they never use**: they share `server.env` with the worker, which alone purges.
+
+## 152. `SUP-04` to `SUP-06`: live chat instead of tickets — found 2026-11-27, open
+
+The owner chose live chat between a shop and Lytro over the ticket inbox the SRS describes ("i prefer live chat for
+now", 2026-11-27). `docs/LIVE-CHAT-PLAN.md` holds the decisions (LC-1 to LC-21). What it changes or leaves:
+
+1. **SUP-04's tickets become one chat per shop**: a message, up to 3 photos, the person's name and role; no subject.
+   The context SUP-04 attaches (the shop, its plan and state, recent errors) shows beside the chat in the console.
+2. **SUP-05's inbox** becomes the console's chat inbox; canned replies are still to be decided (LC-10). No overdue flag
+   against a response target.
+3. **SUP-06's response targets per plan are not built.** The chat is a feature per plan and per shop instead (LC-2).
+4. **History is kept 7 days** (LC-11), far shorter than a ticket's; a later dispute can't lean on an old chat.
+5. **The AI answer path is not decided** (LC-21). The SRS has no requirement for it; it joins the SRS only if the owner
+   wants it there.
+6. **The privacy policy** needs a line that shop support messages may be processed by an AI provider, once the AI is on.

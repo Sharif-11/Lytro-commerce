@@ -40,6 +40,8 @@ export default defineConfig({
       workbox: {
         // API calls are never cached offline: a stale queue or tenant list is worse than a network error.
         navigateFallbackDenylist: [/^\/api\//],
+        // LIVE-CHAT-PLAN LC-4: the worker shows a chat push and opens its chat when tapped (public/push-sw.js).
+        importScripts: ['push-sw.js'],
       },
     }),
   ],
@@ -65,6 +67,8 @@ export default defineConfig({
       '/api': {
         target: process.env.VITE_API_PROXY_TARGET ?? 'http://localhost:3000',
         changeOrigin: true,
+        // LIVE-CHAT-PLAN LC-3: the chat's live connection, under /api like everything else.
+        ws: true,
       },
     },
   },

@@ -263,7 +263,7 @@ export function PlanEditor({
               setFeatures((current) => ({ ...current, [key]: !on }));
             }}
           >
-            {key}
+            {t(`plans.flagNames.${key}`, { defaultValue: key })}
           </TagButton>
         ))}
         {addingFlag === null ? (

@@ -38,12 +38,13 @@ export class NotificationSound {
   constructor(
     private readonly storage: Pick<Storage, 'getItem' | 'setItem'> | null = storageOf(),
     private readonly audioClass: AudioContextClass | null = audioClassOf(),
+    private readonly settingKey: string = SETTING_KEY,
   ) {}
 
   /** On unless this device switched it off. */
   isOn(): boolean {
     try {
-      return this.storage?.getItem(SETTING_KEY) !== 'off';
+      return this.storage?.getItem(this.settingKey) !== 'off';
     } catch {
       return true;
     }
@@ -51,7 +52,7 @@ export class NotificationSound {
 
   setOn(on: boolean): void {
     try {
-      this.storage?.setItem(SETTING_KEY, on ? 'on' : 'off');
+      this.storage?.setItem(this.settingKey, on ? 'on' : 'off');
     } catch {
       // A private window may refuse; the sound then stays as it was for this visit.
     }
@@ -106,3 +107,9 @@ export class NotificationSound {
 }
 
 export const notificationSound = new NotificationSound();
+
+/**
+ * LIVE-CHAT-PLAN §5.6: the same chime when Lytro answers in the shop's chat, on any screen, with its own switch on this
+ * device ("চ্যাট মেসেজে সাউন্ড"), on unless switched off.
+ */
+export const chatSound = new NotificationSound(storageOf(), audioClassOf(), 'lytro.chatSound');

@@ -45,6 +45,7 @@ import { FraudChecksModule } from '../../fraud-checks/fraud-checks.module';
 import { MediaCostsModule } from '../../media-costs/media-costs.module';
 import { ReportsModule } from '../../reports/reports.module';
 import { PaymentEvidenceModule } from '../../payment-evidence/payment-evidence.module';
+import { LiveChatModule } from '../../live-chat/live-chat.module';
 import { FraudCheckWorker } from './services/fraud-check-worker';
 import { PackAutoBuyWorker } from './services/pack-auto-buy-worker';
 import { UsageNoticeWorker } from './services/usage-notice-worker';
@@ -61,6 +62,7 @@ import { EdgePurgeWorker } from './services/edge-purge-worker';
 import { EdgeCacheModule } from '../edge-cache/edge-cache.module';
 import { ShopDayTickWorker } from './services/shop-day-tick-worker';
 import { EvidenceSweepWorker } from './services/evidence-sweep-worker';
+import { ChatTickWorker } from './services/chat-tick-worker';
 import { ReconciliationModule } from '../../reconciliation/reconciliation.module';
 import { ReconciliationTickWorker } from './services/reconciliation-tick-worker';
 import { RawMessagePurgeTickWorker } from './services/raw-message-purge-tick-worker';
@@ -95,6 +97,7 @@ import { RawMessagePurgeTickWorker } from './services/raw-message-purge-tick-wor
     MediaCostsModule,
     ReportsModule,
     PaymentEvidenceModule,
+    LiveChatModule,
     NotificationsModule,
     NoticesModule,
     ReconciliationModule,
@@ -135,6 +138,7 @@ import { RawMessagePurgeTickWorker } from './services/raw-message-purge-tick-wor
     EdgePurgeWorker,
     ShopDayTickWorker,
     EvidenceSweepWorker,
+    ChatTickWorker,
     ReconciliationTickWorker,
     RawMessagePurgeTickWorker,
     NotificationPurgeTickWorker,

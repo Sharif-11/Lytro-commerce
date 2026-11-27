@@ -75,7 +75,7 @@
     "reports": "Reports",
     "paygFairUse": "PAYG fair use",
     "audit": "Audit log",
-    "inbox": "Support inbox",
+    "inbox": "Chats",
     "notices": "Notices",
     "verification": "Verification",
     "manual": "Manual entries",
@@ -351,7 +351,10 @@
     "priceWhole": "A price is whole taka, above zero.",
     "unsavedCell": "{{plan}}, {{term}} isn't saved yet. Press Enter in the cell to save it, or Esc to undo.",
     "empty": "No plans yet",
-    "emptyHint": "A shop can't buy anything until a plan is on sale."
+    "emptyHint": "A shop can't buy anything until a plan is on sale.",
+    "flagNames": {
+      "live_chat": "Live chat with Lytro"
+    }
   },
   "limits": {
     "products": "Products",
@@ -555,7 +558,8 @@
       "included": "VAT included ({{r}}%)",
       "total": "Total",
       "plain": "Until then, and on invoices paid from the balance, the invoice stays as it is today: no title, no VAT lines, no buyer block."
-    }
+    },
+    "chatLink": "Live chat"
   },
   "settingNames": {
     "trial_days": "Trial length",
@@ -611,7 +615,11 @@
     "vat_bin": "VAT registration number (BIN)",
     "vat_rate": "VAT rate",
     "vat_seller_name": "Registered name",
-    "vat_seller_address": "Registered address"
+    "vat_seller_address": "Registered address",
+    "chat_busy_minutes": "Busy line after",
+    "chat_history_days": "Keep messages",
+    "chat_photo_days": "Keep photos",
+    "chat_messages_per_minute": "Messages per person"
   },
   "wallets": {
     "lead": "How shops can pay Lytro for plans, add-ons and top-ups, and how each payment is confirmed. Shops see only the methods turned on here.",
@@ -2177,5 +2185,95 @@
     "storefront": "Storefront",
     "empty": "No pay-as-you-go shop here.",
     "note": "Storefront visits are served from Cloudflare's cache and never reach the server, so they are not counted here. Fees: unlocks, manual bookings, new products and API charges."
+  },
+  "chats": {
+    "title": "Chats",
+    "lead": "One chat per shop. A sound plays when a shop writes.",
+    "empty": "No chats yet.",
+    "filterAll": "All",
+    "filterWaiting": "Waiting for you",
+    "noneWaiting": "No chat is waiting for you.",
+    "minutes_one": "{{count}} min",
+    "minutes_other": "{{count}} min",
+    "owner": "owner",
+    "staff": "staff",
+    "you": "You",
+    "photoGone": "Photo deleted",
+    "busySent": "The busy line was sent",
+    "offHoursSent": "The outside-hours line was sent",
+    "quick": "Quick replies",
+    "quickEdit": "Edit the list",
+    "quickNone": "No quick replies yet.",
+    "photo": "Photo",
+    "write": "Write a reply…",
+    "send": "Send",
+    "shop": "The shop",
+    "plan": "Plan",
+    "until": "until {{date}}",
+    "state": "State",
+    "balance": "Balance",
+    "wasOn": "Was on",
+    "openShop": "Open the shop page",
+    "errors": "Recent errors",
+    "noErrors": "No errors in the last 24 hours.",
+    "people": "People in this chat",
+    "keep_one": "Messages older than {{count}} day are deleted",
+    "keep_other": "Messages older than {{count}} days are deleted",
+    "off": "Live chat is off for this shop; answers can’t be sent.",
+    "fab": "{{count}} chats waiting, latest {{shop}}"
+  },
+  "myNotifications": {
+    "title": "My notifications",
+    "lead": "For you, on this browser.",
+    "cardHint": "The chat’s floating button, its sound and phone notifications, on this browser.",
+    "open": "Open my notifications",
+    "fab": "A new chat message",
+    "fabHint": "The floating button with the shop’s name, on any page.",
+    "sound": "Sound",
+    "soundHint": "Plays when a shop writes.",
+    "play": "Play",
+    "sounds": {
+      "chime": "Sharp chime (the shops’ sound)",
+      "soft": "Soft",
+      "none": "None"
+    },
+    "push": "Phone notification",
+    "pushHint": "When the console is closed, through this browser.",
+    "pushBlocked": "This browser blocks notifications from the console; allow them in its site settings.",
+    "pushUnsupported": "This browser can’t take notifications.",
+    "pushUnset": "Phone notifications aren’t set up on this server yet."
+  },
+  "chatSettings": {
+    "title": "Live chat",
+    "lead": "Which shops have it is set per plan and per shop.",
+    "rules": "Hours and rules",
+    "hours": "Answer hours",
+    "hoursHint": "Outside them the shop sees when you’ll answer, and WhatsApp.",
+    "hoursChange": "The help line’s hours · change",
+    "quickLead": "Your own list, for you and other operators.",
+    "quickNew": "New quick reply",
+    "quickTitle": "Title",
+    "quickBody": "Reply",
+    "quickSaved": "Quick reply saved.",
+    "quickRemoved": "“{{title}}” removed.",
+    "move": "Move “{{title}}”",
+    "moveHint": "Drag, or use the up and down arrow keys",
+    "edit": "Edit “{{title}}”",
+    "remove": "Remove “{{title}}”"
+  },
+  "shopChat": {
+    "title": "Live chat",
+    "chat": "Live chat with Lytro",
+    "planOn": "{{plan}} has it on. A shop’s own setting wins over its plan.",
+    "planOff": "{{plan}} doesn’t have it. A shop’s own setting wins over its plan.",
+    "asPlanOn": "As its plan (on)",
+    "asPlanOff": "As its plan (off)",
+    "modes": {
+      "on": "On for this shop",
+      "off": "Off for this shop"
+    },
+    "savedOn": "Live chat is on for this shop.",
+    "savedOff": "Live chat is off for this shop; its open chat closed.",
+    "open": "Open its chat"
   }
 }

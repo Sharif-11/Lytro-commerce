@@ -92,6 +92,18 @@ export class PushSender {
     });
   }
 
+  /**
+   * LIVE-CHAT-PLAN LC-13: Lytro answered in the shop's chat while this person's dashboard may be closed. Not kept in the
+   * bell; tapping it opens the dashboard straight into the chat. One tag, so a newer answer replaces the older one.
+   */
+  async chat(tenantId: string, userId: string, body: string): Promise<PushResult> {
+    const slug = await this.store.slugOf(tenantId);
+    return this.pushTo(tenantId, userId, {
+      message: { title: 'Lytro', body, url: this.urlOf(slug, '?chat=open'), tag: 'chat', id: null },
+      options: { urgency: 'high', ttlSeconds: 6 * 60 * 60 },
+    });
+  }
+
   private async pushTo(
     tenantId: string,
     userId: string,
