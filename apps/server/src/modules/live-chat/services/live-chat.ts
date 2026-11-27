@@ -167,6 +167,8 @@ export class LiveChat {
         senderName: who?.name ?? null,
         body: input.body,
         page: input.page ?? null,
+        // The chat's one clock: its rules, read marks and clean-up all read the same time.
+        createdAt: at,
       });
       const stored = await this.store.insertPhotos(
         tx,
@@ -307,6 +309,7 @@ export class LiveChat {
         senderKind: ChatSenderKind.Lytro,
         operatorId: person.operatorId,
         body: input.body,
+        createdAt: at,
       });
       const stored = await this.store.insertPhotos(
         tx,
@@ -393,6 +396,7 @@ export class LiveChat {
           senderKind: ChatSenderKind.System,
           systemKind: ChatSystemKind.Busy,
           body: '',
+          createdAt: now,
         });
         await this.store.markBusySent(tx, thread.tenantId, now);
         return row;
@@ -489,6 +493,7 @@ export class LiveChat {
         senderKind: ChatSenderKind.System,
         systemKind: ChatSystemKind.OffHours,
         body: '',
+        createdAt: at,
       });
       await this.store.markOffHoursSent(tx, tenantId, at);
       return row;

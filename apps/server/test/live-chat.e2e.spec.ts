@@ -4,6 +4,7 @@ import { type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { hash } from 'bcryptjs';
 import { generate } from 'otplib';
+import { request as httpRequest } from 'node:http';
 import pg from 'pg';
 import { io, type Socket } from 'socket.io-client';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -21,7 +22,7 @@ import { listenOn } from './support/bootstrap';
 import { prepareTestDatabase } from './support/database';
 import { cookieFrom, deleteJson, getJson, patchJson, postJson, putJson } from './support/http';
 import { MemoryStorage } from './support/memory-storage';
-import { openShop, type ShopClient } from './support/shop-client';
+import { errorOf, openShop, type ShopClient } from './support/shop-client';
 import { SmsCapture } from './support/sms-capture';
 
 const ADMIN_URL = process.env['DATABASE_TEST_ADMIN_URL'];
@@ -126,24 +127,50 @@ async function uploaded(start: Promise<{ status: number; body: unknown }>): Prom
   return key;
 }
 
-function socketOf(headers: Record<string, string>, auth: Record<string, string>): Socket {
-  return io(`http://127.0.0.1:${String(port)}`, {
+/** Every socket a test opened, closed after the suite so the server can stop. */
+const opened: Socket[] = [];
+
+/**
+ * A socket, and how its handshake ended. The answer is listened for from the start: sockets opened together finish
+ * their handshakes in any order, and one that already connected would never say so again.
+ */
+function socketOf(
+  headers: Record<string, string>,
+  auth: Record<string, string>,
+): { socket: Socket; handshake: Promise<'connected' | 'refused'> } {
+  const socket = io(`http://127.0.0.1:${String(port)}`, {
     path: CHAT_SOCKET_PATH,
     transports: ['websocket'],
     extraHeaders: { cookie: headers['cookie'] ?? '' },
     auth,
     reconnection: false,
   });
-}
-
-function connected(socket: Socket): Promise<'connected' | 'refused'> {
-  return new Promise((resolve) => {
+  opened.push(socket);
+  const handshake = new Promise<'connected' | 'refused'>((resolve) => {
     socket.once('connect', () => {
       resolve('connected');
     });
     socket.once('connect_error', () => {
       resolve('refused');
     });
+  });
+  return { socket, handshake };
+}
+
+/** A photo's status: its bytes are an image, not the JSON the other helpers read. */
+function photoStatus(path: string, headers: Record<string, string>): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const req = httpRequest(
+      { host: '127.0.0.1', port, path: `/api/v1${path}`, method: 'GET', headers },
+      (res) => {
+        res.resume();
+        res.on('end', () => {
+          resolve(res.statusCode ?? 0);
+        });
+      },
+    );
+    req.on('error', reject);
+    req.end();
   });
 }
 
@@ -178,6 +205,7 @@ describeIfDatabase('live chat over the real stack (LIVE-CHAT-PLAN, PR 1)', () =>
 
   afterAll(async () => {
     if (!ADMIN_URL) return;
+    for (const socket of opened) socket.disconnect();
     await app.close();
     await admin.end();
   });
@@ -187,8 +215,9 @@ describeIfDatabase('live chat over the real stack (LIVE-CHAT-PLAN, PR 1)', () =>
     expect(view.status).toBe(200);
     expect(view.body).toMatchObject({ enabled: false, messages: [], historyDays: 7 });
     const sent = await shop.post('/chat/messages', { body: 'hello' });
-    expect(sent.status).toBe(403);
-    expect((sent.body as { code: string }).code).toBe('plan_feature_unavailable');
+    // As every feature a shop's plan leaves out (PLN-02): 402, plan_feature_unavailable.
+    expect(sent.status).toBe(402);
+    expect(errorOf(sent).code).toBe('plan_feature_unavailable');
   });
 
   it("the operator turns it on for one shop, and the change is in Lytro's audit log (LC-2)", async () => {
@@ -240,11 +269,10 @@ describeIfDatabase('live chat over the real stack (LIVE-CHAT-PLAN, PR 1)', () =>
     });
     const messages = (detail.body as { messages: { photos: { id: string }[] }[] }).messages;
     const photoId = messages.at(-1)?.photos[0]?.id ?? '';
-    const photo = await getJson(port, `/operator/chat/photos/${photoId}`, operator);
-    expect(photo.status).toBe(200);
+    expect(await photoStatus(`/operator/chat/photos/${photoId}`, operator)).toBe(200);
     // The shop's own photo through its own route; another shop asking for it is told it isn't there (TEN-03).
-    expect((await shop.get(`/chat/photos/${photoId}`)).status).toBe(200);
-    expect((await other.get(`/chat/photos/${photoId}`)).status).toBe(404);
+    expect(await photoStatus(`/chat/photos/${photoId}`, shop.headers())).toBe(200);
+    expect(await photoStatus(`/chat/photos/${photoId}`, other.headers())).toBe(404);
   });
 
   it("refuses another shop's upload key, and a message with neither words nor photos", async () => {
@@ -260,6 +288,8 @@ describeIfDatabase('live chat over the real stack (LIVE-CHAT-PLAN, PR 1)', () =>
   });
 
   it("Lytro answers; the shop's people see it unread until they read it (LC-13)", async () => {
+    // A minute on, so the answer comes after the shop's own message on the chat's clock.
+    now = new Date(noon.getTime() + MINUTE);
     const reply = await postJson(
       port,
       `/operator/chats/${shop.tenantId}/messages`,
@@ -276,6 +306,7 @@ describeIfDatabase('live chat over the real stack (LIVE-CHAT-PLAN, PR 1)', () =>
     expect((await shop.get('/chat')).body).toMatchObject({ unread: 0 });
     // Another shop never sees this chat.
     expect((await other.get('/chat')).body).toMatchObject({ enabled: false, messages: [] });
+    now = noon;
   });
 
   it('sends the busy line once a chat has waited 10 minutes within hours, never twice (LC-5)', async () => {
@@ -323,7 +354,7 @@ describeIfDatabase('live chat over the real stack (LIVE-CHAT-PLAN, PR 1)', () =>
     const changed = await patchJson(
       port,
       '/operator/settings/chat_messages_per_minute',
-      { value: 2 },
+      { value: 2, reason: 'chat e2e' },
       operator,
     );
     expect(changed.status, JSON.stringify(changed.body)).toBe(200);
@@ -372,18 +403,24 @@ describeIfDatabase('live chat over the real stack (LIVE-CHAT-PLAN, PR 1)', () =>
   });
 
   it('tells a shop socket of an answer and a Lytro socket of a message, and refuses a stranger (LC-3)', async () => {
-    const shopSocket = socketOf(shop.headers(), { side: 'shop', shop: shop.slug });
-    const lytroSocket = socketOf(operator, { side: 'lytro' });
-    const stranger = socketOf(
+    const { socket: shopSocket, handshake: shopUp } = socketOf(shop.headers(), {
+      side: 'shop',
+      shop: shop.slug,
+    });
+    const { socket: lytroSocket, handshake: lytroUp } = socketOf(operator, { side: 'lytro' });
+    const { handshake: strangerUp } = socketOf(
       { cookie: 'lytronix_session=nothing' },
       { side: 'shop', shop: shop.slug },
     );
-    const offShop = socketOf(other.headers(), { side: 'shop', shop: other.slug });
-    expect(await connected(shopSocket)).toBe('connected');
-    expect(await connected(lytroSocket)).toBe('connected');
-    expect(await connected(stranger)).toBe('refused');
+    const { handshake: offShopUp } = socketOf(other.headers(), {
+      side: 'shop',
+      shop: other.slug,
+    });
+    expect(await shopUp).toBe('connected');
+    expect(await lytroUp).toBe('connected');
+    expect(await strangerUp).toBe('refused');
     // The other shop has no chat: no socket either.
-    expect(await connected(offShop)).toBe('refused');
+    expect(await offShopUp).toBe('refused');
 
     const toShop = new Promise<{ body: string }>((resolve) => {
       shopSocket.once(ChatSocketEvent.Message, resolve);
@@ -415,8 +452,6 @@ describeIfDatabase('live chat over the real stack (LIVE-CHAT-PLAN, PR 1)', () =>
       expect(shopSocket.connected).toBe(false);
     });
     lytroSocket.disconnect();
-    stranger.disconnect();
-    offShop.disconnect();
     now = noon;
   });
 
@@ -443,7 +478,8 @@ describeIfDatabase('live chat over the real stack (LIVE-CHAT-PLAN, PR 1)', () =>
       'SELECT count(*)::int AS n FROM control.chat_photos WHERE removed_at IS NULL',
     );
     expect(marked.rows[0]?.n).toBe(0);
-    now = new Date(noon.getTime() + 9 * DAY);
+    // Past every message's seven days: the latest were written three days on.
+    now = new Date(noon.getTime() + 11 * DAY);
     const removed = await chat.purge();
     expect(removed.messages).toBeGreaterThan(0);
     const left = await admin.query<{ n: number }>(
