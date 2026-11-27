@@ -96,6 +96,15 @@ CREATE INDEX "chat_threads_last_idx" ON "control"."chat_threads" USING btree ("l
 CREATE INDEX "operator_push_subscriptions_operator_idx" ON "control"."operator_push_subscriptions" USING btree ("operator_id");
 
 --> statement-breakpoint
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'lytronix_app') THEN
+    GRANT SELECT, INSERT, UPDATE, DELETE ON control.chat_threads, control.chat_messages, control.chat_photos,
+      control.chat_reads, control.chat_quick_replies, control.shop_feature_overrides,
+      control.operator_push_subscriptions TO lytronix_app;
+  END IF;
+END $$;
+--> statement-breakpoint
 -- reference-data: the live chat's four settings at the owner's numbers (LC-5 busy line after 10 minutes, LC-11 messages
 -- kept 7 days, LC-8 photos kept 3, LC-25 20 messages a person a minute); new rows only, never a change to one.
 INSERT INTO control.platform_settings (key, value, description) VALUES

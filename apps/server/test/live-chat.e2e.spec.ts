@@ -332,7 +332,12 @@ describeIfDatabase('live chat over the real stack (LIVE-CHAT-PLAN, PR 1)', () =>
     expect((await shop.post('/chat/messages', { body: 'two' })).status).toBe(201);
     const third = await shop.post('/chat/messages', { body: 'three' });
     expect(third.status).toBe(429);
-    await patchJson(port, '/operator/settings/chat_messages_per_minute', { value: 20 }, operator);
+    await patchJson(
+      port,
+      '/operator/settings/chat_messages_per_minute',
+      { value: 20, reason: 'chat e2e' },
+      operator,
+    );
     now = noon;
   });
 

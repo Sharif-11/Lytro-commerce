@@ -55,6 +55,8 @@ export const navGroups: NavGroup[] = [
       { to: '/manual', labelKey: 'nav.manual', icon: 'receipt' },
       { to: '/page-reports', labelKey: 'nav.pageReports', icon: 'flag', count: 'reports' },
       { to: '/shops', labelKey: 'nav.shops', icon: 'store' },
+      // LIVE-CHAT-PLAN (PR 1): the chats with shops, built now, so out of Later.
+      { to: '/inbox', labelKey: 'nav.inbox', icon: 'chat' },
     ],
   },
   {
@@ -102,10 +104,7 @@ export const navGroups: NavGroup[] = [
   {
     labelKey: 'nav.later',
     later: true,
-    items: [
-      { to: '/inbox', labelKey: 'nav.inbox', icon: 'inbox' },
-      { to: '/verification', labelKey: 'nav.verification', icon: 'id' },
-    ],
+    items: [{ to: '/verification', labelKey: 'nav.verification', icon: 'id' }],
   },
 ];
 

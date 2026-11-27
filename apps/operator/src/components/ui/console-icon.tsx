@@ -116,6 +116,27 @@ const shapes = {
       <path d="M12 7v5l3 2" />
     </>
   ),
+  // LIVE-CHAT-PLAN (the sketch's `oc-*`): the chat, a photo, sending, quick replies and a handle to drag.
+  chat: <path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z" />,
+  image: (
+    <>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <circle cx="9" cy="10" r="2" />
+      <path d="M21 16l-5-5-9 9" />
+    </>
+  ),
+  send: <path d="M4 12l16-8-6 16-2-7z" />,
+  bolt: <path d="M13 2L4 14h7l-1 8 9-12h-7z" />,
+  grip: (
+    <>
+      <circle cx="9" cy="6" r="1" />
+      <circle cx="15" cy="6" r="1" />
+      <circle cx="9" cy="12" r="1" />
+      <circle cx="15" cy="12" r="1" />
+      <circle cx="9" cy="18" r="1" />
+      <circle cx="15" cy="18" r="1" />
+    </>
+  ),
   inbox: (
     <>
       <path d="M3 13l2.5-8h13L21 13v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z" />

@@ -60,7 +60,7 @@ export class ChatPush {
             {
               title: shopName,
               body: preview,
-              url: `/chats/${tenantId}`,
+              url: `/inbox/${tenantId}`,
               tag: `chat-${tenantId}`,
               id: null,
             },
