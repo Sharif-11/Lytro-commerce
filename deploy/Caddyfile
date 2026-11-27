@@ -197,10 +197,11 @@
 # stylesheet and its font files), data: images (the two-factor QR code, drawn client-side, ADM-01), the
 # MEDIA_STORAGE_ENDPOINT a manual entry's screenshot uploads straight to by its signed link (ADM-14, Slice 8.8),
 # and blob: images, a screenshot the server answered shown from the page's own copy (D8-47 as amended
-# 2026-11-20, never an R2 link). No inline script, no plugin, no framing and no <base>: an injected script has
+# 2026-11-20, never an R2 link). Its live chat's socket (LIVE-CHAT-PLAN LC-3) is named outright on wss://: older
+# browsers don't count a WebSocket to its own host as 'self'. No inline script, no plugin, no framing and no <base>: an injected script has
 # nowhere to load from and nothing to send to.
 (operator_csp) {
-	header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' {$MEDIA_STORAGE_ENDPOINT}; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+	header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' wss://admin.{$PLATFORM_DOMAIN:lytro.app}/api/v1/chat/socket/ {$MEDIA_STORAGE_ENDPOINT}; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
 }
 
 # The tenant dashboard's own Content Security Policy (KNOWN-GAPS §65, Slice 11.13a), on the console's model:
@@ -213,14 +214,15 @@
 # script or style: a shop's theme sets its colours through the CSSOM, never a <style> element. No plugin, no <base>,
 # and no framing but a shop's own address (STOREFRONT-BUILDER-PLAN SB-12: the design editor's live preview, which the
 # shop's host lets only this host frame). Its one fetch beyond its own origin is that address's /preview/layout and
-# nothing else on it (SB-32 as amended: what the draft's home leaves out, for the editor's notes). The
+# nothing else on it (SB-32 as amended: what the draft's home leaves out, for the editor's notes). The live chat's
+# socket (LIVE-CHAT-PLAN LC-3) is named outright on wss://, since older browsers don't count it as 'self'. The
 # Permissions-Policy keeps the camera for the dashboard's own IMEI scanning and turns
 # off what it never uses. apps/dashboard/e2e/csp.spec.ts reads this block and walks every screen under it. Its errors
 # go to Sentry's ingest address (SENTRY_INGEST_ORIGIN in edge.env, OBS-03, Slice 9.6); unset, it adds nothing.
 # SUP-08, SMS-11, AUTH-09 as amended 2026-11-20: Cloudflare's Turnstile may load its script and its frame from
 # challenges.cloudflare.com, for the bot check on every form that texts a code (apps/dashboard/src/lib/turnstile.ts).
 (dashboard_csp) {
-	header Content-Security-Policy "default-src 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' {$MEDIA_PUBLIC_BASE_URL}; media-src 'self' blob: {$MEDIA_PUBLIC_BASE_URL}; connect-src 'self' {$MEDIA_STORAGE_ENDPOINT} https://*.{$PLATFORM_DOMAIN:lytro.app}/preview/layout {$SENTRY_INGEST_ORIGIN}; manifest-src 'self'; worker-src 'self'; frame-src https://*.{$PLATFORM_DOMAIN:lytro.app} https://challenges.cloudflare.com; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+	header Content-Security-Policy "default-src 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' {$MEDIA_PUBLIC_BASE_URL}; media-src 'self' blob: {$MEDIA_PUBLIC_BASE_URL}; connect-src 'self' wss://app.{$PLATFORM_DOMAIN:lytro.app}/api/v1/chat/socket/ {$MEDIA_STORAGE_ENDPOINT} https://*.{$PLATFORM_DOMAIN:lytro.app}/preview/layout {$SENTRY_INGEST_ORIGIN}; manifest-src 'self'; worker-src 'self'; frame-src https://*.{$PLATFORM_DOMAIN:lytro.app} https://challenges.cloudflare.com; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
 	header Permissions-Policy "camera=(self), microphone=(), geolocation=(), payment=()"
 }
 

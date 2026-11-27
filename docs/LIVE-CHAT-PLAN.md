@@ -1,6 +1,7 @@
 # Live chat between a shop and Lytro — plan
 
-Status: **sketch drawn, awaiting the owner's approval** (2026-11-27). Nothing is built. **Two PRs** (LC-26): PR 1 is live chat
+Status: **approved 2026-11-27 ("yes approved . build now"); PR 1 built** (live chat without AI, §11). PR 2, the AI,
+waits for the owner's discussion of what it knows. **Two PRs** (LC-26): PR 1 is live chat
 without AI, PR 2 the AI after the owner's separate discussion of what it knows. §11 lists which item is whose. Sketches: `lc-*` screens in
 `docs/brand/lytro-dashboard.html` (the seller's side) and `oc-*` screens in `docs/brand/lytro-operator.html` (Lytro's
 side); PNGs in `Desktop/Lytro screenshots/live-chat/`.
@@ -216,6 +217,22 @@ Settled 2026-11-27 ("all question: your suggestion is ok, i want dollar cap for 
 - Screens: `lc-home-peek`, `lc-home-gone`, `lc-menu`, `lc-unread-any`, `lc-chat`, `lc-chat-desktop`, `lc-offhours`,
   `lc-busy`, `lc-sound`; `oc-fab`, `oc-inbox`, `oc-chat`, `oc-quick`, `oc-notif`, `oc-settings-chat`, and the chat rows of
   `oc-plan-features` and `oc-shop-features`. The inbox ships without its AI filters and marks.
+
+**PR 1 as built** (where it differs from or adds to the above):
+- The socket is Socket.IO over WebSocket only, at `/api/v1/chat/socket` behind Caddy's `/api` proxy, so no sticky sessions
+  are needed across the two API containers and their workers. Fan-out is a Redis pub/sub channel of the chat's own (the
+  job worker publishes the busy line too), not the Socket.IO Redis adapter. A browser whose socket can't open reads the
+  chat over HTTPS every 20 seconds while the shop has the chat; one without it never asks again.
+- The 3-sockets-per-person cap is counted per process, so across two containers and their workers a person may hold a
+  few more; each is an idle connection.
+- A shop's chat follows its plan as it is now (the plan's `live_chat` feature), not the plan as bought, with the shop's
+  own setting (follow the plan, on, off) over it; changing it is on Lytro's audit log (`shop_feature_set`).
+- Every message is stamped with the chat's one clock, which its rules, read marks and clean-ups also read.
+- The console's notifications page is at `/account/notifications` (the console's own account page), not `/me/...`.
+- The chat's four rules sit on Settings → Live chat (`/settings/chat`) beside the quick replies; they change with a
+  reason for the audit log, as every setting does.
+- The chat button isn't on a locked or suspended owner's bare pages.
+- Both CSPs name the socket on `wss://` (deploy/Caddyfile): older browsers don't count it as `'self'`.
 
 **PR 2: the AI, after the owner's knowledge discussion.** LC-14 to LC-18, LC-20 to LC-23.
 - The provider and model settings, the global and per plan and per shop switches, confident-or-draft, the dollar cap and
