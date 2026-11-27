@@ -11,6 +11,8 @@ interface SheetProps {
   footer?: ReactNode;
   /** A step of the sheet that goes back to the one before it (Add staff's New role): a back arrow before the title. */
   onBack?: () => void;
+  /** A line pinned under the title that the body scrolls beneath (the live chat's 7-day line, LIVE-CHAT-PLAN `lc-chat`). */
+  header?: ReactNode;
 }
 
 /**
@@ -26,6 +28,7 @@ export function Sheet({
   children,
   footer,
   onBack,
+  header,
 }: SheetProps): React.JSX.Element {
   const { t } = useTranslation('shell');
   const ref = useRef<HTMLDialogElement>(null);
@@ -78,6 +81,7 @@ export function Sheet({
             <Icon name="x" />
           </button>
         </div>
+        {header ? <div className="shrink-0 px-4 pb-2">{header}</div> : null}
         <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pt-1 pb-4">
           {children}
         </div>

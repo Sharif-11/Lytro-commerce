@@ -124,3 +124,30 @@ test("the shop page sets the shop's own chat, over its plan (oc-shop-features)",
   await expect.poll(() => chats.feature.mode).toBe('off');
   expect(log.sent('PUT', `/operator/chats/${RAHIM}/feature`)).toEqual({ mode: 'off' });
 });
+
+test('the inbox filters to the chats waiting for a reply, with both counts (oc-inbox)', async ({
+  page,
+}) => {
+  const chats = waiting();
+  const [rahim] = chats.inbox;
+  if (!rahim) throw new Error('the drawn inbox has Rahim Fashion');
+  chats.inbox.push({
+    ...rahim,
+    tenantId: 'ten-0002',
+    shopName: 'Rongila Fashion',
+    lastPreview: 'ধন্যবাদ!',
+    waitingSince: null,
+    unread: 0,
+  });
+  await open(page, '/inbox', { chats });
+  const all = page.getByRole('button', { name: /^সব/ });
+  const mine = page.getByRole('button', { name: /^আপনার উত্তর বাকি/ });
+  await expect(all).toHaveAttribute('aria-pressed', 'true');
+  await expect(all).toContainText('2');
+  await expect(mine).toContainText('1');
+  await expect(page.getByTestId('chat-row')).toHaveCount(2);
+  await mine.click();
+  await expect(mine).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('chat-row')).toHaveCount(1);
+  await expect(page.getByTestId('chat-row')).toContainText('Rahim Fashion');
+});

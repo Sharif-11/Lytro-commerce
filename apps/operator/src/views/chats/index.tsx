@@ -22,6 +22,7 @@ import {
   type ChatDetail,
 } from '@/api/chats';
 import { useChatLive } from '@/components/layout/chat-fab';
+import { Chip, Chips } from '@/components/ui/chips';
 import { ConsoleCard, ConsolePage, PageTitle, SectionTitle } from '@/components/ui/console-page';
 import { ConsoleIcon } from '@/components/ui/console-icon';
 import { LoadFailed } from '@/components/ui/load-failed';
@@ -73,15 +74,15 @@ function InboxRow({
         {item.shopName.slice(0, 1)}
       </span>
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="flex items-center gap-2">
-          <b className="truncate text-[15px]">{item.shopName}</b>
+        <span className="flex min-w-0 items-center gap-2">
+          <b className="min-w-0 truncate text-[15px]">{item.shopName}</b>
           {item.planName ? (
-            <span className="rounded-md border border-line px-1.5 text-[12px] text-fg-muted">
+            <span className="flex-none rounded-md border border-line px-1.5 text-[12px] whitespace-nowrap text-fg-muted">
               {item.planName}
             </span>
           ) : null}
           {item.waitingSince ? (
-            <span className="inline-flex items-center gap-1 text-[12px] font-semibold text-warning">
+            <span className="inline-flex flex-none items-center gap-1 text-[12px] font-semibold whitespace-nowrap text-warning">
               <ConsoleIcon name="clock" size={14} />
               {t('chats.minutes', { count: minutesSince(item.waitingSince) })}
             </span>
@@ -102,21 +103,52 @@ function InboxRow({
   );
 }
 
+/**
+ * The sketch's `oc-inbox`: every shop's chat, or only those waiting for a reply, with their counts. The AI's own filters
+ * (drafts to approve, answered by the AI) come with it in PR 2.
+ */
 function InboxList({ selected }: { selected: string | null }): React.JSX.Element {
   const { t } = useTranslation();
   const { connected } = useChatLive();
   const inbox = useChatInbox(!connected);
+  const [onlyWaiting, setOnlyWaiting] = useState(false);
   if (inbox.isError) return <LoadFailed onRetry={() => void inbox.refetch()} />;
-  const items = inbox.data ?? [];
+  const all = inbox.data ?? [];
+  const waiting = all.filter((item) => item.waitingSince !== null);
+  const items = onlyWaiting ? waiting : all;
   return (
-    <section className="min-w-0 overflow-hidden rounded-card border border-line bg-surface">
-      {items.length === 0 && !inbox.isLoading ? (
-        <p className="px-4 py-6 text-center text-[14px] text-fg-muted">{t('chats.empty')}</p>
-      ) : null}
-      {items.map((item) => (
-        <InboxRow key={item.tenantId} item={item} selected={item.tenantId === selected} />
-      ))}
-    </section>
+    <div className="flex min-w-0 flex-col gap-3">
+      <Chips>
+        <Chip
+          on={!onlyWaiting}
+          count={all.length}
+          onClick={() => {
+            setOnlyWaiting(false);
+          }}
+        >
+          {t('chats.filterAll')}
+        </Chip>
+        <Chip
+          on={onlyWaiting}
+          count={waiting.length}
+          onClick={() => {
+            setOnlyWaiting(true);
+          }}
+        >
+          {t('chats.filterWaiting')}
+        </Chip>
+      </Chips>
+      <section className="min-w-0 overflow-hidden rounded-card border border-line bg-surface">
+        {items.length === 0 && !inbox.isLoading ? (
+          <p className="px-4 py-6 text-center text-[14px] text-fg-muted">
+            {onlyWaiting ? t('chats.noneWaiting') : t('chats.empty')}
+          </p>
+        ) : null}
+        {items.map((item) => (
+          <InboxRow key={item.tenantId} item={item} selected={item.tenantId === selected} />
+        ))}
+      </section>
+    </div>
   );
 }
 
@@ -452,7 +484,8 @@ export function ChatPage({ tenantId }: { tenantId: string }): React.JSX.Element 
                 </span>
               ) : null}
               <ShopStateChip state={data.shop.state} />
-              <span className="ml-auto text-[13px] text-fg-muted">
+              {/* On its own line under the shop's name, as the sketch draws it. */}
+              <span className="basis-full text-[13px] text-fg-muted">
                 {t('chats.keep', { count: data.historyDays })}
               </span>
             </header>

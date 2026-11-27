@@ -13,6 +13,7 @@ import {
   type PaymentFixture,
 } from './support/payments';
 import { drawnActivity } from './support/activity';
+import { chatMessage, drawnChat } from './support/chat';
 import {
   BILLING_STAFF,
   inFacebookOnAndroid,
@@ -27,7 +28,13 @@ import { drawnShopPayments, type ShopPaymentsFixture } from './support/shop-paym
 import { emptyMeta } from './support/meta';
 import { drawnExports, drawnSettings } from './support/settings';
 import { brandImage, drawnBrand, type BrandFixture } from './support/brand';
-import { BrandCorners, BrandFont, BrandSpacing } from '@lytronix/validators';
+import {
+  BrandCorners,
+  BrandFont,
+  BrandSpacing,
+  ChatSenderKind,
+  ChatSystemKind,
+} from '@lytronix/validators';
 import { sketchedAttributes } from './support/attributes';
 import { drawnProducts, manyProducts, type ProductsFixture } from './support/products';
 import {
@@ -80,6 +87,8 @@ import { DRAWN_BELL } from './support/phase7';
 const PROTOTYPE = pathToFileURL(
   resolve(import.meta.dirname, '../../../docs/brand/lytro-dashboard.html'),
 ).href;
+// The sketch's own photos, served where a mocked screen shows one (the live chat's photo).
+const SAMPLE_PHOTOS = resolve(import.meta.dirname, '../../../docs/brand/sample-photos');
 
 type Device = 'phone' | 'tablet' | 'desktop';
 
@@ -5764,6 +5773,119 @@ const THEMED = themedPairs([...PAIRS, ...MONEY]);
 
 // Slice 8.8 (Part 39, §7.41): each part's pairs, kept in its own file.
 const P88: Pair[] = [...p88HelpPairs(), ...P88_MONEY, ...P88_CAT_PAIRS];
+/**
+ * LIVE-CHAT-PLAN §11 (PR 1): the shop's live chat with Lytro, each pair a screen of the sketch's "Live chat with Lytro"
+ * group. Home's five-second button (LC-19) is held for its picture; the chat opens from its push link (`?chat=open`), so
+ * its sheet is drawn over Home as the sketch draws it. `lc-ai` waits for PR 2.
+ */
+function liveChatPairs(): Pair[] {
+  // Only the peek's own five-second timer (CHAT_HOME_PEEK_SECONDS) is held; every other timer runs, so the app loads.
+  const holdPeek = async (page: Page): Promise<void> => {
+    await page.addInitScript(() => {
+      const later = window.setTimeout.bind(window);
+      window.setTimeout = ((run: TimerHandler, ms?: number, ...rest: unknown[]) =>
+        ms === 5_000 ? 0 : later(run, ms, ...rest)) as typeof window.setTimeout;
+    });
+  };
+  const gone = (page: Page): Promise<void> =>
+    page
+      .locator('[data-testid="chat-button"][data-shown="false"]')
+      .waitFor({ state: 'attached', timeout: 10_000 });
+  // The sketch's own chats: yesterday a staff question whose photo is gone and Lytro's answer; then each state's today.
+  const yesterday = [
+    chatMessage('m-1', ChatSenderKind.Staff, 'পেমেন্ট পেজে bKash দেখাচ্ছে না কেন?', 20, {
+      senderName: 'সুমি',
+      photos: [{ id: 'ph-gone', removed: true }],
+    }),
+    chatMessage('m-2', ChatSenderKind.Lytro, 'মেনু → পেমেন্ট মেথডে bKash চালু করলেই দেখাবে।', 19),
+  ];
+  const drawnThread = (): ReturnType<typeof drawnChat> =>
+    drawnChat({
+      messages: [
+        ...yesterday,
+        chatMessage(
+          'm-3',
+          ChatSenderKind.Owner,
+          'কুরিয়ার লেবেলে ঠিকানা কেটে যাচ্ছে। একটু দেখবেন?',
+          0.2,
+          {
+            senderName: 'রহিম',
+            photos: [{ id: 'ph-1', removed: false }],
+          },
+        ),
+        chatMessage(
+          'm-4',
+          ChatSenderKind.Lytro,
+          'দেখছি। লেবেল প্রিন্টের সময় কাগজ A6 বেছে নিন, পুরো ঠিকানা আসবে।',
+          0.1,
+        ),
+      ],
+    });
+  // The owner's photo is the sketch's own picture, served once the sheet is open, and drawn again.
+  const sheet = async (page: Page): Promise<void> => {
+    await page.getByRole('dialog').waitFor();
+    await page.route('**/api/v1/chat/photos/**', (route) =>
+      route.fulfill({ path: resolve(SAMPLE_PHOTOS, 'builder/fashion-2.jpg') }),
+    );
+    await page.evaluate(async () => {
+      const shown = [...document.querySelectorAll<HTMLImageElement>('dialog img')];
+      for (const img of shown) {
+        if (img.src.includes('/chat/photos/')) img.src = `${img.src}?again`;
+      }
+      await Promise.all(shown.map((img) => img.decode().catch(() => undefined)));
+    });
+  };
+  const unread = drawnChat({ unread: 2 });
+  unread.messages.push(
+    chatMessage('m-3', ChatSenderKind.Lytro, 'লেবেলের কাগজ A6 বেছে নিন।', 0),
+    chatMessage('m-4', ChatSenderKind.Lytro, 'তারপর আবার প্রিন্ট করুন।', 0),
+  );
+  const offHours = drawnChat({
+    hours: { opensHour: 9, closesHour: 22, open: false },
+    messages: [
+      ...yesterday,
+      chatMessage('m-3', ChatSenderKind.Owner, 'রাতের অর্ডারগুলোর পেমেন্ট মিলছে না।', 0.1, {
+        senderName: 'রহিম',
+      }),
+      chatMessage('m-4', ChatSenderKind.System, '', 0, { systemKind: ChatSystemKind.OffHours }),
+    ],
+  });
+  const busy = drawnChat({
+    messages: [
+      chatMessage('m-3', ChatSenderKind.Staff, 'স্টাফ যোগ করতে গেলে “লিমিট শেষ” দেখাচ্ছে।', 0.2, {
+        senderName: 'সুমি',
+      }),
+      chatMessage('m-4', ChatSenderKind.System, '', 0, { systemKind: ChatSystemKind.Busy }),
+    ],
+  });
+  const one = (
+    name: string,
+    path: string,
+    more: Partial<Pair>,
+    device: Device = 'phone',
+    language: Language = 'bn',
+  ): Pair => ({ name, screen: name, device, language, path, ...more });
+  return [
+    one('lc-home-peek', '', { state: { chat: drawnChat() }, before: holdPeek }),
+    one('lc-home-gone', '', { state: { chat: drawnChat() }, then: gone }),
+    one('lc-menu', '/menu', { state: { chat: drawnChat() } }),
+    one('lc-unread-any', '/orders', { state: { chat: unread } }),
+    one('lc-chat', '?chat=open', { state: { chat: drawnThread() }, then: sheet }),
+    one(
+      'lc-chat-desktop',
+      '?chat=open',
+      { state: { chat: drawnThread() }, then: sheet },
+      'desktop',
+      'en',
+    ),
+    one('lc-offhours', '?chat=open', { state: { chat: offHours }, then: sheet }),
+    one('lc-busy', '?chat=open', { state: { chat: busy }, then: sheet }),
+    one('lc-sound', '/settings/notifications', { state: { chat: drawnChat() } }),
+  ];
+}
+
+const LIVE_CHAT: Pair[] = liveChatPairs();
+
 // TENANT-DASHBOARD-DESIGN §7.42 (Part 40): photo designs.
 const P40: Pair[] = p40Pairs();
 // §7.4c: the product list's share sheet and the seller's product page.
@@ -5790,7 +5912,16 @@ async function scrollTo(within: Locator, heading: RegExp): Promise<void> {
 }
 
 test.describe('the built shell beside the prototype', () => {
-  for (const pair of [...PAIRS, ...MONEY, ...STEPS, ...THEMED, ...P88, ...P40, ...PD_SHARE]) {
+  for (const pair of [
+    ...PAIRS,
+    ...MONEY,
+    ...STEPS,
+    ...THEMED,
+    ...P88,
+    ...P40,
+    ...PD_SHARE,
+    ...LIVE_CHAT,
+  ]) {
     test(`${pair.name} on a ${pair.device} in ${pair.language}`, async ({ browser }) => {
       // The pictures set their own sizes, so they are taken once, not in every project.
       test.skip(test.info().project.name !== 'desktop', 'taken once, in the desktop project');

@@ -7,6 +7,7 @@ import { P88_SETTINGS_PAIRS } from './compare-p88-settings';
 import { P88_MONEY_PAIRS } from './compare-p88-money';
 import { P88_RECORDS_PAIRS } from './compare-p88-records';
 import { P88_SHOPS_PAIRS } from './compare-p88-shops';
+import { LIVE_CHAT_PAIRS } from './compare-live-chat';
 import { retiringCouriers } from './support/courier-mock';
 import { phase7Changes, phase7RateHistory, phase7Rates } from './support/notice-mock';
 import {
@@ -931,6 +932,8 @@ const PAIRS: Pair[] = [
   ...P88_MONEY_PAIRS,
   // Phase 8 Slice 8.8 (v7): reports, the audit log, media costs and Today's figures.
   ...P88_RECORDS_PAIRS,
+  // LIVE-CHAT-PLAN (PR 1): the inbox, one chat, quick replies, my notifications, the chat settings and the switches.
+  ...LIVE_CHAT_PAIRS,
 ];
 
 const DEVICES: Device[] = ['phone', 'desktop', 'tablet'];

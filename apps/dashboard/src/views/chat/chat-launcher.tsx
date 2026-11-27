@@ -21,33 +21,23 @@ import {
 } from '@/api/chat';
 import { Icon } from '@/components/icon';
 import { Sheet } from '@/components/ui/sheet';
+import { claimChatSound } from '@/lib/chat-sound-claim';
 import { ChatConnection } from '@/lib/chat-connection';
 import { chatSound } from '@/lib/notification-sound';
 import { useShell } from '@/shell/shell-context';
 import { PUSH_ARRIVED } from '@/views/notifications/notification-alerts';
-import { ChatThread } from './chat-thread';
+import { ChatKeepLine, ChatThread } from './chat-thread';
 
 const FROM_LYTRO: ReadonlySet<string> = new Set([ChatSenderKind.Lytro, ChatSenderKind.System]);
 // §5.1: the button comes back this long after a scroll stops.
 const SCROLL_REST_MS = 1000;
 // §5.2: a tab in front plays the sound at once; one behind waits this long, so the one in front claims it first.
 const BEHIND_WAITS_MS = 400;
-const SOUND_CLAIM_KEY = 'lytro.chatSoundFor';
 
 /** §5.2: one chime per message, whatever number of tabs heard it -- the tab in front's, else the first to claim it. */
-function claimSound(messageId: string): boolean {
-  try {
-    if (window.localStorage.getItem(SOUND_CLAIM_KEY) === messageId) return false;
-    window.localStorage.setItem(SOUND_CLAIM_KEY, messageId);
-    return true;
-  } catch {
-    return true;
-  }
-}
-
 function chimeFor(message: ChatMessageView): void {
   const play = (): void => {
-    if (claimSound(message.id)) chatSound.alert();
+    if (claimChatSound(message.id)) chatSound.alert();
   };
   if (document.visibilityState === 'visible' && document.hasFocus()) play();
   else window.setTimeout(play, BEHIND_WAITS_MS);
@@ -281,6 +271,7 @@ function ChatSheet({
       open={open}
       title={t('chatTitle')}
       onClose={onClose}
+      header={chat ? <ChatKeepLine chat={chat} /> : null}
       footer={
         <div className="flex w-full flex-col gap-2">
           {photos.length > 0 ? (

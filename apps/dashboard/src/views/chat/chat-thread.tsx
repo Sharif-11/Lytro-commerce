@@ -137,19 +137,29 @@ function Bubble({ message }: { message: ChatMessageView }): React.JSX.Element {
 }
 
 /** LC-1, LC-6, LC-8, LC-11: the chat, a day at a time, with the line saying how long messages are kept. */
+/**
+ * LC-11: how long messages are kept, with Lytro's WhatsApp beside it; pinned under the chat's title (the sketch's
+ * `lc-chat`), so it stays in view while the messages scroll to the newest.
+ */
+export function ChatKeepLine({ chat }: { chat: ChatView }): React.JSX.Element {
+  const { t } = useTranslation('shell');
+  return (
+    <div className="flex items-center gap-1.5 text-[13px] text-fg-muted">
+      <Icon name="clock" size={14} />
+      <span>{t('chatKeep', { count: chat.historyDays })}</span>
+      <WhatsappLink
+        whatsapp={chat.whatsapp}
+        className="ml-auto inline-flex flex-none items-center gap-1 font-semibold text-primary"
+      />
+    </div>
+  );
+}
+
 export function ChatThread({ chat }: { chat: ChatView }): React.JSX.Element {
   const { t } = useTranslation('shell');
   const days = groupByDay(chat.messages, (message) => message.createdAt);
   return (
     <div className="flex flex-col" data-testid="chat-thread">
-      <div className="mb-1 flex items-center gap-1.5 text-[13px] text-fg-muted">
-        <Icon name="clock" size={14} />
-        <span>{t('chatKeep', { count: chat.historyDays })}</span>
-        <WhatsappLink
-          whatsapp={chat.whatsapp}
-          className="ml-auto inline-flex flex-none items-center gap-1 font-semibold text-primary"
-        />
-      </div>
       {chat.messages.length === 0 ? (
         <p className="mt-6 text-center text-[14px] text-fg-muted">{t('chatEmpty')}</p>
       ) : null}
