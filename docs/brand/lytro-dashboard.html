@@ -429,7 +429,7 @@ svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.75;str
       <optgroup label="Products · share link and product page (proposal 2026-11-25)"><option value="pl-share-row">Products list · a row opens the product page (pd-detail); its share icon opens the share sheet</option><option value="pl-share-sheet">· the share sheet: the landing link, Copy, Share, See the page; a design link; the shop link</option><option value="pl-share-design">· a design chosen: the link opens with it (?d=)</option><option value="pl-share-copied">· copied (toast)</option><option value="pl-share-paused">· the shop not open yet: the link still shows, with when it opens</option><option value="pl-share-wide">· on a computer</option><option value="pd-detail">Product page · one photo: stock, link, last 30 days, recent orders; Edit, Share, more</option><option value="pd-detail-designs">· several designs: the stock by design and size</option><option value="pd-made">· made to order: no stock counted</option><option value="pd-menu">· the more menu: see in the shop, duplicate, archive, delete</option><option value="pd-delete">· delete: the remove dialog as built</option><option value="pd-archived">· archived: restore or delete for good</option><option value="pd-share">· share from the product page</option><option value="pd-wide">· on a computer</option></optgroup>
       <optgroup label="The install box (proposal 2026-11-26)"><option value="app-first">First landing · Install the app (Chrome on Android)</option><option value="app-first-fb">· inside Facebook on Android: Open in Chrome</option><option value="app-first-ios">· an iPhone, in Safari: Apple's two taps</option><option value="app-first-ios-fb">· an iPhone, inside Facebook</option><option value="app-first-other">· Android before Chrome offers it, or another browser: the menu steps</option><option value="app-home">Home · the same row on top, until installed or closed</option><option value="app-home-fb">· inside Facebook</option></optgroup>
       <optgroup label="Live chat with Lytro (sketch 2026-11-27)"><option value="lc-home-peek">Home · the small chat button, first 5 seconds</option><option value="lc-home-gone">· after it slides away</option><option value="lc-menu">Menu · the button, always there</option><option value="lc-unread-any">Any screen (orders) · Lytro replied: the button with a count and a sound</option><option value="lc-chat">The chat · names in two colours, a photo, a deleted photo, 7 days</option><option value="lc-offhours">· outside hours: when we answer, and WhatsApp</option><option value="lc-busy">· 10 minutes unanswered: the busy line</option><option value="lc-ai">· an AI answer, labelled, and Talk to a person</option><option value="lc-chat-desktop">· on a computer: the side panel (switch to Computer)</option><option value="lc-sound">Notifications · chat sound beside the bell's</option></optgroup>
-      <optgroup label="In-app tutorial videos (sketch 2026-11-27)"><option value="tv-products-empty">Products · no products yet: the row for part 3 (adding a product)</option><option value="tv-products">· with products</option><option value="tv-quick-add">Quick add · the row for part 3</option><option value="tv-categories">Categories · the row for part 2</option><option value="tv-shopdetails">Shop details · part 1 on top, part 4 in the shop link card</option><option value="tv-delivery">Delivery · the row for part 1</option><option value="tv-share-sheet">Share sheet · part 4 inside it</option><option value="tv-meta">Ads and feed · one card, parts 5 and 6a (6b hidden until set)</option><option value="tv-couriers">Couriers · the row for part 7</option><option value="tv-dismissed">· Don’t show again (toast)</option><option value="tv-player">The player · full screen, 9:16, inside the app</option><option value="tv-player-end">· at the end: watch again, next video</option><option value="tv-menu">Menu · the Tutorials row</option><option value="tv-list">Menu › Tutorials · the series in order</option></optgroup>
+      <optgroup label="In-app tutorial videos (sketch 2026-11-27)"><option value="tv-products-empty">Products · no products yet: the row for part 3 (adding a product)</option><option value="tv-products">· with products</option><option value="tv-quick-add">Quick add · the row for part 3</option><option value="tv-categories">Categories · the row for part 2</option><option value="tv-shopdetails">Shop details · part 1 on top, part 4 in the shop link card</option><option value="tv-delivery">Delivery · the row for part 1</option><option value="tv-share-sheet">Share sheet · part 4 inside it</option><option value="tv-meta">Ads and feed · one card, parts 5 and 6a (6b hidden until set)</option><option value="tv-couriers">Couriers · the row for part 7</option><option value="tv-dismissed">· Don’t show again (toast)</option><option value="tv-player">The player · full screen, 9:16, inside the app</option><option value="tv-player-end">· at the end: watch again, next video</option><option value="tv-menu">Menu · the Tutorials row</option><option value="tv-list">Menu › Tutorials · the series in order</option></optgroup><optgroup label="Home · the first four videos for a new seller (sketch 2026-11-27)"><option value="tv-first-landing">First landing (quick add) · install row, welcome, the row for part 3</option><option value="tv-home-new">Home · first visit: the videos head the set-up card, nothing watched</option><option value="tv-home-half">· two of four watched</option><option value="tv-home-done">· all four watched: one line with All tutorials</option><option value="tv-home-dismissed">· Don’t show again (toast)</option></optgroup>
       <optgroup label="Later phases (design only)"><option value="storefront">Storefront settings · slides as a carousel (Slice 12)</option><option value="storefront-tiles">· one banner and two tiles (Slice 12)</option><option value="storefront-empty">· no slides yet (Slice 12)</option><option value="sh-slide">· slide editor with the focal point (Slice 12)</option><option value="sh-slide-new">· new slide (Slice 12)</option><option value="sh-slide-preview">· both crops (Slice 12)</option><option value="sh-slide-delete">· remove slide (Slice 12)</option><option value="storefront-saved">· slide saved (Slice 12)</option></optgroup>
     </select>
   </label>
@@ -11544,6 +11544,98 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 </style>`);
 (function initTv() { const h = location.hash.replace('#', ''); if (h && h.startsWith('tv-') && SCREENS[h] && h !== ST.screen) { ST.screen = h; document.getElementById('selScreen').value = h; render(); } })();
 /* ---------- end of in-app tutorial videos (sketch) ---------- */
+/* ---------- Home: the first four videos for a new seller (sketch 2026-11-27) ----------
+   The owner, 2026-11-27: "i want to route new seller to tutorial so link tutorial in home screen for new seller. sketch
+   first". Home already opens with the owner's set-up checklist ("শপ প্রস্তুত করুন", SUP-01), so the videos go INTO that
+   card, not into a second one: a tinted head with the next video to watch, the four in order with ✓ and "২/৪ দেখা
+   হয়েছে", "সব টিউটোরিয়াল" and "আর দেখাবেন না"; and the steps that a video explains carry it on their second line.
+   The card here is drawn as BUILT (six steps in the first group, the logo live), not as the older sketch's four. */
+const TVH_FOUR = ['01', '02', '03', '04'];
+const tvhN = (n) => L('০১২৩৪৫৬৭৮৯'[n], String(n));
+const tvhBlockEnd = (html, start) => {
+  let depth = 0; const re = /<div\b|<\/div>/g; re.lastIndex = start; let m;
+  while ((m = re.exec(html))) { depth += m[0] === '</div>' ? -1 : 1; if (depth === 0) return m.index + 6; }
+  return -1;
+};
+const tvhPanel = (watched) => {
+  const four = TVH_FOUR.map(tvOf);
+  const all = `<a class="tvh-all" role="button" onclick="go('tv-list')">${L('সব টিউটোরিয়াল', 'All tutorials')}${ic('right', 16)}</a>`;
+  if (watched >= 4) return `<div class="tvh tvh-small"><span class="tvh-ok">${ic('check', 16)}</span><span class="tvh-st">${L('শুরুর ৪টি ভিডিও দেখা হয়েছে।', 'You have watched the first four videos.')}</span>${all}</div>`;
+  const next = four[watched];
+  const hero = `<div class="tvh-hero" role="button" onclick="go('tv-player')"><span class="tvh-th" style="background-image:url('${TV_IMG(next.img)}')"><span class="tvh-big">${ic('play', 26)}</span></span><span class="tvh-hb"><span class="tvh-eye">${watched ? L('এরপর এই ভিডিওটা দেখুন', 'Watch this one next') : L('প্রথমে এই ভিডিওটা দেখুন', 'Watch this one first')}</span><b>${L('পর্ব', 'Part')} ${next.n} · ${next.name}</b><span class="tvh-how">${next.how} · ${next.d}</span><span class="tvh-go">${btn('p sm', `${ic('play', 16)} ${L('ভিডিও দেখুন', 'Watch the video')}`)}</span></span></div>`;
+  const list = four.map((x, i) => `<button class="tvh-li ${i < watched ? 'seen' : ''} ${i === watched ? 'next' : ''}" onclick="go('tv-player')"><span class="tvh-no">${i < watched ? ic('check', 14) : x.n}</span><span class="tvh-nm">${x.name}</span><span class="tvh-d">${i < watched ? L('দেখা হয়েছে', 'Watched') : x.d}</span></button>`).join('');
+  const segs = TVH_FOUR.map((k, i) => `<i class="${i < watched ? 'on' : ''}"></i>`).join('');
+  return `<div class="tvh"><div class="tvh-h"><b>${L('ভিডিও দেখে শুরু করুন', 'Start with the videos')}</b><span class="tvh-cnt">${L(`${tvhN(watched)}/৪ দেখা হয়েছে`, `${watched}/4 watched`)}</span></div><div class="tvh-seg">${segs}</div><div class="tvh-body">${hero}<div class="tvh-list">${list}</div></div><div class="tvh-f">${all}<span class="tvh-x" role="button" onclick="go('tv-home-dismissed')">${L('আর দেখাবেন না', 'Don’t show again')}</span></div></div>`;
+};
+// The built checklist (apps/dashboard/src/views/home/setup-checklist.tsx): six first steps, then "later, when you need them".
+const tvhChecklist = (o) => {
+  const vid = (k) => {
+    const x = tvOf(k);
+    return o.videos && x && x.d ? `<span class="tvh-chip" role="button" onclick="event.stopPropagation();go('tv-player')">${ic('play', 12)}${L('ভিডিও', 'Video')} · ${x.d}</span>` : '';
+  };
+  const item = (done, label, d, goTo, k) => `<button class="row" style="min-height:52px" ${goTo && !done ? `onclick="go('${goTo}')"` : ''}><span class="checkbox ${done ? 'on' : ''}">${done ? ic('check') : ''}</span><span class="body"><span class="l1" style="font-size:15px;${done ? 'color:var(--muted)' : ''}">${t(label)}</span>${d ? `<span class="l2">${d}</span>` : ''}${done ? '' : vid(k)}</span>${done ? '' : ic('right')}</button>`;
+  const done = 2;
+  return `<div class="card flush tvh-card">${o.panel || ''}<div style="padding:16px 16px 8px"><div class="sechead"><h2>${t('setupTitle')}</h2><span class="hint">${t('setupDone', { d: done, t: 6 })}</span></div><div class="bar" style="margin-top:10px"><i style="width:${(done / 6) * 100}%"></i></div></div><div class="list">
+    ${item(true, 'ckShop')}${item(true, 'ckDelivery', t('ckDeliveryD'))}${item(false, 'ckProduct', null, 'pq-empty', '03')}${item(false, 'ckShare', null, 'home', '04')}${item(false, 'ckLogo', null, 'shopdetails', '01')}${item(false, 'ckWallet', null, 'pm33')}
+    <div class="daylbl">${t('setupLater')}</div>${item(false, 'ckCourier', L('Steadfast, Pathao বা RedX', 'Steadfast, Pathao or RedX'), 'c36-first', '07')}${item(false, 'ckSms', null, 'sms')}${item(false, 'ckListener', null, 'lp35')}${item(false, 'ckApi', null, 'api-keys')}</div></div>`;
+};
+const tvhHome = (o) => {
+  let h = SCREENS.home.render();
+  const at = h.indexOf(`<h2>${t('setupTitle')}</h2>`);
+  const start = at < 0 ? -1 : h.lastIndexOf('<div class="card flush">', at);
+  const card = tvhChecklist({ panel: o.watched === undefined ? '' : tvhPanel(o.watched), videos: o.watched !== undefined });
+  if (start >= 0) { const end = tvhBlockEnd(h, start); h = h.slice(0, start) + card + h.slice(end); } else h = card + h;
+  return (o.note ? lcNote(o.note) : '') + (o.install ? installRow('chrome') : '') + h;
+};
+const TVH_BASE = { ...SCREENS.home, shop: 'new', tv: true };
+SCREENS['tv-first-landing'] = { ...APP_FIRST, shop: 'new', tv: true, get title() { return APP_FIRST.title; }, render: () => APP_FIRST.render().replace(pqFirst(), installRow('chrome') + pqFirst() + tvRow('03')) };
+SCREENS['tv-home-new'] = { ...TVH_BASE, render: () => tvhHome({ watched: 0, install: true }) };
+SCREENS['tv-home-half'] = { ...TVH_BASE, render: () => tvhHome({ watched: 2 }) };
+SCREENS['tv-home-done'] = { ...TVH_BASE, render: () => tvhHome({ watched: 4, note: L('চারটা দেখা হলে মাথাটা ছোট হয়ে এক লাইনে আসে, সব টিউটোরিয়ালের লিংকসহ। কার্ড গুটিয়ে গেলে বা প্রথম অর্ডার এলে এটাও চলে যায়।', 'Once all four are watched, the head shrinks to one line with the link to all tutorials. It goes when the card folds or the first order comes.') }) };
+SCREENS['tv-home-dismissed'] = { ...TVH_BASE, render: () => tvhHome({}), toast: () => `${ic('check')} ${L('হোমে আর ভিডিও দেখাবে না। সব ভিডিও মেনু › টিউটোরিয়ালে আছে।', 'Home will not show the videos again. Every video is in Menu › Tutorials.')}` };
+document.head.insertAdjacentHTML('beforeend', `<style>
+.tvh{background:var(--primary-soft);border-bottom:1px solid var(--teal-200);padding:14px 16px 10px;display:flex;flex-direction:column;gap:10px}
+.tvh-h{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.tvh-h b{font-size:17px;font-weight:700}
+.tvh-cnt{font-size:14px;color:var(--n700);white-space:nowrap}
+.tvh-seg{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.tvh-seg i{display:block;height:6px;border-radius:3px;background:var(--teal-200)}
+.tvh-seg i.on{background:var(--primary)}
+.tvh-body{display:flex;flex-direction:column;gap:10px}
+.tvh-hero{display:flex;gap:14px;align-items:center;background:var(--surface);border:1px solid var(--teal-200);border-radius:12px;padding:10px;cursor:pointer}
+.tvh-th{position:relative;flex:none;width:84px;height:149px;border-radius:10px;background:var(--n100) center/cover no-repeat;overflow:hidden}
+.tvh-big{position:absolute;left:50%;top:50%;width:52px;height:52px;margin:-26px 0 0 -26px;border-radius:50%;background:var(--primary);color:var(--on-primary);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+.tvh-big svg.i{margin-left:3px}
+.tvh-hb{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.tvh-eye{font-size:13px;font-weight:700;color:var(--teal-700)}
+.tvh-hb b{font-size:16px;font-weight:700;line-height:1.35}
+.tvh-how{font-size:14px;color:var(--n700)}
+.tvh-go{margin-top:6px}
+.tvh-go .btn{gap:6px}
+.tvh-list{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--teal-200);border-radius:12px;overflow:hidden}
+.tvh-li{display:flex;align-items:center;gap:10px;min-height:44px;padding:8px 12px;border:0;border-top:1px solid var(--line);background:none;text-align:left;color:var(--text);cursor:pointer;width:100%}
+.tvh-li:first-child{border-top:0}
+.tvh-li.next{background:var(--teal-50)}
+.tvh-li.next .tvh-nm{font-weight:700}
+.tvh-no{flex:none;width:24px;height:24px;border-radius:50%;border:1.5px solid var(--n700);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--n700)}
+.tvh-li.next .tvh-no{border-color:var(--primary);background:var(--primary);color:var(--on-primary)}
+.tvh-li.seen .tvh-no{border-color:var(--success);background:var(--success);color:#fff}
+.tvh-nm{flex:1;min-width:0;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tvh-d{flex:none;font-size:13px;color:var(--n700)}
+.tvh-li.seen .tvh-d{color:var(--success);font-weight:600}
+.tvh-f{display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:32px}
+.tvh-all{display:inline-flex;align-items:center;gap:2px;color:var(--primary);font-weight:700;font-size:14px;cursor:pointer;text-decoration:none}
+.tvh-x{color:var(--n700);font-size:13px;text-decoration:underline;cursor:pointer}
+.tvh.tvh-small{flex-direction:row;align-items:center;gap:10px;padding:12px 16px}
+.tvh-ok{flex:none;width:28px;height:28px;border-radius:50%;background:var(--success-soft);color:var(--success);display:flex;align-items:center;justify-content:center}
+.tvh-st{flex:1;min-width:0;font-size:14px;font-weight:600}
+.tvh-chip{display:inline-flex;align-items:center;gap:4px;align-self:flex-start;margin-top:5px;font-size:13px;font-weight:600;color:var(--teal-700);background:var(--primary-soft);border:1px solid var(--teal-200);border-radius:999px;padding:2px 10px 2px 8px;cursor:pointer}
+.tvh-chip svg.i{width:12px;height:12px}
+.frame.desktop .tvh{padding:16px 20px 12px}
+.frame.desktop .tvh-body{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:12px;align-items:stretch}
+.frame.desktop .tvh-list{justify-content:center}
+</style>`);
+/* ---------- end of Home: the first four videos (sketch) ---------- */
 </script>
 </body>
 </html>

@@ -2857,6 +2857,74 @@ playing. The player streams with range requests, so a seller downloads only as m
 3. Replacing a video keeps everyone's "✓ দেখা হয়েছে". Should a replaced video show as "নতুন" again? Recommended: no;
    the console could offer that as a tick later if a change is large.
 
+#### 7.49a Home: the first four videos for a new seller (sketch 2026-11-27)
+
+The owner, 2026-11-27, after the sketch above ("sketch is very fine"): "i want to route new seller to tutorial so link
+tutorial in home screen for new seller. sketch first". Drawn in the group "Home · the first four videos for a new seller
+(sketch 2026-11-27)": `tv-first-landing`, `tv-home-new`, `tv-home-half`, `tv-home-done`, `tv-home-dismissed`.
+
+**Decision: inside the set-up card, not a second card.** Built Home (`apps/dashboard/src/views/home`) already opens with
+the owner's set-up checklist, "শপ প্রস্তুত করুন" (SUP-01, §7.1): six first steps (the shop, delivery, a first
+product, the link shared, the logo, a wallet number) and then "পরে, দরকার হলে". A separate videos card would compete
+with it for the same first look, so the videos become the head of that card, and each step that a video explains
+carries it. The card is drawn as built (2/6, the logo live), not as the older sketch's four steps.
+
+**The head of the card** (a tinted band above "শপ প্রস্তুত করুন"):
+
+- "ভিডিও দেখে শুরু করুন" with "০/৪ দেখা হয়েছে" and four short segments that fill as videos are watched.
+- **The next video, large:** its 9:16 cover with a big round play button, "প্রথমে এই ভিডিওটা দেখুন" (once one is
+  watched, "এরপর এই ভিডিওটা দেখুন"), "পর্ব ১ · শপ সাজানো", "কীভাবে শপ সাজাবেন · ১:৩৭", and a "ভিডিও দেখুন"
+  button. The next video is the first of the four not yet watched.
+- **The four in order:** ১ শপ সাজানো ১:৩৭ · ২ ক্যাটাগরি ম্যানেজমেন্ট ১:৪৭ · ৩ প্রোডাক্ট যোগ ৩:১২ · ৪ লিংক শেয়ার
+  ১:২৭. A watched one shows a green ✓ and "দেখা হয়েছে"; the next one is highlighted. Any of them can be played.
+- **At its foot:** "সব টিউটোরিয়াল" (Menu › টিউটোরিয়াল) and "আর দেখাবেন না".
+- Every tap plays in the in-app 9:16 player (`tv-player`); closing it returns to Home, with the ✓ added.
+- On a computer (`tv-home-new` and `tv-home-half` at desktop width), the next video and the list of four sit side by
+  side in the card's wide column; the side column is unchanged.
+
+**The steps carry their video.** An open step that a video explains shows a small "▶ ভিডিও · ৩:১২" chip on its second
+line, which plays that video; the row itself still opens the step's screen: প্রথম প্রোডাক্ট যোগ করুন → part 3, শপের
+লিংক শেয়ার করুন → part 4, লোগো আপলোড করুন → part 1, কুরিয়ার কানেক্ট করুন → part 7. The wallet step gets bKash and
+Nagad (parts 10 and 11) once those videos exist. A done step shows no chip.
+
+**The states.**
+
+- (a) **First visit to Home** (`tv-home-new`): the install row (§7.1a) on top, then the card with the videos at its
+  head, so the first thing under the install row is "প্রথমে এই ভিডিওটা দেখুন". Nothing watched: ০/৪.
+- **The first landing itself** (`tv-first-landing`) stays quick add (`?first=1`, §7.4b), as the owner chose for it:
+  the install row, the welcome, then the row for part 3 ("ভিডিও দেখুন: কীভাবে প্রোডাক্ট যোগ করবেন"), as on every
+  quick add (§7.49). The four videos meet the seller on Home, where "পরে করব" and the Home tab lead.
+- (b) **Two watched** (`tv-home-half`): "২/৪ দেখা হয়েছে", two ✓, and part 3 is the next video.
+- (c) **All four watched** (`tv-home-done`). **Decision: the head shrinks, it does not disappear.** It becomes one
+  line at the top of the card, "✓ শুরুর ৪টি ভিডিও দেখা হয়েছে।" with "সব টিউটোরিয়াল", because the rest of the
+  series (couriers, bKash, Nagad, the theme) matches the steps still left. The step chips stay.
+- (d) **"আর দেখাবেন না"** (`tv-home-dismissed`): the head and the step chips go, the card is as it was before, and a
+  toast says "হোমে আর ভিডিও দেখাবে না। সব ভিডিও মেনু › টিউটোরিয়ালে আছে।"
+
+**Who counts as new, and when it goes.** The videos show to the shop's **owner**, as the checklist and the install row
+do; staff members find them in Menu › টিউটোরিয়াল. **Decision:** the head shows while the set-up card is open and the
+shop has had no order yet, and goes at the first of these:
+
+1. **All four watched:** it shrinks to the one line in (c), which stays while the card is open.
+2. **"আর দেখাবেন না":** the head and the chips go for good, for that owner (kept on the server, like §7.49's dismissals).
+3. **The shop's first order:** a shop with an order has a product and has found its way, so it is not new any more.
+4. **The card folds** (its six first steps done): the head lives in the card, so it folds with it.
+
+"Activated" (a first product and a first order) is read as the first order alone, because an order cannot exist
+without a product; the folding card is on the list because the head has nowhere else to live. Shops already selling
+(with orders, or with the card folded) never see it.
+
+**The backend this adds to §7.49's.** GET `/home` returns, for the owner, the four videos with their watched marks and
+whether the head shows (`tutorialsHead: 'full' | 'small' | null`), worked out from the rules above; the dismissal is one
+more `tutorial_dismissals` row (screen `home`).
+
+**Open questions for §7.49a.**
+
+1. Should staff see the head too (a new staff member is new as well)? Recommended: no; the owner sets the shop up,
+   and staff have Menu › টিউটোরিয়াল.
+2. Should the first landing after sign-up be Home instead of quick add, so the four videos come first? Recommended:
+   keep quick add, with the part 3 row; it gets the first product in fastest, and Home catches the seller next.
+
 ## 8. Screens designed for later phases
 
 Kept in the prototype under "Later phases (design only)", exactly as designed on 2026-10-20, so the
