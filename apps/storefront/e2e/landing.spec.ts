@@ -117,9 +117,11 @@ test.describe('the order', () => {
   }) => {
     const shop = await openShop(page);
     await page.goto(shop.url(`/l/cotton-panjabi?v=${idOf('panjabi-XL Navy')}`));
-    await expect(page.locator('.side .cl .vr')).toHaveText('XL · Navy × 1 piece');
+    // Each option named in bold, then its value (the owner, 2026-11-27).
+    await expect(page.locator('.side .cl .vr')).toHaveText('Size: XL · Colour: Navy × 1 piece');
+    await expect(page.locator('.side .cl .vr b')).toHaveText(['Size:', 'Colour:']);
     await page.locator('.buy .qty').getByRole('button', { name: '+' }).click();
-    await expect(page.locator('.side .cl .vr')).toHaveText('XL · Navy × 2 pieces');
+    await expect(page.locator('.side .cl .vr')).toHaveText('Size: XL · Colour: Navy × 2 pieces');
     await fillOrderForm(page);
     await expect(page.locator('.side .sum .r.total .price')).toHaveText('৳2,570');
     await expect(confirm(page)).toBeEnabled();

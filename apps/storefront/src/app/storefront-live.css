@@ -277,6 +277,8 @@ button.vb.pic img {
   height: 36px;
   width: auto;
   display: block;
+  /* The name beside it gives way first, ending in … (the owner, 2026-11-27). */
+  flex: none;
 }
 .sfb .sb-hd .dsearch {
   display: none;

@@ -15,6 +15,7 @@ import {
   browserCart,
   CART_OPEN,
   type CartLine,
+  type ChoicePart,
   estimateItemOf,
   orderItemOf,
 } from '@/lib/cart/cart-store';
@@ -27,6 +28,7 @@ import type { ShopChat } from '@/lib/shop/shop-chat';
 import { pixelEvent } from '../landing/pixel-events';
 import { Icon } from '../icon';
 import { OrdersPausedBanner } from '../shell';
+import { ChoiceText } from '../order/choice-text';
 import { LineExtras, NoticeBanner, TaxRows } from '../order/order-parts';
 import { AdvanceRows, PayChooser, PayNextHint } from '../order/pay-chooser';
 import { PlacedView } from '../order/placed-view';
@@ -98,16 +100,17 @@ interface ExtraLine {
   quantity: number;
 }
 
-/** The words a line's buyer reads for what was picked; PD-6: never a design's name, which its photo shows instead. */
-function choiceTextOf(product: PublicProduct, selection: Selection, words: Words): string {
+/**
+ * What a line's buyer picked, each option with its name as the seller typed it (the owner, 2026-11-27); PD-6: never a
+ * design's name, which its photo shows instead.
+ */
+function choicePartsOf(product: PublicProduct, selection: Selection, words: Words): ChoicePart[] {
   return product.options
     .filter((option) => !option.designs)
-    .map((option) => {
+    .flatMap((option) => {
       const value = option.values.find((each) => each.id === selection[option.attributeId]);
-      return value ? optionText(option, value.value, words) : '';
-    })
-    .filter((text) => text !== '')
-    .join(' · ');
+      return value ? [{ name: option.name, value: optionText(option, value.value, words) }] : [];
+    });
 }
 
 /**
@@ -161,12 +164,14 @@ export function OnePageView(props: OnePageViewProps) {
   const lineOf = (lineSelection: Selection, lineQuantity: number): CartLine | null => {
     const picked = choice.variantFor(lineSelection);
     if (!picked?.available) return null;
+    const parts = choicePartsOf(product, lineSelection, words);
     return {
       variantId: picked.id,
       productId: product.id,
       productSlug: product.slug,
       name: product.name,
-      choice: choiceTextOf(product, lineSelection, words),
+      choice: parts.map((part) => part.value).join(' · '),
+      choiceParts: parts,
       price: picked.price,
       image: lineImageOf(product, picked),
       quantity: lineQuantity,
@@ -693,9 +698,14 @@ export function OnePageView(props: OnePageViewProps) {
                   <div className="b">
                     <div className="nm">{product.name}</div>
                     <div className="vr">
-                      {line.choice
-                        ? `${line.choice} × ${lineQuantityText(line, words)}`
-                        : `× ${lineQuantityText(line, words)}`}
+                      {line.choice ? (
+                        <>
+                          <ChoiceText parts={line.choiceParts} text={line.choice} />
+                          {` × ${lineQuantityText(line, words)}`}
+                        </>
+                      ) : (
+                        `× ${lineQuantityText(line, words)}`
+                      )}
                     </div>
                     {at === 0 ? (
                       <LineExtras

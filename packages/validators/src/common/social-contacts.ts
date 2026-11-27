@@ -24,18 +24,44 @@ function bareLink(input: string): string {
     .replace(/[?#].*$/, '');
 }
 
+// A page with no username is named by its id: facebook.com/profile.php?id=<id>, the id anywhere in the query.
+const PROFILE_ID = /(?:^|[/.@])(?:facebook|fb)\.com\/profile\.php\?(?:[^#]*&)?id=(\d+)/i;
+// facebook.com/people/<page name>/<id>: another link of a page with no username.
+const PEOPLE_ID = /^people\/[^/]+\/(\d+)$/i;
+// Facebook's own paths, which are never a page's username by themselves.
+const NOT_USERNAMES = new Set([
+  'profile.php',
+  'people',
+  'pages',
+  'messages',
+  'share',
+  'groups',
+  'watch',
+]);
+
 /**
  * The Messenger username in what a seller typed: the username itself (with or without an @), or a pasted m.me,
- * messenger.com/t or facebook.com link to it. Null when it is none of these.
+ * messenger.com/t, facebook.com or fb.me link to it. A page with no username keeps its id (profile.php?id=…,
+ * people/…/<id>, messages/t/<id>), which m.me opens just as well. Null when it is none of these (a share or group
+ * link names no page).
  */
 export function messengerUsernameOf(input: string): string | null {
+  const profile = PROFILE_ID.exec(input.trim());
+  if (profile?.[1]) return profile[1];
   const bare = bareLink(input).replace(/^@/, '');
   const lower = bare.toLowerCase();
-  const prefix = ['m.me/', 'messenger.com/t/', 'facebook.com/', 'fb.com/'].find((each) =>
-    lower.startsWith(each),
-  );
-  const name = (prefix ? bare.slice(prefix.length) : bare).replace(/\/+$/, '');
+  const prefix = [
+    'm.me/',
+    'messenger.com/t/',
+    'facebook.com/messages/t/',
+    'facebook.com/',
+    'fb.com/',
+    'fb.me/',
+  ].find((each) => lower.startsWith(each));
+  const path = (prefix ? bare.slice(prefix.length) : bare).replace(/\/+$/, '');
+  const name = PEOPLE_ID.exec(path)?.[1] ?? path;
   if (name === '' || name.includes('/') || name.length > MESSENGER_USERNAME_MAX_LENGTH) return null;
+  if (NOT_USERNAMES.has(name.toLowerCase())) return null;
   return MESSENGER_USERNAME.test(name) ? name : null;
 }
 

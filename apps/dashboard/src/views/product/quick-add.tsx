@@ -917,14 +917,13 @@ function SwitchRow({
 
 /**
  * আরও সেটিংস (`pq-more-open`): every control the card leaves out, with today's defaults, in plain words -- the stock
- * (made to order, the unit, the low-stock alert, batches, serials), the category, delivery, payment, the size chart
- * (a picture, for clothing), prices and options, and the rest.
+ * (made to order, the unit, the low-stock alert, batches, serials), delivery, payment, the size chart (a picture, for
+ * clothing), prices and options, and the rest. The category is in the card (`QuickCategory`; the owner, 2026-11-27).
  */
 export function QuickMore({
   form,
   open,
   clothing,
-  categoryText,
   deliversTo,
   chartText,
   shopDefault,
@@ -946,7 +945,6 @@ export function QuickMore({
   form: ProductForm;
   open: boolean;
   clothing: boolean;
-  categoryText: string;
   deliversTo: string;
   chartText: string;
   shopDefault: ProductDefaults['shopPaymentPolicy'] | null;
@@ -958,9 +956,7 @@ export function QuickMore({
     onChange: (id: string | null) => void;
   } | null;
   readOnly: boolean;
-  errors: Partial<
-    Record<'unit' | 'low' | 'weight' | 'charge' | 'zones' | 'policy' | 'category', string>
-  >;
+  errors: Partial<Record<'unit' | 'low' | 'weight' | 'charge' | 'zones' | 'policy', string>>;
   /** "একই ছবিতে কয়েকটা রঙ?", offered while there is one photo; null otherwise. */
   colourLink: (() => void) | null;
   onOpen: (open: boolean) => void;
@@ -1059,15 +1055,6 @@ export function QuickMore({
                 />
               </>
             )}
-          </Group>
-          <Group title={t('category')}>
-            <PickField
-              label={`${t('category')} ${t('qaOptional')}`}
-              value={categoryText}
-              disabled={readOnly}
-              error={errors.category}
-              onPick={onCategory}
-            />
           </Group>
           <Group title={t('qaDelivery')}>
             <div className="grid gap-3 sm:grid-cols-2">
@@ -1247,6 +1234,33 @@ export function NamePrice({
         }}
       />
     </>
+  );
+}
+
+/**
+ * ক্যাটাগরি (ঐচ্ছিক), in the card after the sizes and before বিবরণ (`pq-filled`; the owner, 2026-11-27: "include the
+ * category selection in quick add"). It opens the category sheet, as it did from আরও সেটিংস.
+ */
+export function QuickCategory({
+  text,
+  error,
+  readOnly,
+  onPick,
+}: {
+  text: string;
+  error: string | undefined;
+  readOnly: boolean;
+  onPick: () => void;
+}): React.JSX.Element {
+  const { t } = useTranslation('shop');
+  return (
+    <PickField
+      label={`${t('category')} ${t('qaOptional')}`}
+      value={text}
+      disabled={readOnly}
+      error={error}
+      onPick={onPick}
+    />
   );
 }
 

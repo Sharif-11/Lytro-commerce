@@ -9,7 +9,7 @@ import {
 } from '@lytronix/validators';
 import { type Browser, expect, type Page, test } from '@playwright/test';
 import { builderShop, type SketchShop } from './support/builder-fixtures';
-import { idOf, type Language } from './support/fixtures';
+import { designPhoto, idOf, type Language } from './support/fixtures';
 import { GOOD_PREVIEW } from './support/mock-server';
 import { openShop } from './support/shop';
 
@@ -443,6 +443,31 @@ test.describe('banner layouts, the bar and the hero tiles (BL-2 to BL-17)', () =
     expect(facts.right).toBeLessThanOrEqual(facts.icons);
     expect(facts.clipped).toBe(true);
     expect(facts.ellipsis).toBe('ellipsis');
+  });
+
+  // The owner, 2026-11-27: "when there is logo the shop name is not shown". Most sellers' logos are a mark with no words,
+  // so the name sits beside it (TEN-16), in the header and the footer alike.
+  test('shows the shop name beside its logo, in the header and the footer', async ({
+    page,
+    browser,
+  }) => {
+    const shops = await sketchShops(browser);
+    const shop = await openShop(page, (language) => {
+      const made = builderShop(StorefrontThemeKey.Royal, shops.royal, language);
+      return {
+        ...made,
+        info: {
+          ...(made.info as object),
+          name: 'Rodh Fashion',
+          logo: { id: 'logo-1', urls: { main: designPhoto(0), thumbnail: designPhoto(0) } },
+        },
+      } as typeof made;
+    });
+    await page.goto(shop.url('/'));
+    const header = page.locator('.sb-hd .sb-logo');
+    await expect(header.locator('img')).toBeVisible();
+    await expect(header.locator('span').last()).toHaveText('Rodh Fashion');
+    await expect(page.locator('.sb-ft .sb-logo span').last()).toHaveText('Rodh Fashion');
   });
 
   test('turns the bar two items at a time (one on a phone), leaves it as the page scrolls, and tracks orders from the header', async ({

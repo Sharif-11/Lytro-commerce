@@ -50,7 +50,8 @@ test.describe('placing an order', () => {
     await expect(
       page.getByText('Order #261031-0047. The shop will call 01711223344 to confirm it.'),
     ).toBeVisible();
-    await expect(page.locator('.card2 b')).toHaveText('K7F2M9QX');
+    // The order's code, not an item's option name, which its line also shows in bold (the owner, 2026-11-27).
+    await expect(page.locator('.card2 b:not(.cl b)')).toHaveText('K7F2M9QX');
     await expect(page.getByRole('link', { name: 'Track the order' })).toHaveAttribute(
       'href',
       '/track/K7F2M9QX',

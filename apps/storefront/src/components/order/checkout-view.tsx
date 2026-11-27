@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { type PaymentMethod, PaymentPolicy } from '@lytronix/validators/enums';
 import { areaCookieValue } from '@/lib/area';
 import {
@@ -10,7 +10,13 @@ import {
   paysFirst,
   totalWith,
 } from '@/lib/cart/cart-check';
-import { browserCart, estimateItemOf, lineKey, orderItemOf } from '@/lib/cart/cart-store';
+import {
+  browserCart,
+  type CartLine,
+  estimateItemOf,
+  lineKey,
+  orderItemOf,
+} from '@/lib/cart/cart-store';
 import type { ShopperAddress, ShopperPaymentMethod, ShopperView } from '@/lib/api/storefront-api';
 import { type Language, money, plainNumber, Words } from '@/lib/i18n/words';
 import { ADDRESS_MAX, lineQuantityText, NAME_MAX, NOTE_MAX } from '@/lib/order/order-form';
@@ -20,6 +26,7 @@ import { OrdersPausedBanner } from '../shell';
 import { rangeText } from '../product/buy-parts';
 import { AreaFields, DeliveryBanner, zillaOf } from '../product/sheets';
 import { useLocations, useSettledEstimate } from '../product/use-delivery';
+import { ChoiceText } from './choice-text';
 import { LineExtras, NoticeBanner, OffLine, SummaryLine, TaxRows } from './order-parts';
 import { AdvanceRows, PayChooser, PayNextHint } from './pay-chooser';
 import { useOrderPlacing } from './use-order-placing';
@@ -44,6 +51,17 @@ const ORDERS_PAUSED_WAIT_MS = 30_000;
 function offNote(line: CheckedLine, words: Words): string {
   if (line.state === 'gone') return words.t('line_gone');
   return words.t(line.state === 'refit' ? 'e48LineRefit' : 'line_out');
+}
+
+/** A line's options, each named in bold (the owner, 2026-11-27), and its quantity with its unit. */
+function lineDetail(line: CartLine, words: Words): ReactNode {
+  const quantity = `× ${lineQuantityText(line, words)}`;
+  if (line.choice === '') return quantity;
+  return (
+    <>
+      <ChoiceText parts={line.choiceParts} text={line.choice} /> {quantity}
+    </>
+  );
 }
 
 /** PRD-08: how an item needing to be paid for first says so on its line. */
@@ -460,11 +478,7 @@ export function CheckoutView(props: CheckoutViewProps) {
                 key={checked.key}
                 name={checked.line.name}
                 image={checked.line.image}
-                detail={
-                  checked.line.choice !== ''
-                    ? `${checked.line.choice} × ${lineQuantityText(checked.line, words)}`
-                    : `× ${lineQuantityText(checked.line, words)}`
-                }
+                detail={lineDetail(checked.line, words)}
                 total={checked.total ?? 0}
               >
                 {paysFirst(checked) ? (
@@ -486,7 +500,7 @@ export function CheckoutView(props: CheckoutViewProps) {
                 key={checked.key}
                 name={checked.line.name}
                 image={checked.line.image}
-                detail={`${checked.line.choice === '' ? '' : `${checked.line.choice} `}× ${lineQuantityText(checked.line, words)}`}
+                detail={lineDetail(checked.line, words)}
                 note={offNote(checked, words)}
                 words={words}
                 onRemove={() => {
@@ -499,7 +513,7 @@ export function CheckoutView(props: CheckoutViewProps) {
                 key={checked.key}
                 name={checked.line.name}
                 image={checked.line.image}
-                detail={`${checked.line.choice === '' ? '' : `${checked.line.choice} `}× ${lineQuantityText(checked.line, words)}`}
+                detail={lineDetail(checked.line, words)}
                 note={advanceNote(checked, words)}
                 words={words}
                 onRemove={() => {

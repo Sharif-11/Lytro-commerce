@@ -10706,14 +10706,13 @@ const pqMore = (o) => {
   const colourLink = !other && !o.colours && pqDesigns(o) <= 1 ? lnk(L('একই ছবিতে কয়েকটা রঙ? রঙ যোগ করুন', 'Several colours in one photo? Add colours')).replace('<button class="pq-row-lnk">', `<button class="pq-row-lnk" onclick="go('pq-colour')">`) : '';
   const inner = [
     grp(L('স্টক', 'Stock'), `${made}${counted}`),
-    grp(t('category'), pqCategory(o)),
     grp(L('ডেলিভারি', 'Delivery'), `<div class="grid2">${field(t('weightKg'), null, { ph: '0.00' })}${field(t('deliveryCharge'), null, { ph: t('followsZone'), pre: '৳' })}</div>${field(t('deliversTo'), t('everywhere'), { trail: ic('down') })}`),
     grp(L('টাকা নেওয়া', 'Payment'), field(L('কীভাবে টাকা নেবেন', 'How you take payment'), L('শপের নিয়ম · ক্যাশ অন ডেলিভারি', 'Shop’s rule · Cash on delivery'), { trail: ic('down') })),
     chart,
     grp(L('দাম আর অপশন', 'Prices and options'), `${colourLink}${lnk(other ? L('অপশন যোগ করুন — যেমন রঙ বা প্যাক সাইজ', 'Add an option — like a colour or pack size') : L('অপশন যোগ করুন — যেমন কাপড় বা লেখা', 'Add an option — like fabric or a message'))}${lnk(L('ডিজাইন বা সাইজভেদে আলাদা দাম, SKU', 'A different price or SKU per design or size'))}${lnk(L('অর্ডারে বাড়তি জিনিস, যেমন গিফট র‍্যাপ', 'Extras at order, like gift wrap'))}`),
     grp(L('অন্যান্য', 'Other'), `${field(L('অবস্থা', 'Condition'), L('নতুন', 'New'), { trail: ic('down') })}${field(L('শুরুর নিয়ম', 'Starting defaults'), other ? L('বিউটি ও কসমেটিকস', 'Beauty and cosmetics') : L('পোশাক', 'Clothing'), { trail: `<span class="lnk" style="font-size:14px">${L('বদলান', 'Change')}</span>`, help: L('বদলালে স্টক আর অপশনের শুরুর মানগুলো বদলায়।', 'Changing it changes the stock and option defaults.') })}${pfSw(true, L('দোকানে দেখাবে', 'Shown in the shop'), null)}`),
   ].filter(Boolean);
-  return `<details class="card pq-more" ${o.moreOpen ? 'open' : ''}><summary onclick="event.preventDefault();go('${o.moreOpen ? 'pq-stock-one' : 'pq-more-open'}')"><span><b>${t('moreSettings')}</b><span class="pq-sum">${other ? L('ক্যাটাগরি, অর্ডার পেলে বানাই, অপশন, ডেলিভারি, টাকা নেওয়া', 'Category, made to order, options, delivery, payment') : L('ক্যাটাগরি, অর্ডার পেলে বানাই, সাইজ চার্ট, ডেলিভারি, টাকা নেওয়া', 'Category, made to order, size chart, delivery, payment')}</span></span>${ic('down')}</summary><div class="pq-more-in">${inner.join('')}</div></details>`;
+  return `<details class="card pq-more" ${o.moreOpen ? 'open' : ''}><summary onclick="event.preventDefault();go('${o.moreOpen ? 'pq-stock-one' : 'pq-more-open'}')"><span><b>${t('moreSettings')}</b><span class="pq-sum">${other ? L('অর্ডার পেলে বানাই, অপশন, ডেলিভারি, টাকা নেওয়া', 'Made to order, options, delivery, payment') : L('অর্ডার পেলে বানাই, সাইজ চার্ট, ডেলিভারি, টাকা নেওয়া', 'Made to order, size chart, delivery, payment')}</span></span>${ic('down')}</summary><div class="pq-more-in">${inner.join('')}</div></details>`;
 };
 const pqCombo = () => `<button class="card pq-combo">${ic('layers')}<span>${L('কম্বো প্যাক বানাতে চান?', 'Making a combo pack?')}</span>${ic('right', 16)}</button>`;
 /* A fee on top, before any typing: PAYG's new-product fee from the balance (the balance-gates pattern), short or enough. */
@@ -10724,8 +10723,9 @@ const pqFee = (kind) => kind === 'short'
 const pqFirst = () => `<div class="banner info">${ic('shop')}<span class="b">${L('শপ তৈরি হয়েছে! প্রথম প্রোডাক্ট যোগ করুন, তারপর লিংক শেয়ার করুন।', 'Your shop is ready! Add your first product, then share its link.')}</span><a href="#" onclick="go('home');return false" style="font-weight:500;text-decoration:underline;color:inherit">${L('পরে করব', 'Later')}</a></div>`;
 const pqForm = (o) => {
   o = o || {};
-  // The owner's order: photos, name, price, stock, sizes, description, Save (category and made to order in আরও সেটিংস).
-  const card = `<div class="card pq-card">${pqPhotos(o)}${field(t('nameL'), o.name ? (o.nameText || PQ_NAME()) : null, { ph: L('যেমন: ক্যাজুয়াল শার্ট', 'e.g. Casual shirt') })}${field(t('price'), o.price || null, { pre: '৳', ph: '0' })}${pqStock(o)}${pqSizeUi(o)}${pqDesc(o)}</div>`;
+  // The owner's order: photos, name, price, stock, sizes, category, description, Save (made to order in আরও সেটিংস).
+  // The owner, 2026-11-27: the category belongs in the card ("include the category selection in quick add"), not in আরও সেটিংস.
+  const card = `<div class="card pq-card">${pqPhotos(o)}${field(t('nameL'), o.name ? (o.nameText || PQ_NAME()) : null, { ph: L('যেমন: ক্যাজুয়াল শার্ট', 'e.g. Casual shirt') })}${field(t('price'), o.price || null, { pre: '৳', ph: '0' })}${pqStock(o)}${pqSizeUi(o)}${pqCategory(o)}${pqDesc(o)}</div>`;
   const save = o.fee === 'short'
     ? `<div class="actionbar bg-bar">${bgNote(10, ['প্রোডাক্ট যোগ করতে', 'Adding a product'])}<button class="btn p" disabled aria-disabled="true">${t('save')}</button></div>`
     : actionbar(btn('p', t('save')));

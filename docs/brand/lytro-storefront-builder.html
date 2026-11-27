@@ -60,7 +60,8 @@ img{display:block}
 .logo{display:flex;align-items:center;gap:9px;font-family:var(--fh);font-weight:700;font-size:19px;color:var(--logo);white-space:nowrap}
 .logo .mk{width:36px;height:36px;border-radius:var(--r-mark);background:var(--main);color:var(--on-main);display:grid;place-items:center;font-size:17px;font-family:var(--fh)}
 .logo small{display:block;font-family:var(--fb);font-size:10.5px;font-weight:500;color:var(--muted);margin-top:-3px}
-.logo.img svg{height:36px;width:auto;display:block}
+.logo.img svg{height:36px;width:auto;display:block;flex:none}
+.logo .nm{overflow:hidden;text-overflow:ellipsis;min-width:0}
 .hd .icons{display:flex;gap:14px;margin-left:auto;align-items:center}
 .cart{position:relative;display:flex}
 .cart sup{position:absolute;top:-7px;right:-9px;background:var(--accent);color:var(--on-accent);font:700 10.5px/17px Inter;min-width:17px;height:17px;border-radius:9px;text-align:center}
@@ -563,6 +564,11 @@ img{display:block}
 .pp-sum .r span:first-child{color:var(--muted)}
 .pp-sum .pp-l span:first-child{display:flex;align-items:center;gap:8px}
 .pp-sum .pp-l img.th{width:34px;height:34px;border-radius:6px;object-fit:cover}
+/* The owner, 2026-11-27: the product's name on the first line; under it the option's name in bold, its value and the
+   quantity with its unit, as the built page has it. */
+.pp-sum .pp-lt{display:flex;flex-direction:column;align-items:flex-start;gap:2px}
+.pp-sum .pp-lt .nm{font-weight:600;font-size:15px;line-height:1.3}
+.pp-sum .pp-lt .vr{font-size:13px;color:var(--muted)}
 .pp-sum .hint{font-size:12.5px;color:var(--muted)}
 .pp-sum .tot{border-top:1px solid var(--line);padding-top:10px;font-weight:700;font-size:17px}
 .pp-sum .tot span:first-child{color:var(--text)}
@@ -867,7 +873,9 @@ const SECTIONS = {
 
   header: (theme, shop) => {
     const kind = THEMES[theme].header;
-    const logo = shop.logo ? `<a class="logo img">${LOGO(40)}</a>` : `<a class="logo"><span class="mk">${shop.mark}</span><span>${T(shop.name)}<small>${T(shop.tag)}</small></span></a>`;
+    // The owner, 2026-11-27: "when there is logo the shop name is not shown". Most sellers' logos are a square or round
+    // mark (Rodh Fashion's), so the name always sits beside the logo; it ends in … where the row runs out of room.
+    const logo = shop.logo ? `<a class="logo img">${LOGO_MARK(36)}<span class="nm">${T(shop.name)}</span></a>` : `<a class="logo"><span class="mk">${shop.mark}</span><span>${T(shop.name)}<small>${T(shop.tag)}</small></span></a>`;
     const nav = [L('সব প্রোডাক্ট', 'All products'), L('অফার', 'Offers'), ...shop.cats.slice(0, 5).map((c) => T([c[0], c[1]]))];
     return `<header class="hd ${kind}" data-sec="${T(SEC_NAMES.header)}"><div class="wrap row"><span class="menu">${ic('menu')}</span>${logo}<div class="search"><span>${L('পণ্য খুঁজুন...', 'Search products...')}</span><i>${ic('search')}</i></div><div class="icons"><span class="srch">${ic('search')}</span><a class="trk" aria-label="${L('অর্ডার ট্র্যাক', 'Track order')}">${ic('truck')}<span><b>${L('অর্ডার ট্র্যাক', 'Track order')}</b>${L('অর্ডার কোথায় আছে', 'Where your order is')}</span></a>${ic('user')}<span class="cart">${ic('cart')}<sup>2</sup></span></div></div><nav class="nav">${nav.map((n, i) => `<a class="${i === 0 ? 'on' : ''}">${n}</a>`).join('')}</nav></header>`;
   },
@@ -968,6 +976,8 @@ const ED = 'soft'; // the shop being edited: Rupkotha Beauty, on the Soft theme
 const LOTUS = (fill) => `<path d="M32 50c-6-6-9-13-9-20 0-6 3-12 9-18 6 6 9 12 9 18 0 7-3 14-9 20z" fill="${fill}"/><path d="M32 50c-9-2-17-8-21-17 6-3 13-3 19 0 2 6 3 12 2 17z" fill="${fill}" opacity=".72"/><path d="M32 50c9-2 17-8 21-17-6-3-13-3-19 0-2 6-3 12-2 17z" fill="${fill}" opacity=".72"/>`;
 // The seller's own logo and app icon, as uploaded (drawn here so the previews show something real).
 const LOGO = (h) => `<svg height="${h}" viewBox="0 0 236 64" xmlns="http://www.w3.org/2000/svg" aria-label="${L('রূপকথা বিউটি', 'Rupkotha Beauty')}"><g>${LOTUS('#a3195b')}</g><text x="64" y="38" font-family="Galada,serif" font-size="31" fill="#a3195b">রূপকথা</text><text x="66" y="57" font-family="Inter,sans-serif" font-size="11.5" font-weight="600" letter-spacing="5" fill="#5e3447">BEAUTY</text></svg>`;
+/* The sample shop's logo as most sellers' are: a square mark, no words in it (the storefront header shows the name beside it). */
+const LOGO_MARK = (h) => `<svg height="${h}" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><g>${LOTUS('#a3195b')}</g></svg>`;
 const ICON = (size, radius) => `<svg width="${size}" height="${size}" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="appg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fde4ee"/><stop offset="1" stop-color="#f4b3cf"/></linearGradient></defs><rect width="64" height="64" rx="${radius}" fill="url(#appg)"/><g transform="translate(0 3)">${LOTUS('#a3195b')}</g></svg>`;
 
 // A shop drawn small: a phone's 390 px or a desktop's 1280 px, scaled into a box `width` wide.
@@ -1727,7 +1737,7 @@ function ppPage(o) {
       <div class="pp-chips"><span class="pp-chip ok">${ic('check')}${pay}</span><span class="pp-chip">${ic('truck')}${pw('deliv')}</span></div>
       ${o.out ? '' : `${designs}${sizes('M')}${qty}${second}${p.sizes || p.designs ? `<span class="pp-more">${ic('plus')}${pw('another')}</span>` : ''}`}</div>`;
   const field = (label, val, cls = '', extra = '') => `<label class="pp-f">${label}<span class="pp-in ${cls} ${val && !String(val).startsWith('<') ? 'set' : ''}">${extra}${val}</span></label>`;
-  const lineRow = ([size, d]) => `<div class="r pp-l"><span>${p.designs ? ppImg(p.photos[0], PP_DESIGNS[d][0], 'th') : ''}${T(p.n)}${p.sizes ? ` · ${size}` : ''} × 1</span><span>${money(p.price)}</span></div>`;
+  const lineRow = ([size, d]) => `<div class="r pp-l"><span>${p.designs ? ppImg(p.photos[0], PP_DESIGNS[d][0], 'th') : ''}<span class="pp-lt"><span class="nm">${T(p.n)}</span><span class="vr">${p.sizes ? `<b>${L('সাইজ', 'Size')}:</b> ${size} × 1 ${L('পিস', 'pc')}` : `× 1 ${L('পিস', 'pc')}`}</span></span></span><span>${money(p.price)}</span></div>`;
   const alt = o.off && o.payg ? '' : `<div class="pp-alt ${o.off || o.payg ? 'one' : ''}">${o.off ? '' : `<span>${pw('add')}</span>`}${o.payg ? '' : `<span class="wa">${ic('wa')}WhatsApp</span>`}</div>`;
   const form = o.out ? '' : `<div class="pp-form"><div class="pp-fields" style="display:flex;flex-direction:column;gap:14px"><div class="pp-fh"><h2>${pw('form_t')}</h2><p>${adv ? pw('form_s_adv', { n: adv }) : pw('form_s')}</p></div>
       ${field(pw('name'), o.another ? L('রুমানা আক্তার', 'Rumana Akter') : pw('name_ph'))}${field(pw('phone'), o.another ? '1711 234 567' : '01XXXXXXXXX', '', '<span class="pre">+88</span>')}

@@ -16,6 +16,11 @@ export interface CartComboPick {
   part: number;
   variantIds: string[];
 }
+/** A picked option as an order line names it: the option's name as the seller typed it, and the value chosen. */
+export interface ChoicePart {
+  name: string;
+  value: string;
+}
 /** ATR-08: what the shopper answered. */
 export interface CartAnswer {
   attributeId: string;
@@ -31,6 +36,9 @@ export interface CartLine {
   name: string;
   /** The picked options, as the shopper saw them (`M · Navy`). */
   choice: string;
+  /** The same with each option's name, which the lines show in bold (the owner, 2026-11-27: `**Size:** M`); a line
+      from before has only `choice`. */
+  choiceParts?: ChoicePart[];
   /** The price when it was added, so the cart can say when the shop's price has changed since (Slice 12b). */
   price: string;
   image: string | null;
@@ -179,7 +187,7 @@ export class CartStore {
       typeof line.price === 'string' &&
       typeof line.quantity === 'number' &&
       line.quantity > 0 &&
-      [line.modifiers, line.addOns, line.comboPicks, line.answers].every(
+      [line.modifiers, line.addOns, line.comboPicks, line.answers, line.choiceParts].every(
         (part) => part === undefined || Array.isArray(part),
       )
     );
