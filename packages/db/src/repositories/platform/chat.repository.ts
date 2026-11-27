@@ -42,6 +42,8 @@ export interface NewChatMessage {
   systemKind?: ChatSystemKind | null;
   body: string;
   page?: string | null;
+  /** The chat's own clock, which its rules, read marks and clean-ups read too; the database's now() when left out. */
+  createdAt?: Date;
 }
 
 /** A photo kept in the private bucket for one message (LC-8). */
