@@ -40,6 +40,8 @@ export default defineConfig({
       workbox: {
         // API calls are never cached offline: a stale queue or tenant list is worse than a network error.
         navigateFallbackDenylist: [/^\/api\//],
+        // LIVE-CHAT-PLAN LC-4: the worker shows a chat push and opens its chat when tapped (public/push-sw.js).
+        importScripts: ['push-sw.js'],
       },
     }),
   ],

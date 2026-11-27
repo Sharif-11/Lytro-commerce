@@ -19,6 +19,7 @@ import { AccountCards } from './account-card';
 import { DeleteDataPanel, ExtendPanel, OwnerResetPanel } from './account-panels';
 import { AddonsCards } from './addons-card';
 import { OverridesCard } from './overrides-card';
+import { ChatCard } from './chat-card';
 import { CouriersCard } from './couriers-card';
 import { CourierPanel, ErrorsPanel, SalesPanel, SmsPanel, WaitingPanel } from './figure-panels';
 import { ShopFiguresSection, type FigureList } from './figures';
@@ -251,6 +252,7 @@ export function Shop(): React.JSX.Element {
         <PhonesCard shopId={data.id} />
       </div>
       <CouriersCard shopId={data.id} />
+      <ChatCard shopId={data.id} planName={data.planName ?? null} />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <OverridesCard shop={data} adding={overridePanelOpen} onAdd={setOverridePanelOpen} />
         <AccountCards

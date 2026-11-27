@@ -85,6 +85,29 @@ export class ChatSound {
 
 export const chatSound = new ChatSound();
 
+const FAB_KEY = 'lytro.operator.chatFab';
+
+/** LC-4 (`oc-notif`): whether this browser shows the floating button for a waiting chat; on until turned off. */
+export class ChatFabChoice {
+  shown(): boolean {
+    try {
+      return window.localStorage.getItem(FAB_KEY) !== 'off';
+    } catch {
+      return true;
+    }
+  }
+
+  set(shown: boolean): void {
+    try {
+      window.localStorage.setItem(FAB_KEY, shown ? 'on' : 'off');
+    } catch {
+      // A private window may refuse; the choice then lasts this visit.
+    }
+  }
+}
+
+export const chatFabChoice = new ChatFabChoice();
+
 /** LC-3: the console's live connection to every chat, one per tab. */
 export class ChatLive {
   private socket: Socket | null = null;

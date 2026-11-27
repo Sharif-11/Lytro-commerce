@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { ChatSenderKind, type ChatLiveMessage } from '@lytronix/validators';
 import { CHATS_QUERY_KEY, useChatWaiting } from '@/api/chats';
 import { ConsoleIcon } from '@/components/ui/console-icon';
-import { ChatLive, chatSound } from '@/lib/chat-live';
+import { ChatLive, chatFabChoice, chatSound } from '@/lib/chat-live';
 
 const FROM_SHOP: ReadonlySet<string> = new Set([ChatSenderKind.Owner, ChatSenderKind.Staff]);
 const SOUND_CLAIM_KEY = 'lytro.operator.chatSoundFor';
@@ -68,7 +68,11 @@ export function ChatLiveProvider({ children }: { children: ReactNode }): React.J
   }, [queryClient]);
 
   const summary = waiting.data;
-  const shown = summary !== undefined && summary.waiting > 0 && !pathname.startsWith('/inbox');
+  const shown =
+    summary !== undefined &&
+    summary.waiting > 0 &&
+    !pathname.startsWith('/inbox') &&
+    chatFabChoice.shown();
 
   return (
     <ChatLiveContext.Provider value={{ connected }}>
