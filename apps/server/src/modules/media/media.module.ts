@@ -96,6 +96,8 @@ function mediaStorage(env: Env, outside: OutsideCalls): MediaStorage {
     MediaEraser,
     // For payment screenshots (D8-47), which live in the same store.
     MEDIA_STORAGE,
+    // OPERATOR-CONSOLE-DESIGN §10h: a tutorial's file is checked and re-wrapped with the same ffmpeg.
+    VideoProcessor,
   ],
 })
 export class MediaModule {}

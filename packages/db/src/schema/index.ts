@@ -79,3 +79,5 @@ export * from './control/payment-method-types';
 export * from './control/manual-payment-entries';
 export * from './control/limits';
 export * from './control/monitoring';
+export * from './control/tutorials';
+export * from './tenant/tutorials';

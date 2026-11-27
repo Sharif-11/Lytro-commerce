@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
-import { BillingPaymentState, dateField } from '@lytronix/validators';
+import { BillingPaymentState, TutorialsHead, dateField } from '@lytronix/validators';
 
 // BAL-03, BIL-04: submitted payments the operator is still checking.
 const beingCheckedSchema = z.object({ count: z.number(), amount: z.string() });
@@ -60,5 +60,7 @@ export const homeViewSchema = z.object({
       apiKey: z.boolean(),
     })
     .nullable(),
+  // §7.49a: the set-up card's videos, for the owner.
+  tutorialsHead: z.enum(TutorialsHead).nullable(),
 });
 export class HomeViewDto extends createZodDto(homeViewSchema) {}

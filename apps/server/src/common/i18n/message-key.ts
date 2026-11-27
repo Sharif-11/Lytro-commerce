@@ -967,6 +967,20 @@ export const MESSAGE_KEYS = [
   'ChatPhotoNotUploaded',
   'ChatPhotoNotAllowed',
   'ChatQuickRepliesFull',
+  'TutorialsLoaded',
+  'TutorialWatched',
+  'TutorialsDismissed',
+  'TutorialsListed',
+  'TutorialPlaylistSaved',
+  'TutorialUploadStarted',
+  'TutorialPublished',
+  'TutorialRemoved',
+  'TutorialFileNotUploaded',
+  'TutorialFileTooLarge',
+  'TutorialFileNotMp4',
+  'TutorialFileNotPortrait',
+  'TutorialHasNoVideo',
+  'TutorialChangedMeanwhile',
 ] as const;
 
 export type MessageKey = (typeof MESSAGE_KEYS)[number];

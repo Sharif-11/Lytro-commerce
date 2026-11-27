@@ -46,6 +46,8 @@ import { MediaCostsModule } from '../../media-costs/media-costs.module';
 import { ReportsModule } from '../../reports/reports.module';
 import { PaymentEvidenceModule } from '../../payment-evidence/payment-evidence.module';
 import { LiveChatModule } from '../../live-chat/live-chat.module';
+import { TutorialsModule } from '../../tutorials/tutorials.module';
+import { TutorialFilesTickWorker } from './services/tutorial-files-tick-worker';
 import { FraudCheckWorker } from './services/fraud-check-worker';
 import { PackAutoBuyWorker } from './services/pack-auto-buy-worker';
 import { UsageNoticeWorker } from './services/usage-notice-worker';
@@ -98,6 +100,7 @@ import { RawMessagePurgeTickWorker } from './services/raw-message-purge-tick-wor
     ReportsModule,
     PaymentEvidenceModule,
     LiveChatModule,
+    TutorialsModule,
     NotificationsModule,
     NoticesModule,
     ReconciliationModule,
@@ -139,6 +142,7 @@ import { RawMessagePurgeTickWorker } from './services/raw-message-purge-tick-wor
     ShopDayTickWorker,
     EvidenceSweepWorker,
     ChatTickWorker,
+    TutorialFilesTickWorker,
     ReconciliationTickWorker,
     RawMessagePurgeTickWorker,
     NotificationPurgeTickWorker,
