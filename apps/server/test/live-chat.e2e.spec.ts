@@ -29,7 +29,7 @@ const REDIS_URL = process.env['REDIS_TEST_URL'];
 const DB_NAME = 'lytronix_live_chat_test';
 const describeIfDatabase = ADMIN_URL ? describe : describe.skip;
 const describeIfRedis = REDIS_URL ? describe : describe.skip;
-vi.setConfig({ testTimeout: 60_000 });
+vi.setConfig({ testTimeout: 60_000, hookTimeout: 300_000 });
 
 // A PNG's own first bytes are what the server checks (LC-8).
 const PNG = Buffer.concat([

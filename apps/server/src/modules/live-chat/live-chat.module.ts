@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ClientIp } from '../../common/client-ip';
 import { DrizzleChatStore } from '../../database/adapters/live-chat.adapter';
 import { AuditModule } from '../audit/audit.module';
 import { HelpLineModule } from '../help-line/help-line.module';
@@ -39,6 +40,7 @@ import { CHAT_CLOCK, CHAT_STORE } from './tokens';
   providers: [
     { provide: CHAT_STORE, useClass: DrizzleChatStore },
     { provide: CHAT_CLOCK, useValue: (): Date => new Date() },
+    ClientIp,
     ChatBus,
     ChatFeature,
     ChatPush,

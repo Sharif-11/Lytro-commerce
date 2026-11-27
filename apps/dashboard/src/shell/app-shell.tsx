@@ -32,6 +32,7 @@ import { NetBar } from './net-bar';
 import { Splash } from './splash';
 import { useShopManifest } from './use-shop-manifest';
 import { NotificationAlerts } from '@/views/notifications/notification-alerts';
+import { ChatLauncher } from '@/views/chat/chat-launcher';
 import { Unavailable } from '@/views/unavailable';
 import { ImportantPrompt, NoticeBands } from '@/views/notices/notice-bands';
 
@@ -292,6 +293,8 @@ function ShellFrame({ slug, me, tenant, children }: ShellFrameProps): React.JSX.
         {notices.data && notices.data.prompts.length > 0 ? (
           <ImportantPrompt prompts={notices.data.prompts} />
         ) : null}
+        {/* LIVE-CHAT-PLAN §5: the chat with Lytro, for a shop that has it. */}
+        <ChatLauncher />
         <ToastStack toasts={toast.toasts} onDismiss={toast.dismiss} />
       </div>
     </ShellContext.Provider>

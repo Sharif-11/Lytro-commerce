@@ -198,5 +198,22 @@
   "sDesign": "স্টোরফ্রন্ট ডিজাইন",
   "sThemes": "থিম বাছাই",
   "sLogoIcon": "লোগো ও আইকন",
-  "sProductList": "প্রোডাক্ট লিস্ট"
+  "sProductList": "প্রোডাক্ট লিস্ট",
+  "chatOpen": "Lytro-র সাথে চ্যাট",
+  "chatTitle": "Lytro সাপোর্ট",
+  "chatKeep": "{{count}} দিনের পুরোনো মেসেজ নিজে থেকে মুছে যায়",
+  "chatToday": "আজ",
+  "chatYesterday": "গতকাল",
+  "chatOwner": "মালিক",
+  "chatStaff": "স্টাফ",
+  "chatPhotoGone": "ছবি মুছে ফেলা হয়েছে",
+  "chatBusy": "একটু ব্যস্ত আছি — শিগগিরই উত্তর দিচ্ছি। জরুরি হলে WhatsApp করুন।",
+  "chatOffHours": "আমরা {{opens}} থেকে {{closes}} পর্যন্ত উত্তর দিই — {{opensAt}} উত্তর দেব। জরুরি হলে WhatsApp করুন।",
+  "chatWrite": "মেসেজ লিখুন…",
+  "chatPhoto": "ছবি",
+  "chatSend": "পাঠান",
+  "chatPhotoRemove": "ছবিটা বাদ দিন",
+  "chatPhotoRefused": "শুধু 5 MB পর্যন্ত JPG, PNG বা WebP ছবি পাঠানো যায়।",
+  "chatPhotosMax": "একটা মেসেজে সর্বোচ্চ {{count}}টি ছবি।",
+  "chatEmpty": "কোনো সমস্যা বা প্রশ্ন? Lytro-কে লিখুন।"
 }
