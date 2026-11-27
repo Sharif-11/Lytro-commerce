@@ -24,6 +24,7 @@ export type ConsolePath =
   | '/audit'
   | '/inbox'
   | '/notices'
+  | '/tutorials'
   | '/verification'
   | '/manual'
   | '/account';
@@ -78,6 +79,8 @@ export const navGroups: NavGroup[] = [
       // Slice 8.8 (v7): beside Couriers, whose retiring it mirrors.
       { to: '/wallet-types', labelKey: 'nav.walletTypes', icon: 'cards' },
       { to: '/notices', labelKey: 'nav.notices', icon: 'bell' },
+      // OPERATOR-CONSOLE-DESIGN §10h: the tutorial videos in every seller's app, after Notices.
+      { to: '/tutorials', labelKey: 'nav.tutorials', icon: 'play' },
     ],
   },
   // Slice 8.8 (v7): what happened, and what it cost.
