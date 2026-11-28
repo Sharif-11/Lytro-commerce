@@ -1,13 +1,14 @@
 import { SLUG_MAX_LENGTH, SLUG_PATTERN } from '@lytronix/validators';
+import { banglaToLatin } from './bangla-latin';
 
 // AUTH-11 on the client: the address suggested from the shop name, and what typing turns into. Whether an address is
 // free -- taken, reserved, or open -- is the server's alone (GET /shops/address-check, TEN-26), asked as the owner
 // types; this only keeps the field to the address's own letters and spares the server a malformed question.
 export class ShopSlug {
-  /** The address suggested from a shop name: Latin letters and digits, lowercased, other runs as one hyphen,
-      cut at a word boundary (AUTH-11). Empty when the name has no Latin letters. */
+  /** The address suggested from a shop name: its Bangla written in English letters (the owner, 2026-11-28), then
+      Latin letters and digits, lowercased, other runs as one hyphen, cut at a word boundary (AUTH-11). */
   suggest(shopName: string): string {
-    const folded = shopName.normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    const folded = banglaToLatin(shopName).normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase();
     const hyphenated = folded.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
     return this.truncateAtWord(hyphenated, SLUG_MAX_LENGTH);
   }

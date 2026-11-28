@@ -302,9 +302,9 @@ test('fills the link from the name as it is typed, from Latin letters only, unti
   await expect(link).toHaveValue('megh-fashion');
   await expect(page.getByText('megh-fashion.lytro.app')).toBeVisible();
   await expect(page.getByText('app.lytro.app/megh-fashion')).toBeVisible();
-  // A name in Bangla alone has no Latin letters to fill it from (AUTH-11, decided 2026-10-23).
+  // A name in Bangla is written in English letters (AUTH-11; the owner, 2026-11-28).
   await name.fill('মেঘ ফ্যাশন');
-  await expect(link).toHaveValue('');
+  await expect(link).toHaveValue('megh-fashion');
   await link.fill('Megh Shop');
   await expect(link).toHaveValue('megh-shop');
   await name.fill('Something Else');
